@@ -1,0 +1,20 @@
+### Hello World
+GET {{url}}/
+
+> {%
+    client.test("Request executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+
+    client.test("Response content-type is text", function() {
+        const type = response.contentType.mimeType;
+        client.assert(type === "text/plain", "Expected 'application/json' but received '" + type + "'");
+    });
+
+    client.test("Response body is correct", function() {
+        client.assert(response.body === "Hello, World!", "Response body is not correct: " + response.body);
+    });
+%}
+
+###
+POST {{url}}/

@@ -1,7 +1,6 @@
 // 1. Run `cargo add opentelemetry opentelemetry-otlp tracing-opentelemetry tracing-subscriber --features=opentelemetry/rt-tokio,tracing-subscriber/env-filter`
 // 2. add `init_tracing::init_tracing().context("Setting up the opentelemetry exporter")?;` to main.rs
 
-use anyhow::{Context, Result};
 use opentelemetry::propagation::TextMapPropagator;
 use opentelemetry::sdk::propagation::{
     BaggagePropagator, TextMapCompositePropagator, TraceContextPropagator,
@@ -10,11 +9,37 @@ use opentelemetry::sdk::resource::{EnvResourceDetector, SdkProvidedResourceDetec
 use opentelemetry::sdk::{trace as sdktrace, Resource};
 use opentelemetry::trace::TraceError;
 use opentelemetry_otlp::{HasExportConfig, WithExportConfig};
+use snafu::{ResultExt, Whatever};
+use std::panic::PanicInfo;
 use std::time::Duration;
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::registry::Registry;
 use tracing_subscriber::util::SubscriberInitExt;
+
+fn panic_hook(panic_info: &PanicInfo) {
+    let backtrace = std::backtrace::Backtrace::force_capture();
+
+    let payload = panic_info.payload();
+
+    #[allow(clippy::manual_map)]
+    let payload = if let Some(s) = payload.downcast_ref::<&str>() {
+        Some(&**s)
+    } else if let Some(s) = payload.downcast_ref::<String>() {
+        Some(s.as_str())
+    } else {
+        None
+    };
+
+    let location = panic_info.location().map(|l| l.to_string());
+
+    tracing::error!(
+        exception.message = payload,
+        exception.location = location,
+        exception.stacktrace = %backtrace,
+        "A panic occurred",
+    );
+}
 
 /// Configure the global propagator based on content of the env variable [OTEL_PROPAGATORS](https://opentelemetry.io/docs/concepts/sdk-configuration/general-sdk-configuration/#otel_propagators)
 /// Specifies Propagators to be used in a comma-separated list.
@@ -71,7 +96,7 @@ fn propagator_from_string(
     }
 }
 
-fn init_tracer() -> Result<sdktrace::Tracer> {
+fn init_tracer() -> Result<sdktrace::Tracer, Whatever> {
     let mut exporter = opentelemetry_otlp::new_exporter().tonic().with_env();
 
     println!(
@@ -92,15 +117,20 @@ fn init_tracer() -> Result<sdktrace::Tracer> {
 
     println!("Using opentelemetry resources {:?}", resource);
 
-    Ok(opentelemetry_otlp::new_pipeline()
+    opentelemetry_otlp::new_pipeline()
         .tracing()
         .with_exporter(exporter)
         .with_trace_config(sdktrace::config().with_resource(resource))
-        .install_batch(opentelemetry::runtime::Tokio)?)
+        .install_batch(opentelemetry::runtime::Tokio)
+        .whatever_context("Setting up the opentelemetry tracer")
 }
 
-pub fn init_tracing() -> Result<()> {
-    let tracer = init_tracer().context("Setting up the opentelemetry exporter")?;
+pub fn init_tracing() -> Result<(), Whatever> {
+    std::panic::set_hook(Box::new(|panic_info| {
+        panic_hook(panic_info);
+    }));
+
+    let tracer = init_tracer().whatever_context("Setting up the opentelemetry exporter")?;
 
     let default = concat!(env!("CARGO_CRATE_NAME"), "=trace")
         .parse()
@@ -121,7 +151,7 @@ pub fn init_tracing() -> Result<()> {
         .with(tracing_opentelemetry::layer().with_tracer(tracer))
         .init();
 
-    init_propagator().context("Setting up the opentelemetry propagator")?;
+    init_propagator().whatever_context("Setting up the opentelemetry propagator")?;
 
     Ok(())
 }
