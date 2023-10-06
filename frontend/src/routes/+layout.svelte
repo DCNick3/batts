@@ -1,36 +1,31 @@
 <script>
-  import "../style.css"
+	import '../app.postcss';
+	import '../style.css';
+	import { Sidebar, SidebarWrapper, SidebarGroup, SidebarItem } from 'flowbite-svelte'
 </script>
 
 <div class="page">
-  <div class="panel">
-    <h1><a href="/">Batts</a></h1>
-  </div>
+	<!-- <div class="panel">
+		<h1><a href="/">Batts</a></h1>
+	</div> -->
 
-  <slot />
+	<Sidebar asideClass="w-64 bg-slate-50">
+		<SidebarWrapper divClass="space-y-auto rounded dark:bg-gray-700 p-4">
+			<SidebarGroup>
+				<SidebarItem label="Batts" href="/" spanClass="mx-auto text-lg"/>
+			</SidebarGroup>
+		</SidebarWrapper>
+	</Sidebar>
+
+	<div class="flex flex-col w-full p-10 gap-6">
+		<slot />
+	</div>
 </div>
 
 <style>
-  .page {
-    display: flex;
-    flex: 1 1 100%;
-    height: 100vh;
-  }
-
-  .panel {
-    display: flex;
-    flex-direction: column;
-    padding: 1em;
-    background-color: rgba(214, 238, 248, 0.952);
-    min-width: 200px;
-  }
-
-  h1 {
-    margin: 0 auto;
-  }
-
-  a {
-    text-decoration: none;
-    color: black;
-  }
+	.page {
+		display: flex;
+		flex: 1 1 100%;
+		height: 100vh;
+	}
 </style>
