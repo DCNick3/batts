@@ -5,10 +5,6 @@
 </script>
 
 <div class="page">
-	<!-- <div class="panel">
-		<h1><a href="/">Batts</a></h1>
-	</div> -->
-
 	<Sidebar asideClass="w-64 bg-slate-50">
 		<SidebarWrapper divClass="space-y-auto rounded dark:bg-gray-700 p-4">
 			<SidebarGroup>

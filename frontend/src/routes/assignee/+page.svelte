@@ -8,18 +8,14 @@
     Timeline,
     TimelineItem
   } from 'flowbite-svelte';
-  export let data
+	import TicketList from '$lib/components/TicketList.svelte'
+
+	export let data
+
+	$: ticks = data.requests.map(r => ({
+		receiver: r.sender,
+		...r
+	}))
 </script>
 
-<Table>
-	<TableHead>
-		<TableHeadCell>Topic</TableHeadCell>
-		<TableHeadCell>Status</TableHeadCell>
-	</TableHead>
-		{#each data.requests as ticket}
-			<TableBody>
-				<TableBodyCell>{ticket.topic}</TableBodyCell>
-				<TableBodyCell>{ticket.status}</TableBodyCell>
-			</TableBody>
-		{/each}
-</Table>
+<TicketList tickets={ticks}/>
