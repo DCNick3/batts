@@ -1,17 +1,41 @@
 <script>
-	import { Label, Input, Textarea, Select, Button, Timeline, TimelineItem } from 'flowbite-svelte'
+	import {
+		Badge,
+		Button,
+		Input,
+		Label,
+		Table,
+		TableHead,
+		TableHeadCell,
+		TableBody,
+		TableBodyCell,
+		Textarea,
+		Timeline,
+		TimelineItem, 
+		TableBodyRow
+	} from 'flowbite-svelte'
+	// @ts-ignore
 	import AutoComplete from "simple-svelte-autocomplete"
 
 	import { twMerge } from 'tailwind-merge'
-	export let defaultClass = 'text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500';
+	let defaultClass = 'text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500';
 	$: autocompleteClass = twMerge('block w-full', defaultClass, 'text-sm p-2.5', $$props.class);
 
+	// @ts-ignore
 	export let data;
+
+	// @ts-ignore
+	function status2color (status) {
+		if (status === "Pending") return "yellow"
+		if (status === "Fixed") return "green"
+		if (status === "In process") return "blue"
+		return "primary"
+	}
 </script>
 
 <form
 	method="POST"
-	action="?/create"
+	action="?/submit"
 	class="flex flex-col gap-4"
 >
 	<Label>
@@ -27,14 +51,6 @@
 			required
 		/>
 	</Label>
-	<!-- <Label>
-		Submit To:
-		<Select
-			class="mt-1"
-			items={data.receivers.map(r => ({ value : r.id, name : r.name }))}
-			required
-		/>
-	</Label> -->
 	<Label>
 		Topic:
 		<Input class="mt-1" name="topic" required />
@@ -54,31 +70,37 @@
 
 <h1 class="mx-auto mt-10 text-xl font-semibold">Submitted requests</h1>
 
-<Timeline order="vertical" class="mx-auto mt-6">
-  {#each data.requests as ticket}
-    <TimelineItem title={ticket.topic}>
-      <p><strong>To:</strong> {ticket.receiver}</p>
-      <p><strong>Status:</strong> {ticket.status}</p>
-    </TimelineItem>
-  {/each}
-</Timeline>
-<!-- <ul>
-	{#each data.requests as request}
-		<li><strong>To:</strong> {request.receiver}, <strong>Topic:</strong> {request.topic}, <strong>Status:</strong> {request.status}</li>
-	{/each}
-</ul> -->
-
-
-<!-- <style>
-
-	ul {
-		margin: 0;
-		padding: 0;
-		list-style: none;
-	}
-
-	li {
-		margin: 10px 0;
-	}
-
-</style> -->
+<Table hoverable color="default" class="border rounded-md border-separate border-spacing-0">
+	<colgroup>
+		<col class="w-16"/>
+		<col class="w-48"/>
+		<col class="w-fit"/>
+	</colgroup>
+	<TableBody tableBodyClass="rounded-sm">
+		{#each data.requests as ticket}
+			<TableBodyRow class={"first:rounded-t-sm last:rounded-b-sm" + (ticket.up ? " bg-gray-50" : "")}>
+				<TableBodyCell
+					class="px-2 text-sm rounded-l-md text-center"
+				>
+					<Badge rounded color={status2color(ticket.status)}>
+						{ticket.status}
+					</Badge>
+				</TableBodyCell>
+				<TableBodyCell
+					class="text-sm text-slate-500"
+				>
+					<a href="/">
+						{ticket.receiver}
+					</a>
+				</TableBodyCell>
+				<TableBodyCell
+					class="text-base font-semibold rounded-r-md"
+				>
+					<a href="/">
+						{ticket.topic}
+					</a>
+				</TableBodyCell>
+			</TableBodyRow>
+		{/each}
+	</TableBody>
+</Table>

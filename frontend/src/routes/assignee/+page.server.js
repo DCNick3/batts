@@ -1,4 +1,4 @@
-import { getRequests } from "$lib/server/data"
+import { getRequests } from "$lib/server/database"
 
 export function load() {
   return {

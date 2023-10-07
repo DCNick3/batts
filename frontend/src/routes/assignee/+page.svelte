@@ -1,13 +1,25 @@
 <script>
-  import { Timeline, TimelineItem } from 'flowbite-svelte';
+  import {
+    Table,
+		TableHead,
+		TableHeadCell,
+		TableBody,
+		TableBodyCell,
+    Timeline,
+    TimelineItem
+  } from 'flowbite-svelte';
   export let data
 </script>
 
-<Timeline order="vertical">
-  {#each data.requests as ticket}
-    <TimelineItem title={ticket.topic}>
-      <p><strong>To:</strong> {ticket.receiver}</p>
-      <p><strong>Status:</strong> {ticket.status}</p>
-    </TimelineItem>
-  {/each}
-</Timeline>
+<Table>
+	<TableHead>
+		<TableHeadCell>Topic</TableHeadCell>
+		<TableHeadCell>Status</TableHeadCell>
+	</TableHead>
+		{#each data.requests as ticket}
+			<TableBody>
+				<TableBodyCell>{ticket.topic}</TableBodyCell>
+				<TableBodyCell>{ticket.status}</TableBodyCell>
+			</TableBody>
+		{/each}
+</Table>
