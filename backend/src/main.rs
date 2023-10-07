@@ -1,4 +1,5 @@
 mod api_result;
+mod auth;
 mod domain;
 mod error;
 mod extractors;
@@ -8,16 +9,20 @@ mod memory_view_repository;
 mod state;
 
 use crate::api_result::ApiResult;
+use crate::auth::UserClaims;
 use crate::domain::ticket::{TicketCommand, TicketView};
 use crate::domain::user::{IdentityView, UserCommand, UserView};
-use crate::error::{Error, PersistenceSnafu, TicketSnafu, UserSnafu};
-use crate::extractors::{Json, Path, State};
+use crate::error::{Error, PersistenceSnafu, TicketSnafu, UserSnafu, WhateverSnafu};
+use crate::extractors::{Json, Path, State, UserContext};
 use crate::id::Id;
 use crate::state::{new_application_state, ApplicationState};
+use axum::routing::post;
 use axum::{routing::get, Router};
+use axum_extra::extract::CookieJar;
 use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
 use cqrs_es::persist::ViewRepository;
 use snafu::{ResultExt, Whatever};
+use std::cell::Cell;
 use std::net::SocketAddr;
 use tower_http::catch_panic::CatchPanicLayer;
 use tracing::{debug, warn};
@@ -52,7 +57,8 @@ fn make_api_router() -> Router<ApplicationState> {
     if cfg!(feature = "expose-internal-routes") {
         router = router
             .route("/users/:id", get(user_query).post(user_command))
-            .route("/user-identities/:id", get(user_identity));
+            .route("/user-identities/:id", get(user_identity))
+            .route("/fake-login/:id", post(fake_login))
     }
 
     router.fallback(fallback)
@@ -96,6 +102,7 @@ async fn tickets_query(
 }
 
 async fn tickets_command(
+    user_context: UserContext,
     State(state): State<ApplicationState>,
     Path(id): Path<Id>,
     Json(command): Json<TicketCommand>,
@@ -103,7 +110,7 @@ async fn tickets_command(
     ApiResult::from_result(
         state
             .ticket_cqrs
-            .execute(&id.to_string(), command)
+            .execute(&id.to_string(), user_context.authenticated(command))
             .await
             .context(TicketSnafu),
     )
@@ -151,4 +158,39 @@ async fn user_identity(
         identity_view.ok_or(Error::NotFound)
     })
     .await
+}
+
+async fn fake_login(
+    jar: CookieJar,
+    State(state): State<ApplicationState>,
+    Path(id): Path<Id>,
+) -> (CookieJar, ApiResult<()>) {
+    let mut jar = Cell::new(jar);
+
+    let result = ApiResult::from_async_fn(|| async {
+        let Some(user) = state
+            .user_view_repository
+            .load(&id.to_string())
+            .await
+            .context(PersistenceSnafu)?
+        else {
+            return Err(Error::NotFound);
+        };
+
+        let cookie = state
+            .authority
+            .create_signed_cookie(UserClaims {
+                user_id: user.id,
+                name: user.name,
+            })
+            .context(WhateverSnafu)?;
+
+        let new_jar = jar.get_mut().clone().add(cookie);
+        jar.set(new_jar);
+
+        Ok(())
+    })
+    .await;
+
+    (jar.into_inner(), result)
 }

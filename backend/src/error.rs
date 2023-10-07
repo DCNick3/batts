@@ -2,7 +2,7 @@ use crate::domain::ticket::TicketError;
 use crate::domain::user::UserError;
 use axum::http::StatusCode;
 use cqrs_es::AggregateError;
-use snafu::Snafu;
+use snafu::{Snafu, Whatever};
 
 pub trait ApiError {
     fn status_code(&self) -> StatusCode;
@@ -24,6 +24,8 @@ pub enum Error {
     Persistence {
         source: cqrs_es::persist::PersistenceError,
     },
+    /// Auth error
+    Auth { source: crate::auth::AuthError },
     /// Error while manipulating a ticket
     Ticket { source: AggregateError<TicketError> },
     /// Error while manipulating a user
@@ -32,6 +34,8 @@ pub enum Error {
     NotFound,
     /// Could not find a route for the request
     RouteNotFound,
+    /// Internal error
+    Whatever { source: Whatever },
 }
 
 impl ApiError for Error {
@@ -40,10 +44,12 @@ impl ApiError for Error {
             Error::Json { source } => source.status(),
             Error::Path { source } => source.status(),
             Error::Persistence { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+            Error::Auth { source } => source.status_code(),
             Error::Ticket { source } => source.status_code(),
             Error::User { source } => source.status_code(),
             Error::NotFound => StatusCode::NOT_FOUND,
             Error::RouteNotFound => StatusCode::NOT_FOUND,
+            Error::Whatever { .. } => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }

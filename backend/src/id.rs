@@ -4,19 +4,12 @@ use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Id(Uuid);
 
 impl Id {
     pub fn is_default(&self) -> bool {
         self.0 == Uuid::from_bytes([0; 16])
-    }
-}
-
-/// A backdoor to have better types when implementing the query
-impl Default for Id {
-    fn default() -> Self {
-        Id(Uuid::from_bytes([0; 16]))
     }
 }
 

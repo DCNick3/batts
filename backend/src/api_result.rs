@@ -18,6 +18,9 @@ impl<T> ApiResult<T> {
     pub fn ok(value: T) -> Self {
         Self(Ok(value))
     }
+    pub fn err(error: impl Into<crate::error::Error>) -> Self {
+        Self(Err(error.into()))
+    }
     pub fn from_result(result: Result<T, crate::error::Error>) -> Self {
         Self(result)
     }

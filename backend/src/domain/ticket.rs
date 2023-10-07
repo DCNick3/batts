@@ -1,3 +1,5 @@
+use crate::auth::Authenticated;
+use crate::domain::user::UserId;
 use crate::error::ApiError;
 use crate::id::Id;
 use async_trait::async_trait;
@@ -7,15 +9,19 @@ use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 use std::str::FromStr;
 
+#[derive(Default, Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct TicketId(pub Id);
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum TicketCommand {
-    Create { title: String, body: String }, // TODO provide user context
+    Create { title: String, body: String },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum TicketEvent {
-    Create { title: String },
+    Create { owner: UserId, title: String },
     Message { text: String },
 }
 
@@ -48,6 +54,7 @@ impl ApiError for TicketError {
 
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct TicketContent {
+    pub owner: UserId,
     pub title: String,
     pub messages: Vec<String>,
 }
@@ -61,7 +68,7 @@ pub enum Ticket {
 
 #[async_trait]
 impl Aggregate for Ticket {
-    type Command = TicketCommand;
+    type Command = Authenticated<TicketCommand>;
     type Event = TicketEvent;
     type Error = TicketError;
     type Services = ();
@@ -75,13 +82,16 @@ impl Aggregate for Ticket {
         command: Self::Command,
         _service: &Self::Services,
     ) -> Result<Vec<Self::Event>, Self::Error> {
-        match command {
+        match command.payload {
             TicketCommand::Create { title, body } => {
                 let Ticket::NotCreated = self else {
                     return Err(TicketError::AlreadyExists);
                 };
                 Ok(vec![
-                    TicketEvent::Create { title },
+                    TicketEvent::Create {
+                        owner: command.user_id,
+                        title,
+                    },
                     TicketEvent::Message { text: body },
                 ])
             }
@@ -90,11 +100,12 @@ impl Aggregate for Ticket {
 
     fn apply(&mut self, event: Self::Event) {
         match event {
-            TicketEvent::Create { title } => {
+            TicketEvent::Create { owner, title } => {
                 let Ticket::NotCreated = self else {
                     panic!("Ticket already created");
                 };
                 *self = Ticket::Created(TicketContent {
+                    owner,
                     title,
                     messages: vec![],
                 });
@@ -111,19 +122,21 @@ impl Aggregate for Ticket {
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct TicketView {
-    pub id: Id,
+    pub id: TicketId,
+    pub owner: UserId,
     pub title: String,
     pub messages: Vec<String>,
 }
 
 impl View<Ticket> for TicketView {
     fn update(&mut self, event: &EventEnvelope<Ticket>) {
-        if self.id.is_default() {
-            self.id = Id::from_str(&event.aggregate_id).unwrap();
+        if self.id.0.is_default() {
+            self.id = TicketId(Id::from_str(&event.aggregate_id).unwrap());
         }
 
         match &event.payload {
-            TicketEvent::Create { title } => {
+            TicketEvent::Create { owner, title } => {
+                self.owner = *owner;
                 self.title = title.clone();
             }
             TicketEvent::Message { text } => {

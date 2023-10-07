@@ -1,3 +1,4 @@
+use crate::auth::Authority;
 use crate::domain::ticket::{Ticket, TicketView};
 use crate::domain::user::{IdentityQuery, IdentityView, User, UserServices, UserView};
 use crate::memory_view_repository::MemViewRepository;
@@ -12,6 +13,8 @@ type MyGenericQuery<V, A> = GenericQuery<MyViewRepository<V, A>, V, A>;
 
 #[derive(Clone)]
 pub struct ApplicationState {
+    pub authority: Authority,
+
     pub ticket_view_repository: Arc<MyViewRepository<TicketView, Ticket>>,
     pub ticket_cqrs: Arc<MyCqrsFramework<Ticket>>,
 
@@ -21,6 +24,19 @@ pub struct ApplicationState {
 }
 
 pub async fn new_application_state() -> ApplicationState {
+    let authority = Authority::new(
+        "session",
+        ed25519_dalek::Keypair::from_bytes(&[
+            // TODO: replace this hard-coded key with something more secure
+            0x5c, 0x6a, 0xc5, 0xf2, 0xb8, 0x12, 0xf1, 0x9d, 0x7e, 0x70, 0xd1, 0xe4, 0x9a, 0x28,
+            0x20, 0xa6, 0x5b, 0xba, 0xb8, 0x9a, 0xa3, 0x76, 0x0d, 0xb0, 0x80, 0x53, 0xe4, 0x3d,
+            0x7a, 0x5d, 0x27, 0x08, 0x3a, 0xb6, 0xf8, 0x28, 0xf2, 0x69, 0x04, 0x61, 0xd7, 0x05,
+            0xdb, 0x89, 0x1d, 0x0d, 0xef, 0x94, 0x6e, 0xdd, 0xc2, 0x44, 0xf2, 0x92, 0xa3, 0x67,
+            0x71, 0x80, 0x31, 0xe5, 0xb2, 0xcb, 0x8f, 0xc0,
+        ])
+        .unwrap(),
+    );
+
     let ticket_view_repository = Arc::new(MyViewRepository::<TicketView, Ticket>::new());
     let ticket_view_query =
         MyGenericQuery::<TicketView, Ticket>::new(ticket_view_repository.clone());
@@ -51,6 +67,8 @@ pub async fn new_application_state() -> ApplicationState {
     let user_cqrs = Arc::new(user_cqrs);
 
     ApplicationState {
+        authority,
+
         ticket_view_repository,
         ticket_cqrs,
 

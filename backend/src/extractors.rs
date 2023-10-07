@@ -1,5 +1,5 @@
 use crate::api_result::ApiResult;
-use crate::error::{JsonSnafu, PathSnafu};
+use crate::error::{AuthSnafu, JsonSnafu, PathSnafu};
 use async_trait::async_trait;
 use axum::body::HttpBody;
 use axum::extract::{FromRequest, FromRequestParts};
@@ -7,9 +7,13 @@ use axum::http::request::Parts;
 use axum::http::Request;
 use axum::BoxError;
 use serde::de::DeserializeOwned;
-use snafu::IntoError;
+use snafu::{IntoError, ResultExt};
 
+use crate::auth::{Authenticated, UserClaims};
+use crate::domain::user::UserId;
+use crate::state::ApplicationState;
 pub use axum::extract::State;
+use axum_extra::extract::CookieJar;
 
 /// See [`axum::Json`] for more details.
 pub struct Json<T>(pub T);
@@ -47,21 +51,41 @@ where
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         match axum::extract::Path::<T>::from_request_parts(parts, _state).await {
             Ok(path) => Ok(Path(path.0)),
-            Err(err) => Err(ApiResult::from_result(Err(PathSnafu.into_error(err)))),
+            Err(err) => Err(ApiResult::err(PathSnafu.into_error(err))),
         }
     }
 }
 
-pub struct UserContext;
+pub struct UserContext(UserClaims);
+
+impl UserContext {
+    pub fn user_id(&self) -> UserId {
+        self.0.user_id
+    }
+    pub fn authenticated<T>(&self, payload: T) -> Authenticated<T> {
+        Authenticated {
+            user_id: self.0.user_id,
+            payload,
+        }
+    }
+}
 
 #[async_trait]
-impl<S> FromRequestParts<S> for UserContext
-where
-    S: Send + Sync,
-{
+impl FromRequestParts<ApplicationState> for UserContext {
     type Rejection = ApiResult;
 
-    async fn from_request_parts(_parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        Ok(UserContext)
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &ApplicationState,
+    ) -> Result<Self, Self::Rejection> {
+        let cookies = CookieJar::from_headers(&parts.headers);
+
+        let token = state
+            .authority
+            .extract_from_cookie(cookies.get(state.authority.cookie_name))
+            .context(AuthSnafu)
+            .map_err(ApiResult::err)?;
+
+        Ok(Self(token.claims().custom.clone()))
     }
 }

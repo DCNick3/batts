@@ -11,6 +11,10 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::warn;
 
+#[derive(Default, Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct UserId(pub Id);
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum UserCommand {
@@ -246,7 +250,7 @@ impl Aggregate for User {
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct UserView {
-    pub id: Id,
+    pub id: UserId,
     pub name: String,
     pub identities: UserIdentities,
 }
@@ -255,7 +259,7 @@ impl View<User> for UserView {
     fn update(&mut self, event: &EventEnvelope<User>) {
         match &event.payload {
             UserEvent::Created { name } => {
-                self.id = Id::from_str(&event.aggregate_id).unwrap();
+                self.id = UserId(Id::from_str(&event.aggregate_id).unwrap());
                 self.name = name.clone();
             }
             UserEvent::IdentityAdded { profile } => {
@@ -267,12 +271,12 @@ impl View<User> for UserView {
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct IdentityView {
-    pub user_id: Id,
+    pub user_id: UserId,
 }
 
 impl View<User> for IdentityView {
     fn update(&mut self, event: &EventEnvelope<User>) {
-        let id = Id::from_str(&event.aggregate_id).unwrap();
+        let id = UserId(Id::from_str(&event.aggregate_id).unwrap());
         self.user_id = id;
     }
 }
@@ -299,7 +303,7 @@ where
     R: ViewRepository<IdentityView, User>,
 {
     async fn dispatch(&self, aggregate_id: &str, events: &[EventEnvelope<User>]) {
-        let user_id = Id::from_str(aggregate_id).unwrap();
+        let user_id = UserId(Id::from_str(aggregate_id).unwrap());
 
         for event in events {
             if let UserEvent::IdentityAdded { profile } = &event.payload {
