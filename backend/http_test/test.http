@@ -1,0 +1,57 @@
+### Hello World
+GET {{url}}/
+
+> {%
+    client.test("Request executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+
+    client.test("Response content-type is text", function() {
+        const type = response.contentType.mimeType;
+        client.assert(type === "text/plain", "Expected 'application/json' but received '" + type + "'");
+    });
+
+    client.test("Response body is correct", function() {
+        client.assert(response.body === "Hello, World!", "Response body is not correct: " + response.body);
+    });
+%}
+
+###
+POST {{url}}/
+
+### Create a new user
+POST {{url}}/api/users/FDUeanyKADQEpyrydYn7XB
+Content-Type: application/json
+
+{
+  "type": "Create",
+  "profile": {
+    "type": "Telegram",
+    "id": 123456,
+    "first_name": "Edward",
+    "last_name": "Snowden"
+  }
+}
+
+> {%
+    client.test("Request executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200, but " + response.status);
+    });
+
+    client.test("Response content-type is application/json", function() {
+        const type = response.contentType.mimeType;
+        client.assert(type === "application/json", "Expected 'application/json' but received '" + type + "'");
+    });
+
+    client.test("API envelope indicates success", function() {
+        if (response.body.status !== "Success") {
+            throw new Error("Response contains an error: " + response.body.payload.report);
+        }
+    });
+%}
+
+### Get user
+GET {{url}}/api/users/FDUeanyKADQEpyrydYn7XB
+
+### Get user by Telegram ID
+GET {{url}}/api/user-identities/telegram-123456

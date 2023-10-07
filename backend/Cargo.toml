@@ -21,7 +21,6 @@ snafu = "0.7.5"
 
 uuid = { version = "1.4.1" }
 bs58 = "0.5.0"
-thiserror = "1.0.48"
 
 cqrs-es = "0.4.10"
 async-trait = "0.1.52"
@@ -33,3 +32,6 @@ opentelemetry = { version = "0.20.0", features = ["rt-tokio"] }
 opentelemetry-otlp = "0.13.0"
 tracing-opentelemetry-instrumentation-sdk = "0.14.1"
 axum-tracing-opentelemetry = "0.14.1"
+
+[features]
+expose-internal-routes = []

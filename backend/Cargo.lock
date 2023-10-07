@@ -328,7 +328,6 @@ dependencies = [
  "serde",
  "serde_json",
  "snafu",
- "thiserror",
  "tokio",
  "tower",
  "tower-http",

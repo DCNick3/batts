@@ -51,3 +51,17 @@ where
         }
     }
 }
+
+pub struct UserContext;
+
+#[async_trait]
+impl<S> FromRequestParts<S> for UserContext
+where
+    S: Send + Sync,
+{
+    type Rejection = ApiResult;
+
+    async fn from_request_parts(_parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        Ok(UserContext)
+    }
+}

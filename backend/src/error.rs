@@ -1,4 +1,5 @@
 use crate::domain::ticket::TicketError;
+use crate::domain::user::UserError;
 use axum::http::StatusCode;
 use cqrs_es::AggregateError;
 use snafu::Snafu;
@@ -25,8 +26,12 @@ pub enum Error {
     },
     /// Error while manipulating a ticket
     Ticket { source: AggregateError<TicketError> },
+    /// Error while manipulating a user
+    User { source: AggregateError<UserError> },
     /// The requested object was not found
     NotFound,
+    /// Could not find a route for the request
+    RouteNotFound,
 }
 
 impl ApiError for Error {
@@ -36,7 +41,9 @@ impl ApiError for Error {
             Error::Path { source } => source.status(),
             Error::Persistence { .. } => StatusCode::INTERNAL_SERVER_ERROR,
             Error::Ticket { source } => source.status_code(),
+            Error::User { source } => source.status_code(),
             Error::NotFound => StatusCode::NOT_FOUND,
+            Error::RouteNotFound => StatusCode::NOT_FOUND,
         }
     }
 }
