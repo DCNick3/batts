@@ -1,6 +1,7 @@
 <script>
-	import '../app.postcss';
-	import '../style.css';
+	import '../app.postcss'
+	import '../style.css'
+	import logo from '$lib/assets/batts_logo_512.png'
 	import { Sidebar, SidebarWrapper, SidebarGroup, SidebarItem } from 'flowbite-svelte'
 </script>
 
@@ -8,7 +9,11 @@
 	<Sidebar asideClass="w-64 bg-slate-50">
 		<SidebarWrapper divClass="space-y-auto rounded dark:bg-gray-700 p-4">
 			<SidebarGroup>
-				<SidebarItem label="Batts" href="/" spanClass="mx-auto text-lg"/>
+				<SidebarItem href="/" spanClass="mx-auto text-lg">
+					<svelte:fragment slot="icon">
+						<img src={logo} alt="A green bat"/>
+					</svelte:fragment>
+				</SidebarItem>
 			</SidebarGroup>
 		</SidebarWrapper>
 	</Sidebar>
