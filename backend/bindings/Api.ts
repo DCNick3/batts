@@ -12,6 +12,8 @@ import type {
     TicketView
 } from "@";
 
+// import { toDates, toDatesByArray } from 'ts-transformer-dates';
+
 import {v4 as uuidv4, parse as parseUuid} from 'uuid'
 import bs58 from "bs58";
 
@@ -35,6 +37,11 @@ export class Api {
         return await res.json();
     }
 
+    async #get<T extends object>(url: string): Promise<ApiResult<T>> {
+        const res = await this.fetch(url);
+        return await res.json();
+    }
+
     async internalCreateUser(id: UserId, profile: ExternalUserProfile): Promise<ApiResult<null>> {
         let command: UserCommand = {type: "Create", profile};
         return await this.#sendCommand(`/api/users/${id}`, command);
@@ -48,13 +55,11 @@ export class Api {
     }
 
     async getMe(): Promise<ApiResult<UserView>> {
-        const res = await this.fetch('/api/users/me');
-        return await res.json();
+        return await this.#get('/api/users/me');
     }
 
     async getUserProfile(id: UserId): Promise<ApiResult<UserProfileView>> {
-        const res = await this.fetch(`/api/users/${id}/profile`);
-        return await res.json();
+        return await this.#get(`/api/users/${id}/profile`);
     }
 
     async createTicket(id: TicketId, creation: CreateTicket): Promise<ApiResult<null>> {
@@ -63,8 +68,7 @@ export class Api {
     }
 
     async getTicket(id: TicketId): Promise<ApiResult<TicketView>> {
-        const res = await this.fetch(`/api/tickets/${id}`);
-        return await res.json();
+        return await this.#get(`/api/tickets/${id}`);
     }
 }
 

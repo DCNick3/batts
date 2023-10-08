@@ -1,5 +1,5 @@
-import { test } from 'uvu';
-import * as assert from 'uvu/assert';
+import { expect, test } from 'vitest'
+
 import nodeFetch from 'node-fetch';
 import makeFetchCookie from 'fetch-cookie';
 
@@ -8,8 +8,40 @@ import { Api, generateId, FetchFn, UserId, ApiError, ApiResult } from "@";
 const BASE_URL = "http://localhost:3000";
 
 function makeApi(): Api {
-    const cookiedFetch = makeFetchCookie(nodeFetch);
+    const loggingFetch: FetchFn = async (url, init) => {
+        const requestType = init?.method ?? "GET";
+        let headers = init?.headers ?? [];
+        let headersArr: [string, string][];
+        if (typeof headers === 'object') {
+            headersArr = Object.entries(headers);
+        } else {
+            headersArr = headers;
+        }
+        const headersStr = (headersArr.length > 0)
+            ? headersArr.map(([k, v]) => `${k}: ${v}`).join("\n") + "\n"
+            : '';
+        const bodyStr = (init?.body !== undefined)
+            ? init.body + '\n\n'
+            : '';
+
+        const rq = `\n###\n${requestType} ${url}\n${headersStr}\n${bodyStr}`;
+
+        const response = await nodeFetch(url, init);
+
+        const statusLine = `HTTP/1.1 ${response.status} ${response.statusText}`;
+        const responseHeaders = Object.entries(response.headers.raw());
+        const headersStr2 = responseHeaders.map(([k, v]) => `${k}: ${v}`).join("\n");
+
+        const resp = `${statusLine}\n${headersStr2}\n\n${await response.clone().text()}`;
+
+        console.debug(rq + resp);
+
+        return response;
+    };
+
+    const cookiedFetch = makeFetchCookie(loggingFetch);
     const testFetch: FetchFn = async (url, init) => {
+
         const resp = await cookiedFetch(BASE_URL + url, init);
         // console.log(url, resp.headers);
         return resp;
@@ -35,6 +67,7 @@ function unwrapErr<T>(result: ApiResult<T>): ApiError {
 
 async function makeFakeUser(api: Api): Promise<UserId> {
     const userId = generateId();
+    console.log("Creating fake user", userId);
     unwrap(await api.internalCreateUser(userId, {
         type: "Telegram",
         id: 123456,
@@ -49,22 +82,21 @@ async function makeFakeUser(api: Api): Promise<UserId> {
     return userId;
 }
 
-test('get_me', async () => {
+test("get_me", async () => {
     const api = makeApi();
     const userId = await makeFakeUser(api);
 
     const me = unwrap(await api.getMe())
 
-    assert.is(me.id, userId);
-    assert.is(me.identities.university, null);
-    assert.is(me.identities.telegram.id, 123456);
-    assert.is(me.identities.telegram.first_name, "Edward");
-    assert.is(me.identities.telegram.last_name, "Snowden");
-    assert.is(me.identities.telegram.username, null);
-    assert.is(me.identities.telegram.photo_url, null);
-});
-
-test('create_ticket', async () => {
+    expect(me.id).toBe(userId);
+    expect(me.identities.university).toBe(null);
+    expect(me.identities.telegram.id).toBe(123456);
+    expect(me.identities.telegram.first_name, "Edward");
+    expect(me.identities.telegram.last_name, "Snowden");
+    expect(me.identities.telegram.username).toBe(null);
+    expect(me.identities.telegram.photo_url).toBe(null);
+})
+test("create_ticket", async () => {
     const api = makeApi();
     const userId = await makeFakeUser(api);
     const ticketId = generateId();
@@ -75,15 +107,13 @@ test('create_ticket', async () => {
     }));
 
     const ticket = unwrap(await api.getTicket(ticketId));
-    assert.is(ticket.id, ticketId);
-    assert.is(ticket.title, "Everything is broken");
-    assert.is(ticket.timeline.length, 1);
+    expect(ticket.id).toBe(ticketId);
+    expect(ticket.title).toBe("Everything is broken");
+    expect(ticket.timeline.length).toBe(1);
     const timelineItem = ticket.timeline[0];
-    assert.is(timelineItem.content.type, "Message");
+    expect(timelineItem.content.type, "Message");
     if (timelineItem.content.type === "Message") {
-        assert.is(timelineItem.content.text, "I can't do anything");
-        assert.is(timelineItem.content.from, userId);
+        expect(timelineItem.content.text).toBe("I can't do anything");
+        expect(timelineItem.content.from).toBe(userId);
     }
 })
-
-test.run();

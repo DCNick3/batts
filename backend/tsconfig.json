@@ -1,15 +1,25 @@
 {
   "compilerOptions": {
     "paths": {
-      "@": ["./index.ts"],
+      "@": ["./index.ts"]
     },
     "outDir": "dist",
+    "declaration": true,
     "ignoreDeprecations": "5.0",
     // we don't _actually_ have DOM access (esp in tests), but we want to get types for it
-    "lib": ["es2015", "dom"],
-    "target": "ES2015",
+    "lib": ["es2021.intl", "dom"],
+    "target": "ES2021",
     "esModuleInterop": true,
     "moduleResolution": "Node",
     "importsNotUsedAsValues": "error"
   },
+  "include": [
+    "index.ts",
+    "api_tests/**/*.ts",
+    "bindings/*.ts"
+  ],
+  "exclude": [
+    "../node_modules",
+    "dist"
+  ]
 }
