@@ -48,6 +48,38 @@ export async function getTicketData(): Promise<TicketData> {
   }
 }
 
+export type UserInfo = {
+  id: string,
+  name: string,
+  identities: {
+    telegram: {
+      id: number,
+      first_name: string,
+      last_name: string,
+      username: null,
+      photo_url: string | null
+    } | null,
+    university: null
+  }
+}
+
+export async function getMe(): Promise<UserInfo> {
+  return {
+    id: "FDUeanyKADQEpyrydYn7XB",
+    name: "Dahsa Boardina",
+    identities: {
+      telegram: {
+        id: 123456,
+        first_name: "Dasha",
+        last_name: "Boardina",
+        username: null,
+        "photo_url": null
+      },
+      university: null
+    }
+  }
+}
+
 // @ts-ignore
 export function submitRequest(request) {
   // TODO
