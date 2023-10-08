@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "paths": {
-      "@": ["index.ts"],
+      "@": ["./index.ts"],
     },
     "outDir": "dist",
     "ignoreDeprecations": "5.0",

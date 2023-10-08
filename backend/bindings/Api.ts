@@ -1,18 +1,18 @@
-import type { ApiResult } from './ApiResult';
-import type FetchFn from "./FetchFn";
+import type {
+    ApiResult,
+    FetchFn,
+    UserId,
+    UserCommand,
+    UserView,
+    UserProfileView,
+    ExternalUserProfile,
+    TicketId,
+    CreateTicket,
+    TicketCommand,
+    TicketView
+} from "@";
 
-import type { UserId } from "./UserId";
-import type { UserCommand } from "./UserCommand";
-import type { UserView } from './UserView';
-import type { UserProfileView } from "./UserProfileView";
-import type { ExternalUserProfile } from "./ExternalUserProfile";
-
-import type { TicketId } from "./TicketId";
-import type { CreateTicket } from "./CreateTicket";
-import type { TicketCommand } from "./TicketCommand";
-import type { TicketView } from "./TicketView";
-
-import { v4 as uuidv4, parse as parseUuid } from 'uuid'
+import {v4 as uuidv4, parse as parseUuid} from 'uuid'
 import bs58 from "bs58";
 
 export function generateId(): string {
@@ -21,7 +21,8 @@ export function generateId(): string {
 }
 
 export class Api {
-    constructor(private fetch: FetchFn) {}
+    constructor(private fetch: FetchFn) {
+    }
 
     async #sendCommand(url: string, command: { [key: string]: any; }): Promise<ApiResult<null>> {
         const res = await this.fetch(url, {
@@ -35,7 +36,7 @@ export class Api {
     }
 
     async internalCreateUser(id: UserId, profile: ExternalUserProfile): Promise<ApiResult<null>> {
-        let command: UserCommand = { type: "Create", profile };
+        let command: UserCommand = {type: "Create", profile};
         return await this.#sendCommand(`/api/users/${id}`, command);
     }
 
@@ -57,7 +58,7 @@ export class Api {
     }
 
     async createTicket(id: TicketId, creation: CreateTicket): Promise<ApiResult<null>> {
-        let command: TicketCommand = { type: "Create", ...creation };
+        let command: TicketCommand = {type: "Create", ...creation};
         return await this.#sendCommand(`/api/tickets/${id}`, command);
     }
 
