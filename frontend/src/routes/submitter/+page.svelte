@@ -1,39 +1,36 @@
-<script>
+<script lang="ts">
 	import {
 		Button,
 		Input,
 		Label,
 		Textarea,
 	} from 'flowbite-svelte'
+	import AutoComplete from '$lib/components/AutoComplete.svelte'
 	import TicketList from '$lib/components/TicketList.svelte'
-	// @ts-ignore
-	import AutoComplete from "simple-svelte-autocomplete"
+	import type { PageData } from './$types'
 
-	import { twMerge } from 'tailwind-merge'
-	let defaultClass = 'text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500';
-	$: autocompleteClass = twMerge('block w-full', defaultClass, 'text-sm p-2.5', $$props.class);
+	const submit = async (event: SubmitEvent) => {
+		if (!event.target) return
+		const formData = new FormData(event.target as HTMLFormElement)
+    // TODO
+		console.log(formData)
+  }
 
-	// @ts-ignore
-	export let data;
+	export let data: PageData;
 
 </script>
 
 <form
-	method="POST"
-	action="?/submit"
+	on:submit|preventDefault={submit}
 	class="flex flex-col gap-4"
 >
 	<Label>
 		Submit To:
 		<AutoComplete
-			className="block w-full my-1"
-			class={autocompleteClass}
+			class="w-full"
 			items={data.receivers}
 			labelFieldName="name"
 			valueFieldName="id"
-			placeholder="Choose option..."
-			hideArrow
-			required
 		/>
 	</Label>
 	<Label>
@@ -49,9 +46,8 @@
 			required
 		/>
 	</Label>
+	<Button type="submit">Submit</Button>
 </form>
-
-<Button>Submit</Button>
 
 <h1 class="mx-auto mt-10 text-xl font-semibold">Submitted requests</h1>
 

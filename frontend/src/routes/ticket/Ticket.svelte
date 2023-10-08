@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { TimelineItem } from '$lib/components/Timeline';
 
-  import type { Message } from '$lib/server/database'
+  import type { Message } from '$lib/mocks/database'
 
   export let message: Message
   export let sender: string
@@ -45,7 +45,7 @@
         {message.date}
       </time>
     </div>
-    
+
     <div>
       {message.text}
     </div>

@@ -1,12 +1,12 @@
 // TODO: use actual db
-export function getReceivers() {
+export async function getReceivers() {
   return [
     { name : "IT Department", id : "it" },
     { name : "Dorm Manager", id : "dorm" },
   ]
 }
 
-export function getRequests() {
+export async function getRequests() {
   return [
     { receiver: "Dorm Manager", topic: "Broken chair", status: "Pending", up: false },
     { receiver: "IT Department", topic: "No internet", status: "Pending", up: true },
@@ -16,7 +16,7 @@ export function getRequests() {
   ]
 }
 
-export function getAssigneeRequests() {
+export async function getAssigneeRequests() {
   return [
     { sender: "Vasiliy Terkin", topic: "Broken chair", status: "Pending", up: false },
     { sender: "Mikhail Olokin", topic: "No internet", status: "Pending", up: true },
@@ -33,7 +33,7 @@ export type Message
 type TicketData
   = { topic: string, sender: string, receiver: string, status: string, messages: Message[] }
 
-export function getTicketData(): TicketData {
+export async function getTicketData(): Promise<TicketData> {
   return {
     topic: "Dashboard broken",
     sender: "Dasha Boardina",

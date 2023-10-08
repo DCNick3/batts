@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { Timeline, TimelineItem } from '$lib/components/Timeline'
+  import { Timeline } from '$lib/components/Timeline'
   import Ticket from './Ticket.svelte'
-  export let data
+  import type { PageData } from './$types'
+  export let data: PageData
 </script>
 
 <div class="flex flex-col items-center gap-8">
