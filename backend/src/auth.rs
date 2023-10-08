@@ -57,8 +57,11 @@ impl Authority {
             .token(self.header.clone(), &claims, &self.key_pair)
             .whatever_context("Could not create the token")?;
         Ok(Cookie::build(self.cookie_name, compact_token)
-            .secure(true)
-            .http_only(true)
+            // TODO: set secure to true when in production
+            // we want to test over http, but in production we want to use https
+            .secure(false)
+            .http_only(false)
+            .path("/")
             .expires(Expiration::DateTime(
                 OffsetDateTime::from_unix_timestamp(claims.expiration.unwrap().timestamp())
                     .unwrap(),

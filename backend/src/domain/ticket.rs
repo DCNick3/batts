@@ -61,6 +61,10 @@ impl ApiError for TicketError {
     }
 }
 
+pub struct TicketTimelineItem {
+    // date:
+}
+
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct TicketContent {
     pub owner: UserId,

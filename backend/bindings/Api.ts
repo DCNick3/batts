@@ -1,15 +1,24 @@
 import type { ApiResult } from './ApiResult';
+import type FetchFn from "./FetchFn";
 
 import type { UserId } from "./UserId";
+import type { UserCommand } from "./UserCommand";
 import type { UserView } from './UserView';
 import type { UserProfileView } from "./UserProfileView";
+import type { ExternalUserProfile } from "./ExternalUserProfile";
 
 import type { TicketId } from "./TicketId";
 import type { CreateTicket } from "./CreateTicket";
 import type { TicketCommand } from "./TicketCommand";
 import type { TicketView } from "./TicketView";
 
-type FetchFn = typeof fetch;
+import { v4 as uuidv4, parse as parseUuid } from 'uuid'
+import bs58 from "bs58";
+
+export function generateId(): string {
+    const uuid = parseUuid(uuidv4());
+    return bs58.encode(uuid);
+}
 
 export class Api {
     constructor(private fetch: FetchFn) {}
@@ -25,6 +34,18 @@ export class Api {
         return await res.json();
     }
 
+    async internalCreateUser(id: UserId, profile: ExternalUserProfile): Promise<ApiResult<null>> {
+        let command: UserCommand = { type: "Create", profile };
+        return await this.#sendCommand(`/api/users/${id}`, command);
+    }
+
+    async internalFakeLogin(userId: UserId): Promise<ApiResult<null>> {
+        const res = await this.fetch(`/api/fake-login/${userId}`, {
+            method: 'POST',
+        });
+        return await res.json();
+    }
+
     async getMe(): Promise<ApiResult<UserView>> {
         const res = await this.fetch('/api/users/me');
         return await res.json();
@@ -36,12 +57,14 @@ export class Api {
     }
 
     async createTicket(id: TicketId, creation: CreateTicket): Promise<ApiResult<null>> {
-        let command: TicketCommand = { "type": "Create", ...creation };
-        return await this.#sendCommand(`/api/ticket/${id}`, command);
+        let command: TicketCommand = { type: "Create", ...creation };
+        return await this.#sendCommand(`/api/tickets/${id}`, command);
     }
 
     async getTicket(id: TicketId): Promise<ApiResult<TicketView>> {
-        const res = await this.fetch(`/api/ticket/${id}`);
+        const res = await this.fetch(`/api/tickets/${id}`);
         return await res.json();
     }
 }
+
+export default Api;

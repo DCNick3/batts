@@ -1,0 +1,24 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "test": "tsc --noEmit && uvu -r tsm api_tests"
+  },
+  "devDependencies": {
+    "@types/bs58": "^4.0.2",
+    "@types/node": "^20.8.3",
+    "@types/uuid": "^9.0.5",
+    "bs58": "^5.0.0",
+    "fetch-cookie": "^2.1.0",
+    "node-fetch": "^3.3.2",
+    "tsm": "^2.3.0",
+    "typescript": "^5.2.2",
+    "uvu": "^0.5.6"
+  },
+  "dependencies": {
+    "base58-js": "^2.0.0",
+    "uuid": "^9.0.1"
+  }
+}

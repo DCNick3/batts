@@ -167,6 +167,7 @@ impl ExternalUserProfile {
 #[derive(Default, Debug, Clone, TS, Serialize, Deserialize, PartialEq)]
 #[ts(export)]
 pub struct TelegramProfile {
+    #[ts(type = "number")]
     pub id: i64,
     pub first_name: String,
     pub last_name: String,
