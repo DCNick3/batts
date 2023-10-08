@@ -28,7 +28,7 @@ jwt-compact = { version = "0.7.0", features = ["ed25519-dalek", "clock", "std"],
 # used to interface with the `cookie` crate
 time = "0.3.29"
 # used to interface with the `jwt-compact` crate
-chrono = "0.4.31"
+chrono = { version = "0.4.31", features = ["serde"] }
 
 hmac = "0.12.1"
 sha1 = "0.10.5"

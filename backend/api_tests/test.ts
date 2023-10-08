@@ -69,7 +69,7 @@ test('get_me', async () => {
 
 test('create_ticket', async () => {
     const api = makeApi();
-    await makeFakeUser(api);
+    const userId = await makeFakeUser(api);
     const ticketId = generateId();
 
     unwrap(await api.createTicket(ticketId, {
@@ -80,8 +80,13 @@ test('create_ticket', async () => {
     const ticket = unwrap(await api.getTicket(ticketId));
     assert.is(ticket.id, ticketId);
     assert.is(ticket.title, "Everything is broken");
-    assert.is(ticket.messages.length, 1);
-    assert.is(ticket.messages[0], "I can't do anything");
+    assert.is(ticket.timeline.length, 1);
+    const timelineItem = ticket.timeline[0];
+    assert.is(timelineItem.content.type, "Message");
+    if (timelineItem.content.type === "Message") {
+        assert.is(timelineItem.content.text, "I can't do anything");
+        assert.is(timelineItem.content.from, userId);
+    }
 })
 
 test.run();

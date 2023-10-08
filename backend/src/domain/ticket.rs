@@ -4,6 +4,7 @@ use crate::error::ApiError;
 use crate::id::Id;
 use async_trait::async_trait;
 use axum::http::StatusCode;
+use chrono::{DateTime, Utc};
 use cqrs_es::{Aggregate, DomainEvent, EventEnvelope, View};
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
@@ -23,15 +24,35 @@ pub struct CreateTicket {
 
 #[derive(Debug, TS, Serialize, Deserialize)]
 #[ts(export)]
+pub struct SendTicketMessage {
+    pub body: String,
+}
+
+#[derive(Debug, TS, Serialize, Deserialize)]
+#[ts(export)]
 #[serde(tag = "type")]
 pub enum TicketCommand {
     Create(CreateTicket),
+    SendTicketMessage(SendTicketMessage),
+    // TODO: actually, only admins should be able to change status
+    ChangeStatus(TicketStatus),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum TicketEvent {
-    Create { owner: UserId, title: String },
-    Message { text: String },
+    Create {
+        owner: UserId,
+        title: String,
+    },
+    Message {
+        date: DateTime<Utc>,
+        from: UserId,
+        text: String,
+    },
+    StatusChange {
+        date: DateTime<Utc>,
+        new_status: TicketStatus,
+    },
 }
 
 impl DomainEvent for TicketEvent {
@@ -39,6 +60,7 @@ impl DomainEvent for TicketEvent {
         match self {
             TicketEvent::Create { .. } => "Create".to_string(),
             TicketEvent::Message { .. } => "Message".to_string(),
+            TicketEvent::StatusChange { .. } => "StatusChange".to_string(),
         }
     }
 
@@ -61,15 +83,43 @@ impl ApiError for TicketError {
     }
 }
 
-pub struct TicketTimelineItem {
-    // date:
+#[derive(Default, Debug, Copy, Clone, Eq, PartialEq, TS, Serialize, Deserialize)]
+#[ts(export)]
+pub enum TicketStatus {
+    #[default]
+    Pending,
+    InProgress,
+    Declined,
+    Fixed,
 }
 
-#[derive(Default, Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, TS, Serialize, Deserialize)]
+#[ts(export)]
+#[serde(tag = "type")]
+pub enum TicketTimelineItemContent {
+    Message {
+        from: UserId,
+        text: String,
+    },
+    StatusChange {
+        old: TicketStatus,
+        new: TicketStatus,
+    },
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, TS, Serialize, Deserialize)]
+#[ts(export)]
+pub struct TicketTimelineItem {
+    #[ts(type = "string")]
+    date: DateTime<Utc>,
+    content: TicketTimelineItemContent,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TicketContent {
     pub owner: UserId,
     pub title: String,
-    pub messages: Vec<String>,
+    pub status: TicketStatus,
 }
 
 #[derive(Default, Debug, Serialize, Deserialize)]
@@ -105,8 +155,29 @@ impl Aggregate for Ticket {
                         owner: command.user_id,
                         title,
                     },
-                    TicketEvent::Message { text: body },
+                    TicketEvent::Message {
+                        // TODO: make this external maybe? Unit testing is hard otherwise...
+                        date: Utc::now(),
+                        from: command.user_id,
+                        text: body,
+                    },
                 ])
+            }
+            TicketCommand::SendTicketMessage(SendTicketMessage { body }) => {
+                Ok(vec![TicketEvent::Message {
+                    date: Utc::now(),
+                    from: command.user_id,
+                    text: body,
+                }])
+            }
+            TicketCommand::ChangeStatus(new_status) => {
+                let Ticket::Created(_content) = self else {
+                    panic!("Ticket not created");
+                };
+                Ok(vec![TicketEvent::StatusChange {
+                    date: Utc::now(),
+                    new_status,
+                }])
             }
         }
     }
@@ -120,14 +191,26 @@ impl Aggregate for Ticket {
                 *self = Ticket::Created(TicketContent {
                     owner,
                     title,
-                    messages: vec![],
+                    status: TicketStatus::Pending,
                 });
             }
-            TicketEvent::Message { text } => {
+            TicketEvent::Message {
+                date: _,
+                from: _,
+                text: _,
+            } => {
+                let Ticket::Created(_content) = self else {
+                    panic!("Ticket not created");
+                };
+            }
+            TicketEvent::StatusChange {
+                date: _,
+                new_status,
+            } => {
                 let Ticket::Created(content) = self else {
                     panic!("Ticket not created");
                 };
-                content.messages.push(text);
+                content.status = new_status;
             }
         }
     }
@@ -139,7 +222,8 @@ pub struct TicketView {
     pub id: TicketId,
     pub owner: UserId,
     pub title: String,
-    pub messages: Vec<String>,
+    pub status: TicketStatus,
+    pub timeline: Vec<TicketTimelineItem>,
 }
 
 impl View<Ticket> for TicketView {
@@ -148,13 +232,35 @@ impl View<Ticket> for TicketView {
             self.id = TicketId(Id::from_str(&event.aggregate_id).unwrap());
         }
 
-        match &event.payload {
-            TicketEvent::Create { owner, title } => {
-                self.owner = *owner;
+        match event.payload {
+            TicketEvent::Create { owner, ref title } => {
+                self.owner = owner;
                 self.title = title.clone();
+                self.status = TicketStatus::Pending;
             }
-            TicketEvent::Message { text } => {
-                self.messages.push(text.clone());
+            TicketEvent::Message {
+                date,
+                from,
+                ref text,
+            } => {
+                self.timeline.push(TicketTimelineItem {
+                    date,
+                    content: TicketTimelineItemContent::Message {
+                        from,
+                        text: text.clone(),
+                    },
+                });
+            }
+            TicketEvent::StatusChange { date, new_status } => {
+                let old_status = self.status;
+                self.status = new_status;
+                self.timeline.push(TicketTimelineItem {
+                    date,
+                    content: TicketTimelineItemContent::StatusChange {
+                        old: old_status,
+                        new: new_status,
+                    },
+                });
             }
         }
     }
