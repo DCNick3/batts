@@ -59,6 +59,13 @@ GET {{url}}/api/user-identities/telegram-123456
 ### Log in
 POST {{url}}/api/fake-login/FDUeanyKADQEpyrydYn7XB
 
+### Get my user object
+GET {{url}}/api/users/me
+Cookie: session=eyJhbGciOiJFZERTQSJ9.eyJleHAiOjE2OTY3MTA1NTcsImlhdCI6MTY5NjY5OTc1NywidXNlcl9pZCI6IkZEVWVhbnlLQURRRXB5cnlkWW43WEIiLCJuYW1lIjoiRWR3YXJkIFNub3dkZW4ifQ.wodYZRyBZMBwxeKqDrPJX2S6mKQwMBNH7Skb5GZeIBU53R3I08EOoTiytMXisqSV1bjPly4OqaCT2ZxkYGmCCw
+
+### Get user profile
+GET {{url}}/api/users/FDUeanyKADQEpyrydYn7XB/profile
+
 ### Create a ticket
 POST {{url}}/api/tickets/F2VaZtXgAKgxJncCbMbX9V
 Cookie: session=eyJhbGciOiJFZERTQSJ9.eyJleHAiOjE2OTY3MTA1NTcsImlhdCI6MTY5NjY5OTc1NywidXNlcl9pZCI6IkZEVWVhbnlLQURRRXB5cnlkWW43WEIiLCJuYW1lIjoiRWR3YXJkIFNub3dkZW4ifQ.wodYZRyBZMBwxeKqDrPJX2S6mKQwMBNH7Skb5GZeIBU53R3I08EOoTiytMXisqSV1bjPly4OqaCT2ZxkYGmCCw

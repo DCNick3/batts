@@ -43,6 +43,7 @@ opentelemetry = { version = "0.20.0", features = ["rt-tokio"] }
 opentelemetry-otlp = "0.13.0"
 tracing-opentelemetry-instrumentation-sdk = "0.14.1"
 axum-tracing-opentelemetry = "0.14.1"
+ts-rs = "7.0.0"
 
 [features]
 expose-internal-routes = []

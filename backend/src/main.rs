@@ -11,7 +11,7 @@ mod state;
 use crate::api_result::ApiResult;
 use crate::auth::UserClaims;
 use crate::domain::ticket::{TicketCommand, TicketView};
-use crate::domain::user::{IdentityView, UserCommand, UserView};
+use crate::domain::user::{IdentityView, UserCommand, UserProfileView, UserView};
 use crate::error::{Error, PersistenceSnafu, TicketSnafu, UserSnafu, WhateverSnafu};
 use crate::extractors::{Json, Path, State, UserContext};
 use crate::id::Id;
@@ -53,6 +53,10 @@ async fn main() -> Result<(), Whatever> {
 fn make_api_router() -> Router<ApplicationState> {
     let mut router = Router::new();
     router = router.route("/tickets/:id", get(tickets_query).post(tickets_command));
+
+    router = router
+        .route("/users/me", get(me_query))
+        .route("/users/:id/profile", get(user_profile_query));
 
     if cfg!(feature = "expose-internal-routes") {
         router = router
@@ -102,8 +106,8 @@ async fn tickets_query(
 }
 
 async fn tickets_command(
-    user_context: UserContext,
     State(state): State<ApplicationState>,
+    user_context: UserContext,
     Path(id): Path<Id>,
     Json(command): Json<TicketCommand>,
 ) -> ApiResult {
@@ -114,6 +118,37 @@ async fn tickets_command(
             .await
             .context(TicketSnafu),
     )
+}
+
+async fn me_query(
+    State(state): State<ApplicationState>,
+    user_context: UserContext,
+) -> ApiResult<UserView> {
+    ApiResult::from_async_fn(|| async {
+        let user_view = state
+            .user_view_repository
+            .load(&user_context.user_id().0.to_string())
+            .await
+            .context(PersistenceSnafu)?;
+        user_view.ok_or(Error::NotFound)
+    })
+    .await
+}
+
+async fn user_profile_query(
+    State(state): State<ApplicationState>,
+    Path(id): Path<Id>,
+) -> ApiResult<UserProfileView> {
+    ApiResult::from_async_fn(|| async {
+        let user_view = state
+            .user_view_repository
+            .load(&id.to_string())
+            .await
+            .context(PersistenceSnafu)?
+            .map(UserView::profile);
+        user_view.ok_or(Error::NotFound)
+    })
+    .await
 }
 
 async fn user_query(

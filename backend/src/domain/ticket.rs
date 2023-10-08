@@ -8,15 +8,24 @@ use cqrs_es::{Aggregate, DomainEvent, EventEnvelope, View};
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 use std::str::FromStr;
+use ts_rs::TS;
 
-#[derive(Default, Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(transparent)]
+#[derive(Default, Debug, Copy, Clone, Eq, PartialEq, TS, Serialize, Deserialize)]
+#[ts(export)]
 pub struct TicketId(pub Id);
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, TS, Serialize, Deserialize)]
+#[ts(export)]
+pub struct CreateTicket {
+    pub title: String,
+    pub body: String,
+}
+
+#[derive(Debug, TS, Serialize, Deserialize)]
+#[ts(export)]
 #[serde(tag = "type")]
 pub enum TicketCommand {
-    Create { title: String, body: String },
+    Create(CreateTicket),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -83,7 +92,7 @@ impl Aggregate for Ticket {
         _service: &Self::Services,
     ) -> Result<Vec<Self::Event>, Self::Error> {
         match command.payload {
-            TicketCommand::Create { title, body } => {
+            TicketCommand::Create(CreateTicket { title, body }) => {
                 let Ticket::NotCreated = self else {
                     return Err(TicketError::AlreadyExists);
                 };
@@ -120,7 +129,8 @@ impl Aggregate for Ticket {
     }
 }
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, TS, Serialize, Deserialize)]
+#[ts(export)]
 pub struct TicketView {
     pub id: TicketId,
     pub owner: UserId,

@@ -2,6 +2,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use snafu::{ResultExt, Snafu};
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
+use ts_rs::TS;
 use uuid::Uuid;
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -10,6 +11,32 @@ pub struct Id(Uuid);
 impl Id {
     pub fn is_default(&self) -> bool {
         self.0 == Uuid::from_bytes([0; 16])
+    }
+}
+
+impl TS for Id {
+    fn name() -> String {
+        "string".to_string()
+    }
+
+    fn name_with_type_args(args: Vec<String>) -> String {
+        assert!(args.is_empty(), "called name_with_type_args on primitive");
+        Self::name()
+    }
+
+    fn inline() -> String {
+        Self::name()
+    }
+
+    fn dependencies() -> Vec<ts_rs::Dependency>
+    where
+        Self: 'static,
+    {
+        vec![]
+    }
+
+    fn transparent() -> bool {
+        false
     }
 }
 

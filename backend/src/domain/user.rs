@@ -10,22 +10,24 @@ use std::fmt::Display;
 use std::str::FromStr;
 use std::sync::Arc;
 use tracing::warn;
+use ts_rs::TS;
 
-#[derive(Default, Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(transparent)]
+#[derive(Default, Debug, Copy, Clone, Eq, PartialEq, TS, Serialize, Deserialize)]
+#[ts(export)]
 pub struct UserId(pub Id);
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, TS, Serialize, Deserialize)]
 #[serde(tag = "type")]
+#[ts(export)]
 pub enum UserCommand {
-    Create { profile: UserProfile },
-    AddIdentity { profile: UserProfile },
+    Create { profile: ExternalUserProfile },
+    AddIdentity { profile: ExternalUserProfile },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum UserEvent {
     Created { name: String },
-    IdentityAdded { profile: UserProfile },
+    IdentityAdded { profile: ExternalUserProfile },
 }
 
 impl DomainEvent for UserEvent {
@@ -55,40 +57,41 @@ pub struct UserContent {
     pub identities: UserIdentities,
 }
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, TS, Serialize, Deserialize)]
+#[ts(export)]
 pub struct UserIdentities {
     pub telegram: Option<TelegramProfile>,
     pub university: Option<UniversityProfile>,
 }
 
 impl UserIdentities {
-    pub fn get_identities(&self) -> Vec<UserIdentity> {
+    pub fn get_identities(&self) -> Vec<ExternalUserIdentity> {
         let mut identities = Vec::new();
         if let Some(telegram) = &self.telegram {
-            identities.push(UserIdentity::Telegram(telegram.id));
+            identities.push(ExternalUserIdentity::Telegram(telegram.id));
         }
         if let Some(university) = &self.university {
-            identities.push(UserIdentity::University(university.email.clone()));
+            identities.push(ExternalUserIdentity::University(university.email.clone()));
         }
         identities
     }
 
-    pub fn can_add_identity(&self, profile: &UserProfile) -> bool {
+    pub fn can_add_identity(&self, profile: &ExternalUserProfile) -> bool {
         match profile {
-            UserProfile::Telegram(_) => self.telegram.is_none(),
-            UserProfile::University(_) => self.university.is_none(),
+            ExternalUserProfile::Telegram(_) => self.telegram.is_none(),
+            ExternalUserProfile::University(_) => self.university.is_none(),
         }
     }
 
     /// Add a new identity to the user.
     ///
     /// NOTE: this method does not check if the identity already exists, overwriting it.
-    pub fn add_identity(&mut self, profile: UserProfile) {
+    pub fn add_identity(&mut self, profile: ExternalUserProfile) {
         match profile {
-            UserProfile::Telegram(profile) => {
+            ExternalUserProfile::Telegram(profile) => {
                 self.telegram = Some(profile);
             }
-            UserProfile::University(profile) => {
+            ExternalUserProfile::University(profile) => {
                 self.university = Some(profile);
             }
         }
@@ -119,46 +122,50 @@ impl ApiError for UserError {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub enum UserIdentity {
+pub enum ExternalUserIdentity {
     Telegram(i64),
     University(String),
 }
 
-impl Display for UserIdentity {
+impl Display for ExternalUserIdentity {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            UserIdentity::Telegram(id) => write!(f, "telegram-{}", id),
-            UserIdentity::University(email) => write!(f, "university-{}", email),
+            ExternalUserIdentity::Telegram(id) => write!(f, "telegram-{}", id),
+            ExternalUserIdentity::University(email) => write!(f, "university-{}", email),
         }
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, TS, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type")]
-pub enum UserProfile {
+#[ts(export)]
+pub enum ExternalUserProfile {
     Telegram(TelegramProfile),
     University(UniversityProfile),
 }
 
-impl UserProfile {
+impl ExternalUserProfile {
     pub fn name(&self) -> String {
         match self {
-            UserProfile::Telegram(profile) => {
+            ExternalUserProfile::Telegram(profile) => {
                 format!("{} {}", profile.first_name, profile.last_name)
             }
-            UserProfile::University(profile) => profile.commonname.clone(),
+            ExternalUserProfile::University(profile) => profile.commonname.clone(),
         }
     }
 
-    pub fn identity(&self) -> UserIdentity {
+    pub fn identity(&self) -> ExternalUserIdentity {
         match self {
-            UserProfile::Telegram(profile) => UserIdentity::Telegram(profile.id),
-            UserProfile::University(profile) => UserIdentity::University(profile.email.clone()),
+            ExternalUserProfile::Telegram(profile) => ExternalUserIdentity::Telegram(profile.id),
+            ExternalUserProfile::University(profile) => {
+                ExternalUserIdentity::University(profile.email.clone())
+            }
         }
     }
 }
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Default, Debug, Clone, TS, Serialize, Deserialize, PartialEq)]
+#[ts(export)]
 pub struct TelegramProfile {
     pub id: i64,
     pub first_name: String,
@@ -167,7 +174,8 @@ pub struct TelegramProfile {
     pub photo_url: Option<String>,
 }
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Default, Debug, Clone, TS, Serialize, Deserialize, PartialEq)]
+#[ts(export)]
 pub struct UniversityProfile {
     pub email: String,
     pub commonname: String,
@@ -248,11 +256,21 @@ impl Aggregate for User {
     }
 }
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, TS, Serialize, Deserialize)]
+#[ts(export)]
 pub struct UserView {
     pub id: UserId,
     pub name: String,
     pub identities: UserIdentities,
+}
+
+impl UserView {
+    pub fn profile(self) -> UserProfileView {
+        UserProfileView {
+            id: self.id,
+            name: self.name,
+        }
+    }
 }
 
 impl View<User> for UserView {
@@ -269,7 +287,15 @@ impl View<User> for UserView {
     }
 }
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, TS, Serialize, Deserialize)]
+#[ts(export)]
+pub struct UserProfileView {
+    pub id: UserId,
+    pub name: String,
+}
+
+#[derive(Default, Debug, Clone, TS, Serialize, Deserialize)]
+#[ts(export)]
 pub struct IdentityView {
     pub user_id: UserId,
 }
