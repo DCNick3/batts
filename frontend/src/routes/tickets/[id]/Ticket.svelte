@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { TimelineItem } from '$lib/components/Timeline';
 
-  import type { Message } from '$lib/mocks/database'
   import type { TicketTimelineItem } from '$backend/bindings/TicketTimelineItem'
 
   export let item: TicketTimelineItem

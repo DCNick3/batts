@@ -10,7 +10,7 @@ import type {
     CreateTicket,
     TicketCommand,
     TicketView
-} from "@";
+} from "../";
 
 // import { toDates, toDatesByArray } from 'ts-transformer-dates';
 

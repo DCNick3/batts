@@ -1,5 +1,5 @@
 import type { PageLoad } from './$types'
-import { Api } from '$lib/api'
+import { Api } from '$backend'
 
 export const load: PageLoad = async ({ fetch, params }) => {
   const api = new Api(fetch)
