@@ -2,7 +2,7 @@
   import { setContext } from 'svelte';
   export let order = 'default';
   setContext('order', order);
-  let olClass = 'relative border-l border-gray-200 dark:border-gray-700'
+  let olClass = 'relative'
   </script>
   
   <ol class={twMerge(olClass, $$props.class)}>

@@ -40,10 +40,10 @@ export async function getTicketData(): Promise<TicketData> {
     receiver: "IT Department",
     status: "In process",
     messages: [
-      { type: "message", text: "Hello! When will you fix it?", is_sender: true, date: "20 February" },
-      { type: "message", text: "Good afternoon! Could you please provide more details on the problem?", is_sender: false, date: "10 February" },
-      { type: "notification", text: 'Status changed to "In process"', date: '10 February' },
       { type: "message", text: "Hello! Dashboard broken :(", is_sender: true, date: "6 February" },
+      { type: "notification", text: 'Status changed to "In process"', date: '10 February' },
+      { type: "message", text: "Good afternoon! Could you please provide more details on the problem?", is_sender: false, date: "10 February" },
+      { type: "message", text: "Hello! When will you fix it?", is_sender: true, date: "20 February" },
     ]
   }
 }

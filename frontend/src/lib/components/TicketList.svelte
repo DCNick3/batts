@@ -1,21 +1,15 @@
 <script lang="ts">
   import {
-		Badge,
 		Table,
 		TableBody,
 		TableBodyCell,
 		TableBodyRow
 	} from 'flowbite-svelte'
+	import StatusBadge from '$lib/components/StatusBadge.svelte'
 
   type Ticket = { status: string, receiver: string, topic: string, up: boolean }
 	export let tickets: Ticket[]
 
-	function status2color (status: string) {
-		if (status === "Pending") return "yellow"
-		if (status === "Fixed") return "green"
-		if (status === "In process") return "blue"
-		return "primary"
-	}
 </script>
 
 <Table hoverable color="default" class="border rounded-md border-separate border-spacing-0">
@@ -30,9 +24,7 @@
 				<TableBodyCell
 					class="px-2 text-sm rounded-l-md text-center"
 				>
-					<Badge rounded color={status2color(ticket.status)}>
-						{ticket.status}
-					</Badge>
+					<StatusBadge status={ticket.status} />
 				</TableBodyCell>
 				<TableBodyCell
 					class="text-sm text-slate-500"
