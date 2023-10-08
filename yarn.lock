@@ -863,11 +863,6 @@ axobject-query@^3.2.1:
   dependencies:
     dequal "^2.0.3"
 
-"backend@workspace:^":
-  version "0.0.0"
-  resolved "https://registry.yarnpkg.com/backend/-/backend-0.0.0.tgz#8d79d1d1261f1634f8f9c194b09498745f41a589"
-  integrity sha512-Fq2aG5+zmmsKv2Dhm3ijAU5spnKOb5ldJlnnC/Vhk6n8In6zaq9eCPBMRiz2j94P/r84QEaBmtwh9tjaDPiQqg==
-
 balanced-match@^1.0.0:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/balanced-match/-/balanced-match-1.0.2.tgz#e83e3a7e3f300b34cb9d87f615fa0cbf357690ee"

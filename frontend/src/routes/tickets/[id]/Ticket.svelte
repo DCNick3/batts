@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { TimelineItem } from '$lib/components/Timeline';
 
-  import type { TicketTimelineItem } from '$backend/bindings/TicketTimelineItem'
+  import type { TicketTimelineItem } from 'backend'
 
   export let item: TicketTimelineItem
   $: content = item.content
