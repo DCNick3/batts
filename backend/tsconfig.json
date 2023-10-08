@@ -1,5 +1,8 @@
 {
   "compilerOptions": {
+    "paths": {
+      "@": ["index.ts"],
+    },
     "outDir": "dist",
     "ignoreDeprecations": "5.0",
     // we don't _actually_ have DOM access (esp in tests), but we want to get types for it
@@ -7,6 +10,6 @@
     "target": "ES2015",
     "esModuleInterop": true,
     "moduleResolution": "Node",
-    "importsNotUsedAsValues": "error",
+    "importsNotUsedAsValues": "error"
   },
 }

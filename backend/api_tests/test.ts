@@ -3,10 +3,7 @@ import * as assert from 'uvu/assert';
 import nodeFetch from 'node-fetch';
 import makeFetchCookie from 'fetch-cookie';
 
-import Api, { generateId } from '../bindings/Api';
-import type FetchFn from "../bindings/FetchFn";
-import type {ApiError, ApiResult} from "../bindings/ApiResult";
-import type {UserId} from "../bindings/UserId";
+import { Api, generateId, FetchFn, UserId, ApiError, ApiResult } from "@";
 
 const BASE_URL = "http://localhost:3000";
 
