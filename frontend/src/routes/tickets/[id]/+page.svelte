@@ -13,9 +13,9 @@
 
   <div class="flex flex-col items-center gap-8 basis-3/4">  
     <Timeline class="w-full">
-      <!-- {#each data.timeline as item}
-        <Ticket message={message} sender={data.owner} receiver="TODO" />
-      {/each} -->
+      {#each data.timeline as item}
+        <Ticket item={item} sender={data.owner} receiver="TODO" />
+      {/each}
     </Timeline>
   </div>
 
