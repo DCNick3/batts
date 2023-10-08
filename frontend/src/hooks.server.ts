@@ -1,49 +1,42 @@
-import type { Handle, HandleFetch } from '@sveltejs/kit';
-import * as set_cookie_parser from 'set-cookie-parser';
+import type { Handle } from "@sveltejs/kit";
 
-export const handle: Handle = async ({ event, resolve }) => {
-  const response = await resolve(event);
-  //   response.headers.set('x-custom-header', 'potato');
+const MY_API_BASE_URL = "http://192.168.31.75:3000";
+const PROXY_PATH = "/api";
 
-  return response;
+const handleApiProxy: Handle = async ({ event }) => {
+  // const origin = event.request.headers.get("Origin");
+
+  // // reject requests that don't come from the webapp, to avoid your proxy being abused.
+  // if (!origin || new URL(origin).origin !== event.url.origin) {
+  //   throw new Error("Origin not allowed");
+  //   // throw error(403, "Request Forbidden.");
+  // }
+
+  // build the new URL path with your API base URL, the stripped path and the query string
+  const urlPath = `${MY_API_BASE_URL}${event.url.pathname}${event.url.search}`;
+  const proxiedUrl = new URL(urlPath);
+
+  // Strip off header added by SvelteKit yet forbidden by underlying HTTP request
+  // library `undici`.
+  // https://github.com/nodejs/undici/issues/1470
+  event.request.headers.delete("connection");
+
+  return fetch(proxiedUrl.toString(), {
+    // propagate the request method and body
+    body: event.request.body,
+    method: event.request.method,
+    headers: event.request.headers,
+  }).catch((err) => {
+    console.log("Could not proxy API request: ", err);
+    throw err;
+  });
 };
 
-const BACKEND = new URL('http://192.168.31.75:3000');
-
-export const handleFetch: HandleFetch = async ({ event, request, fetch }) => {
-  const url = new URL(request.url);
-  if (url.pathname.startsWith('/api')) {
-    url.hostname = BACKEND.hostname;
-    url.port = BACKEND.port;
-    url.protocol = BACKEND.protocol;
-
-    // pass session cookie to backend
-    const session = event.cookies.get('session');
-    if (session) {
-      request.headers.set('cookie', `session=${session}`);
-    }
-
-    request = new Request(url.toString(), request);
+export const handle: Handle = async ({ event, resolve }) => {
+  // intercept requests to `/api-proxy` and handle them with `handleApiProxy`
+  if (event.url.pathname.startsWith(PROXY_PATH)) {
+    return handleApiProxy({event, resolve});
   }
 
-  const resp = await fetch(request);
-
-  // pass session cookie from backend to frontend
-  const setCookie = resp.headers.get('set-cookie');
-  if (setCookie) {
-    set_cookie_parser.parse(setCookie).forEach((cookie) => {
-      if (cookie.name === 'session') {
-        event.cookies.set('session', cookie.value, {
-          path: '/',
-          maxAge: cookie.maxAge,
-          expires: cookie.expires,
-          httpOnly: cookie.httpOnly,
-          sameSite: <'lax' | 'strict' | 'none' | undefined>cookie.sameSite,
-          secure: cookie.secure
-        });
-      }
-    });
-  }
-
-  return resp;
+  return await resolve(event);
 };
