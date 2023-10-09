@@ -7,6 +7,7 @@
 	} from 'flowbite-svelte'
 	import AutoComplete from '$lib/components/AutoComplete.svelte'
 	import TicketList from '$lib/components/TicketList.svelte'
+  import { goto } from '$app/navigation'
 	import type { PageData } from './$types'
 	import { Api, generateId } from 'backend'
 
@@ -18,7 +19,9 @@
 		const description = formData.get("description") as string
 
 		const api = new Api(fetch)
-		api.createTicket(generateId(), { title: topic, body: description })
+		const newId = generateId()
+		const result = await api.createTicket(newId, { title: topic, body: description }) // TODO: handle error
+		goto(`/tickets/${newId}`)
   }
 
 	export let data: PageData;
