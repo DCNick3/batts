@@ -1,0 +1,20 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: batts
+spec:
+  rules:
+    - host: batts.tatar
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: batts
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - batts.tatar
+      secretName: batts-wildcard
