@@ -151,6 +151,9 @@ test("make_mock_tickets", async () => {
         await api2.sendTicketMessage(ticket1, {
             body: "Hey, we'll fix it soon."
         })
+        await api1.sendTicketMessage(ticket1, {
+            body: "Thanks, I'll be waiting."
+        })
     }
 
     await api1.createTicket(ticket2, {
