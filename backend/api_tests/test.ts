@@ -125,9 +125,10 @@ test("make_mock_tickets", async () => {
     const userId1 = "MekGz7Af4HwV8uwBm7c82P";
     const userId2 = "R9wBXTwKPgNXGxVzcvo8xv";
     const ticket1 = "F2VaZtXgAKgxJncCbMbX9V";
-    const ticket2 = "JrBVVdGiKLHEeaPApdq236";
-    const ticket3 = "6cbfgbg2E3FGNLZNxxt7Nv";
-    const ticket4 = "JrBVVdGiKLHEeaPApdq236";
+    const ticket2 = "H3NbS5NeKY33AMr6Pvtw6H";
+    const ticket3 = "XYF1Ur6Z4oeVBioYtW62nF";
+    const ticket4 = "M1A5QazKGRUNoTqraWxYou";
+    const ticket5 = "BJytpHn3GssUW24WJJkrPg";
 
     await api1.internalCreateUser(userId1, {
         type: "Telegram", id: 123456,
@@ -156,11 +157,15 @@ test("make_mock_tickets", async () => {
         title: "No internet",
         body: "Hello,\n\nI'm writing to you because there is no internet in the room 123. Please fix it.",
     });
-    await api2.createTicket(ticket3, {
+    await api1.createTicket(ticket3, {
+        title: "Doorknob",
+        body: "Hello,\n\nI'm writing to you because the doorknob in the room 123 is broken. Please fix it.",
+    });
+    await api1.createTicket(ticket4, {
         title: "Broken bulb",
         body: "Hello,\n\nI'm writing to you because the light bulb in the room 123 is broken. Please fix it.",
     });
-    await api2.createTicket(ticket4, {
+    await api1.createTicket(ticket5, {
         title: "Dashboard broken",
         body: "Hello,\n\nI'm writing to you because the dashboard is broken. Please fix it.",
     });

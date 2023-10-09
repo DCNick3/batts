@@ -10,10 +10,10 @@ export async function getReceivers() {
 export async function getRequests() {
   return [
     { id: "F2VaZtXgAKgxJncCbMbX9V", receiver: "Dorm Manager", topic: "Broken chair", status: "Pending", up: false },
-    { id: "oWrkCUThulMhcUAPGZqbDF", receiver: "IT Department", topic: "No internet", status: "Pending", up: true },
-    { id: "A26F9MLI4z9Ft6608WZLd0", receiver: "Dorm Manager", topic: "Doorknob", status: "In process", up: false },
-    { id: "3BdxkKay2yJmQEbn3exyoa", receiver: "Dorm Manager", topic: "Broken bulb", status: "Fixed", up: false },
-    { id: "4ksMdXRbhT66r9t6PD51w", receiver: "IT Department", topic: "Dashboard broken", status: "Fixed", up: true },
+    { id: "H3NbS5NeKY33AMr6Pvtw6H", receiver: "IT Department", topic: "No internet", status: "Pending", up: true },
+    { id: "XYF1Ur6Z4oeVBioYtW62nF", receiver: "Dorm Manager", topic: "Doorknob", status: "In process", up: false },
+    { id: "M1A5QazKGRUNoTqraWxYou", receiver: "Dorm Manager", topic: "Broken bulb", status: "Fixed", up: false },
+    { id: "BJytpHn3GssUW24WJJkrPg", receiver: "IT Department", topic: "Dashboard broken", status: "Fixed", up: true },
   ]
 }
 
