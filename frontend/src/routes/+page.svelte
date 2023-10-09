@@ -20,8 +20,13 @@
 
 		const api = new Api(fetch)
 		const newId = generateId()
-		const result = await api.createTicket(newId, { title: topic, body: description }) // TODO: handle error
-		goto(`/tickets/${newId}`)
+		const result = await api.createTicket(newId, { title: topic, body: description })
+		// TODO: handle error
+		if (result.status === 'Success') {
+			goto(`/tickets/${newId}`)
+		} else {
+			console.log(result.payload)
+		}
   }
 
 	export let data: PageData;
