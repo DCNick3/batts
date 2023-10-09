@@ -1,4 +1,5 @@
-// TODO: use actual db
+import { generateId } from 'backend'
+
 export async function getReceivers() {
   return [
     { name : "IT Department", id : "it" },
@@ -9,10 +10,10 @@ export async function getReceivers() {
 export async function getRequests() {
   return [
     { id: "F2VaZtXgAKgxJncCbMbX9V", receiver: "Dorm Manager", topic: "Broken chair", status: "Pending", up: false },
-    { id: "F2VaZtXgAKgxJncCbMbX9V", receiver: "IT Department", topic: "No internet", status: "Pending", up: true },
-    { id: "F2VaZtXgAKgxJncCbMbX9V", receiver: "Dorm Manager", topic: "Doorknob", status: "In process", up: false },
-    { id: "F2VaZtXgAKgxJncCbMbX9V", receiver: "Dorm Manager", topic: "Broken bulb", status: "Fixed", up: false },
-    { id: "F2VaZtXgAKgxJncCbMbX9V", receiver: "IT Department", topic: "Dashboard broken", status: "Fixed", up: true },
+    { id: "oWrkCUThulMhcUAPGZqbDF", receiver: "IT Department", topic: "No internet", status: "Pending", up: true },
+    { id: "A26F9MLI4z9Ft6608WZLd0", receiver: "Dorm Manager", topic: "Doorknob", status: "In process", up: false },
+    { id: "3BdxkKay2yJmQEbn3exyoa", receiver: "Dorm Manager", topic: "Broken bulb", status: "Fixed", up: false },
+    { id: "4ksMdXRbhT66r9t6PD51w", receiver: "IT Department", topic: "Dashboard broken", status: "Fixed", up: true },
   ]
 }
 
