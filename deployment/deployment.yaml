@@ -26,7 +26,7 @@ spec:
             - name: CONFIG_SERVER__ENDPOINT
               value: "127.0.0.1:3001"
         - name: batts-frontend
-          image: ghcr.io/dcnick3/batts:frontend-a40abce6bc149173da7e97d68f4943e1aeb001fc
+          image: ghcr.io/dcnick3/batts:frontend-297da8f3e333f09ade60f12c0ed6764254feecd0
           env:
             - name: BACKEND_URL
               value: "http://127.0.0.1:3001"
