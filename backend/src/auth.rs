@@ -39,13 +39,13 @@ pub struct Authority {
 }
 
 impl Authority {
-    pub fn new(cookie_name: &'static str, key_pair: Keypair) -> Self {
+    pub fn new(cookie_name: &'static str, key_pair: Keypair, duration: Duration) -> Self {
         Self {
             cookie_name,
             key_pair: Arc::new(key_pair),
             header: jwt_compact::Header::default(),
             time_options: TimeOptions::default(),
-            duration: Duration::hours(3),
+            duration,
         }
     }
 

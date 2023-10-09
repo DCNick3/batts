@@ -1,5 +1,6 @@
 mod api_result;
 mod auth;
+mod config;
 mod domain;
 mod error;
 mod extractors;
@@ -25,24 +26,28 @@ use snafu::{ResultExt, Whatever};
 use std::cell::Cell;
 use std::net::SocketAddr;
 use tower_http::catch_panic::CatchPanicLayer;
-use tracing::{debug, warn};
+use tracing::{info, warn};
 
+#[snafu::report]
 #[tokio::main]
 async fn main() -> Result<(), Whatever> {
     // initialize tracing
     init_tracing::init_tracing().whatever_context("failed to initialize tracing")?;
 
+    let environment = std::env::var("ENVIRONMENT").whatever_context(
+        "Please set ENVIRONMENT env var (probably you want to use either 'prod' or 'dev')",
+    )?;
+
+    let config =
+        config::Config::load(&environment).whatever_context("Loading config has failed")?;
+
+    info!("Resolved config: {:#?}", config);
+
     // build our application with a route
-    let app = app().await;
+    let app = app(&config).await;
 
-    if cfg!(feature = "expose-internal-routes") {
-        warn!("Running with internal routes exposed. DO NOT USE IN PRODUCTION!");
-    }
-
-    // run our app with hyper, listening globally on port 3000
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
-    debug!("listening on {}", addr);
-    axum::Server::bind(&addr)
+    info!("listening on {}", config.server.endpoint);
+    axum::Server::bind(&config.server.endpoint)
         .serve(app.into_make_service())
         .await
         .whatever_context("failed to run server")?;
@@ -50,7 +55,7 @@ async fn main() -> Result<(), Whatever> {
     Ok(())
 }
 
-fn make_api_router() -> Router<ApplicationState> {
+fn make_api_router(config: &config::Routes) -> Router<ApplicationState> {
     let mut router = Router::new();
     router = router.route("/tickets/:id", get(tickets_query).post(tickets_command));
 
@@ -58,7 +63,9 @@ fn make_api_router() -> Router<ApplicationState> {
         .route("/users/me", get(me_query))
         .route("/users/:id/profile", get(user_profile_query));
 
-    if cfg!(feature = "expose-internal-routes") {
+    if config.expose_internal {
+        warn!("Running with internal routes exposed. DO NOT USE IN PRODUCTION!");
+
         router = router
             .route("/users/:id", get(user_query).post(user_command))
             .route("/user-identities/:id", get(user_identity))
@@ -68,17 +75,17 @@ fn make_api_router() -> Router<ApplicationState> {
     router.fallback(fallback)
 }
 
-async fn app() -> Router {
+async fn app(config: &config::Config) -> Router {
     Router::new()
         .route("/", get(root))
-        .nest("/api", make_api_router())
+        .nest("/api", make_api_router(&config.routes))
         .layer(CatchPanicLayer::custom(api_result::PanicHandler))
         // include trace context as header into the response
         .layer(OtelInResponseLayer)
         // start OpenTelemetry trace on incoming request
         .layer(OtelAxumLayer::default())
         // .layer(axum::middleware::from_fn(envelope_middleware))
-        .with_state(new_application_state().await)
+        .with_state(new_application_state(config).await)
 }
 
 // basic handler that responds with a static string

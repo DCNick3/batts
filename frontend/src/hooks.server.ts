@@ -1,7 +1,8 @@
 import type { Handle } from "@sveltejs/kit";
+import { env } from "$env/dynamic/private";
 
-const MY_API_BASE_URL = "http://192.168.31.75:3000";
-const PROXY_PATH = "/api";
+const BACKEND_URL = env.BACKEND_URL ?? (() => { throw new Error("BACKEND_URL not set") })();
+const API_PROXY_PATH = "/api";
 
 const handleApiProxy: Handle = async ({ event }) => {
   // const origin = event.request.headers.get("Origin");
@@ -13,7 +14,7 @@ const handleApiProxy: Handle = async ({ event }) => {
   // }
 
   // build the new URL path with your API base URL, the stripped path and the query string
-  const urlPath = `${MY_API_BASE_URL}${event.url.pathname}${event.url.search}`;
+  const urlPath = `${BACKEND_URL}${event.url.pathname}${event.url.search}`;
   const proxiedUrl = new URL(urlPath);
 
   // Strip off header added by SvelteKit yet forbidden by underlying HTTP request
@@ -34,7 +35,7 @@ const handleApiProxy: Handle = async ({ event }) => {
 
 export const handle: Handle = async ({ event, resolve }) => {
   // intercept requests to `/api-proxy` and handle them with `handleApiProxy`
-  if (event.url.pathname.startsWith(PROXY_PATH)) {
+  if (event.url.pathname.startsWith(API_PROXY_PATH)) {
     return handleApiProxy({event, resolve});
   }
 

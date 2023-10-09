@@ -1,0 +1,5 @@
+routes:
+  # I'm a risky boy
+  # (this should be changed once actual auth is implemented)
+  # maybe we also want to have some developer access to this for debugging?
+  expose_internal: true

@@ -1,0 +1,2 @@
+routes:
+  expose_internal: true

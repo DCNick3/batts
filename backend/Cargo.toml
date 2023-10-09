@@ -23,7 +23,7 @@ uuid = { version = "1.4.1" }
 bs58 = "0.5.0"
 
 # not updating it since jwt-compact still uses the 1.0 version
-ed25519-dalek = "1.0.1"
+ed25519-dalek = { version = "1.0.1", features = [] }
 jwt-compact = { version = "0.7.0", features = ["ed25519-dalek", "clock", "std"], default-features = false }
 # used to interface with the `cookie` crate
 time = "0.3.29"
@@ -45,5 +45,8 @@ tracing-opentelemetry-instrumentation-sdk = "0.14.1"
 axum-tracing-opentelemetry = "0.14.1"
 ts-rs = "7.0.0"
 
-[features]
-expose-internal-routes = []
+config = "0.13.3"
+humantime-serde = "1.1.1"
+secrecy = "0.8.0"
+hex = "0.4.3"
+

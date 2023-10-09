@@ -1,0 +1,2 @@
+auth:
+  token_duration: '100d'

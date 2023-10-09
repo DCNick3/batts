@@ -23,7 +23,7 @@ pub struct ApplicationState {
     pub user_cqrs: Arc<MyCqrsFramework<User>>,
 }
 
-pub async fn new_application_state() -> ApplicationState {
+pub async fn new_application_state(config: &crate::config::Config) -> ApplicationState {
     let authority = Authority::new(
         "session",
         ed25519_dalek::Keypair::from_bytes(&[
@@ -35,6 +35,7 @@ pub async fn new_application_state() -> ApplicationState {
             0x71, 0x80, 0x31, 0xe5, 0xb2, 0xcb, 0x8f, 0xc0,
         ])
         .unwrap(),
+        chrono::Duration::from_std(config.auth.token_duration).unwrap(),
     );
 
     let ticket_view_repository = Arc::new(MyViewRepository::<TicketView, Ticket>::new());
