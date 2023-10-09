@@ -1,2 +1,4 @@
 routes:
   expose_internal: true
+server:
+  endpoint: 127.0.0.1:3000

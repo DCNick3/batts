@@ -24,6 +24,8 @@ const handleApiProxy: Handle = async ({ event }) => {
 
   return fetch(proxiedUrl.toString(), {
     // propagate the request method and body
+    // @ts-expect-error some required undici updates...
+    duplex: event.request.duplex,
     body: event.request.body,
     method: event.request.method,
     headers: event.request.headers,
