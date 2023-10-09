@@ -7,7 +7,7 @@
 	} from 'flowbite-svelte'
 	import StatusBadge from '$lib/components/StatusBadge.svelte'
 
-  type Ticket = { status: string, receiver: string, topic: string, up: boolean }
+  type Ticket = { id: string, status: string, receiver: string, topic: string, up: boolean }
 	export let tickets: Ticket[]
 
 </script>
@@ -36,7 +36,7 @@
 				<TableBodyCell
 					class="text-base font-semibold rounded-r-md"
 				>
-					<a href="/ticket">
+					<a href={`/tickets/${ticket.id}`}>
 						{ticket.topic}
 					</a>
 				</TableBodyCell>

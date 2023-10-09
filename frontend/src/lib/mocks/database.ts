@@ -8,11 +8,11 @@ export async function getReceivers() {
 
 export async function getRequests() {
   return [
-    { receiver: "Dorm Manager", topic: "Broken chair", status: "Pending", up: false },
-    { receiver: "IT Department", topic: "No internet", status: "Pending", up: true },
-    { receiver: "Dorm Manager", topic: "Doorknob", status: "In process", up: false },
-    { receiver: "Dorm Manager", topic: "Broken bulb", status: "Fixed", up: false },
-    { receiver: "IT Department", topic: "Dashboard broken", status: "Fixed", up: true },
+    { id: "a", receiver: "Dorm Manager", topic: "Broken chair", status: "Pending", up: false },
+    { id: "b", receiver: "IT Department", topic: "No internet", status: "Pending", up: true },
+    { id: "c", receiver: "Dorm Manager", topic: "Doorknob", status: "In process", up: false },
+    { id: "d", receiver: "Dorm Manager", topic: "Broken bulb", status: "Fixed", up: false },
+    { id: "e", receiver: "IT Department", topic: "Dashboard broken", status: "Fixed", up: true },
   ]
 }
 
