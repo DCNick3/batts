@@ -7,7 +7,7 @@
 	} from 'flowbite-svelte'
 	import AutoComplete from '$lib/components/AutoComplete.svelte'
 	import TicketList from '$lib/components/TicketList.svelte'
-	import type { PageData } from './submitter/$types'
+	import type { PageData } from './$types'
 	import { Api, generateId } from 'backend'
 
 	const submit = async (event: SubmitEvent) => {
