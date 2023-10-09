@@ -5,8 +5,6 @@
 
   export let item: TicketTimelineItem
   $: content = item.content
-  export let sender: string
-  export let receiver: string
 </script>
 
 {#if (content.type === 'StatusChange')}
@@ -27,7 +25,7 @@
   <div class="px-5 py-2 ml-4 border rounded-lg">
     <div class="flex justify-between">
       <span class="text-lg font-semibold text-gray-900 mb-2">
-        {sender}
+        {content.from}
       </span>
       <time class="font-normal text-sm text-gray-400 ml-2">
         {item.date}
