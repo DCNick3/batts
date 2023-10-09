@@ -1,0 +1,35 @@
+# syntax = docker/dockerfile:1.2
+
+FROM bash AS get-tini
+
+# Add Tini init-system
+ENV TINI_VERSION v0.19.0
+ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini-static /tini
+RUN chmod +x /tini
+
+
+FROM node as build
+
+WORKDIR /volume
+COPY frontend frontend/
+COPY backend backend/
+COPY package.json yarn.lock ./
+
+RUN --mount=type=cache,target=/root/.yarn YARN_CACHE_FOLDER=/root/.yarn yarn install --immutable --immutable-cache
+
+WORKDIR /volume/frontend
+
+RUN yarn build && echo '{"type": "module"}' > build/package.json && cp -r build ../batts-frontend
+
+FROM gcr.io/distroless/nodejs20
+
+LABEL org.opencontainers.image.source https://github.com/DCNick3/batts
+EXPOSE 3000
+
+# not setting the backend url here, as it is dependent on the concrete deployment (will be specified in k8s manifests)
+# ENV BACKEND_URL=http://batts-backend:3000
+
+COPY --from=get-tini /tini /tini
+COPY --from=build /volume/batts-frontend /batts-frontend
+
+ENTRYPOINT ["/tini", "--", "/nodejs/bin/node", "/batts-frontend"]

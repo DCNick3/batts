@@ -1,0 +1,35 @@
+# syntax = docker/dockerfile:1.2
+
+FROM bash AS get-tini
+
+# Add Tini init-system
+ENV TINI_VERSION v0.19.0
+ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini-static /tini
+RUN chmod +x /tini
+
+
+FROM clux/muslrust:stable as build
+
+ENV CARGO_INCREMENTAL=0
+
+WORKDIR /volume
+COPY backend backend
+
+WORKDIR /volume/backend
+
+RUN cargo build --locked --profile ship --target x86_64-unknown-linux-musl && \
+    cp target/x86_64-unknown-linux-musl/ship/batts-backend /volume/batts-backend
+
+FROM gcr.io/distroless/static
+
+LABEL org.opencontainers.image.source https://github.com/DCNick3/batts
+EXPOSE 3000
+
+ENV ENVIRONMENT=prod
+ENV CONFIG_SERVER__ENDPOINT=0.0.0.0:3000
+
+COPY --from=get-tini /tini /tini
+COPY --from=build /volume/batts-backend /batts-backend
+COPY backend/config.yaml backend/config.prod.yaml /
+
+ENTRYPOINT ["/tini", "--", "/batts-backend"]
