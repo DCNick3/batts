@@ -8,6 +8,7 @@ import type {
     ExternalUserProfile,
     TicketId,
     CreateTicket,
+    SendTicketMessage,
     TicketCommand,
     TicketView
 } from "../";
@@ -69,6 +70,11 @@ export class Api {
 
     async getTicket(id: TicketId): Promise<ApiResult<TicketView>> {
         return await this.#get(`/api/tickets/${id}`);
+    }
+
+    async sendTicketMessage(id: TicketId, message: SendTicketMessage): Promise<ApiResult<null>> {
+        let command: TicketCommand = {type: "SendTicketMessage", ...message};
+        return await this.#sendCommand(`/api/tickets/${id}`, command);
     }
 }
 

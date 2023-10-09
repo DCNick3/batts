@@ -117,3 +117,51 @@ test("create_ticket", async () => {
         expect(timelineItem.content.from).toBe(userId);
     }
 })
+
+test("make_mock_tickets", async () => {
+    const api1 = makeApi();
+    const api2 = makeApi();
+
+    const userId1 = "MekGz7Af4HwV8uwBm7c82P";
+    const userId2 = "R9wBXTwKPgNXGxVzcvo8xv";
+    const ticket1 = "F2VaZtXgAKgxJncCbMbX9V";
+    const ticket2 = "JrBVVdGiKLHEeaPApdq236";
+    const ticket3 = "6cbfgbg2E3FGNLZNxxt7Nv";
+    const ticket4 = "JrBVVdGiKLHEeaPApdq236";
+
+    await api1.internalCreateUser(userId1, {
+        type: "Telegram", id: 123456,
+        first_name: "Edward", last_name: "Snowden",
+        username: null, photo_url: null,
+    });
+    await api2.internalCreateUser(userId2, {
+        type: "Telegram", id: 123456,
+        first_name: "Edward", last_name: "Snowden",
+        username: null, photo_url: null,
+    });
+
+    await api1.internalFakeLogin(userId1);
+    await api2.internalFakeLogin(userId2);
+
+    if ((await api1.createTicket(ticket1, {
+        title: "Broken chair",
+        body: "Hello,\n\nI'm writing to you because the chair in the room 123 is broken. Please fix it.",
+    })).status == "Success") {
+        await api2.sendTicketMessage(ticket1, {
+            body: "Hey, we'll fix it soon."
+        })
+    }
+
+    await api1.createTicket(ticket2, {
+        title: "No internet",
+        body: "Hello,\n\nI'm writing to you because there is no internet in the room 123. Please fix it.",
+    });
+    await api2.createTicket(ticket3, {
+        title: "Broken bulb",
+        body: "Hello,\n\nI'm writing to you because the light bulb in the room 123 is broken. Please fix it.",
+    });
+    await api2.createTicket(ticket4, {
+        title: "Dashboard broken",
+        body: "Hello,\n\nI'm writing to you because the dashboard is broken. Please fix it.",
+    });
+})
