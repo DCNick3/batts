@@ -2,6 +2,7 @@
   import { Timeline } from '$lib/components/Timeline'
   import StatusBadge from '$lib/components/StatusBadge.svelte'
   import Ticket from './Ticket.svelte'
+  import { Button, Textarea } from 'flowbite-svelte'
   import type { PageData } from './$types'
   export let data: PageData
 </script>
@@ -11,13 +12,20 @@
 
   <div></div>
 
-  <div class="flex flex-col items-center gap-8 basis-3/4">  
+  <div class="flex flex-col items-center gap-4 basis-3/4">  
     <Timeline class="w-full">
       {#each data.timeline as item}
         <Ticket item={item} />
       {/each}
     </Timeline>
-  </div>
+    <Textarea
+      class="mt-2 resize-none"
+      name="message"
+      rows=4
+      placeholder="Write a message"
+    />
+	  <Button class="w-full" type="submit">Send message</Button>
+</div>
 
   <div class="flex flex-col gap-6 basis-1/4">
     <div>
