@@ -20,7 +20,7 @@
 	</colgroup>
 	<TableBody tableBodyClass="rounded-sm">
 		{#each tickets as ticket}
-			<TableBodyRow class={"first:rounded-t-sm last:rounded-b-sm" + (ticket.up ? " bg-gray-50" : "")}>
+			<TableBodyRow class={"first:rounded-t-sm last:rounded-b-sm" + (ticket.up ? "" : " bg-gray-50")}>
 				<TableBodyCell
 					class="px-2 text-sm rounded-l-md text-center"
 				>
@@ -36,7 +36,10 @@
 				<TableBodyCell
 					class="text-base font-semibold rounded-r-md"
 				>
-					<a href={`/tickets/${ticket.id}`}>
+					<a href={`/tickets/${ticket.id}`} class="flex">
+						{#if ticket.up}
+							<div class="w-2 h-2 rounded bg-primary-600 mr-1 self-center" />
+						{/if}
 						{ticket.topic}
 					</a>
 				</TableBodyCell>

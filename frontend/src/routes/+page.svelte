@@ -62,6 +62,10 @@
 	<Button type="submit">Submit</Button>
 </form>
 
-<h1 class="mx-auto mt-10 text-xl font-semibold">Submitted requests</h1>
+{#if data.requests.length === 0}
+	<h1 class="mx-auto mt-10 text-xl font-semibold">You have no submitted requests</h1>
+{:else}
+	<h1 class="mx-auto mt-10 text-xl font-semibold">Submitted requests</h1>
+	<TicketList tickets={data.requests} />
+{/if}
 
-<TicketList tickets={data.requests} />
