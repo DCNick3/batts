@@ -3,6 +3,7 @@
 
   import type { TicketTimelineItem } from 'backend'
 
+  export let users: Map<string, string>
   export let item: TicketTimelineItem
   $: content = item.content
 
@@ -41,7 +42,7 @@
   <div class="px-5 py-2 ml-4 border rounded-lg">
     <div class="flex justify-between">
       <span class="text-lg font-semibold text-gray-900 mb-2">
-        {content.from}
+        {users.get(content.from) || "Unknown user"}
       </span>
       <time class="font-normal text-sm text-gray-400 ml-2">
         {item.date}
