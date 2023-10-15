@@ -2,6 +2,7 @@
 	import { TimelineItem } from '$lib/components/Timeline';
 
   import type { TicketTimelineItem } from 'backend'
+  import Time from '$lib/components/Time.svelte'
 
   export let users: Map<string, string>
   export let item: TicketTimelineItem
@@ -44,9 +45,9 @@
       <span class="text-lg font-semibold text-gray-900 mb-2">
         {users.get(content.from) || "Unknown user"}
       </span>
-      <time class="font-normal text-sm text-gray-400 ml-2">
-        {item.date}
-      </time>
+      <Time
+        time={item.date}
+      />
     </div>
 
     <div>
