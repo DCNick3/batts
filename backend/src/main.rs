@@ -24,7 +24,6 @@ use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer}
 use cqrs_es::persist::ViewRepository;
 use snafu::{ResultExt, Whatever};
 use std::cell::Cell;
-use std::net::SocketAddr;
 use tower_http::catch_panic::CatchPanicLayer;
 use tracing::{info, warn};
 

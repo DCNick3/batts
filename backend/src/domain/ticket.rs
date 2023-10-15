@@ -30,12 +30,18 @@ pub struct SendTicketMessage {
 
 #[derive(Debug, TS, Serialize, Deserialize)]
 #[ts(export)]
+pub struct ChangeStatus {
+    pub new_status: TicketStatus,
+}
+
+#[derive(Debug, TS, Serialize, Deserialize)]
+#[ts(export)]
 #[serde(tag = "type")]
 pub enum TicketCommand {
     Create(CreateTicket),
     SendTicketMessage(SendTicketMessage),
     // TODO: actually, only admins should be able to change status
-    ChangeStatus(TicketStatus),
+    ChangeStatus(ChangeStatus),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -170,7 +176,7 @@ impl Aggregate for Ticket {
                     text: body,
                 }])
             }
-            TicketCommand::ChangeStatus(new_status) => {
+            TicketCommand::ChangeStatus(ChangeStatus { new_status }) => {
                 let Ticket::Created(_content) = self else {
                     panic!("Ticket not created");
                 };
@@ -221,6 +227,7 @@ impl Aggregate for Ticket {
 pub struct TicketView {
     pub id: TicketId,
     pub owner: UserId,
+    pub assignee: Option<UserId>,
     pub title: String,
     pub status: TicketStatus,
     pub timeline: Vec<TicketTimelineItem>,

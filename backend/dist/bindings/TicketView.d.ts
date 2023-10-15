@@ -5,6 +5,7 @@ import type { UserId } from "./UserId";
 export interface TicketView {
     id: TicketId;
     owner: UserId;
+    assignee: UserId | null;
     title: string;
     status: TicketStatus;
     timeline: Array<TicketTimelineItem>;

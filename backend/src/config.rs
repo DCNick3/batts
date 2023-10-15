@@ -1,5 +1,4 @@
-use secrecy::{Secret, SecretBox, SecretVec};
-use serde::{de, Deserialize, Deserializer};
+use serde::Deserialize;
 use snafu::{ResultExt, Whatever};
 use std::net::SocketAddr;
 use std::time::Duration;

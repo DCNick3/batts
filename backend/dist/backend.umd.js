@@ -249,6 +249,14 @@ var __privateMethod = (obj, member, method) => {
     async getTicket(id) {
       return await __privateMethod(this, _get, get_fn).call(this, `/api/tickets/${id}`);
     }
+    async sendTicketMessage(id, message) {
+      let command = { type: "SendTicketMessage", ...message };
+      return await __privateMethod(this, _sendCommand, sendCommand_fn).call(this, `/api/tickets/${id}`, command);
+    }
+    async changeTicketStatus(id, new_status) {
+      let command = { type: "ChangeStatus", new_status };
+      return await __privateMethod(this, _sendCommand, sendCommand_fn).call(this, `/api/tickets/${id}`, command);
+    }
   }
   _sendCommand = new WeakSet();
   sendCommand_fn = async function(url, command) {

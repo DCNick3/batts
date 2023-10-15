@@ -10,7 +10,8 @@ import type {
     CreateTicket,
     SendTicketMessage,
     TicketCommand,
-    TicketView
+    TicketView,
+    TicketStatus
 } from "../";
 
 // import { toDates, toDatesByArray } from 'ts-transformer-dates';
@@ -74,6 +75,11 @@ export class Api {
 
     async sendTicketMessage(id: TicketId, message: SendTicketMessage): Promise<ApiResult<null>> {
         let command: TicketCommand = {type: "SendTicketMessage", ...message};
+        return await this.#sendCommand(`/api/tickets/${id}`, command);
+    }
+
+    async changeTicketStatus(id: TicketId, new_status: TicketStatus): Promise<ApiResult<null>> {
+        let command: TicketCommand = {type: "ChangeStatus", new_status};
         return await this.#sendCommand(`/api/tickets/${id}`, command);
     }
 }
