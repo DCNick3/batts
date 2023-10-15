@@ -34,7 +34,7 @@
 					</a>
 				</TableBodyCell>
 				<TableBodyCell
-					class="text-base font-semibold rounded-r-md"
+					class={`text-base font-${ticket.up ? 'semibold' : 'medium'} rounded-r-md`}
 				>
 					<a href={`/tickets/${ticket.id}`} class="flex">
 						{#if ticket.up}
