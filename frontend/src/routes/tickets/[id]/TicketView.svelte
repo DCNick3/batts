@@ -6,7 +6,6 @@
   import StatusBadge from '$lib/components/StatusBadge.svelte'
   import Ticket from './Ticket.svelte'
   import { Button, Textarea } from 'flowbite-svelte'
-	import { error } from '@sveltejs/kit';
 
   export let ticketView: TicketView
   export let ticketId: string
@@ -14,31 +13,38 @@
 
   type State = 'Sending' | 'Ok' | 'Error'
   let state: State = 'Ok'
-  let message: string = ''
+  let messageField: string = ''
   let errorMessage: string = ''
 
   const submit = async () => {
+    const message = messageField
+    messageField = ''
 		const api = new Api(fetch)
     state = 'Sending'
-    const keepMessage = message
-    message = ''
-		const result = await api.sendTicketMessage(ticketId, { body: message })
-		// TODO: receive more data from backend
-		if (result.status === 'Success') {
-      ticketView.timeline.push({
-        date: Date.now().toString(),
-        content: {
-          type: 'Message',
-          from: '',
-          text: message
-        }
-      })
-      state = 'Ok'
-		} else {
+    try {
+      const result = await api.sendTicketMessage(ticketId, { body: message })
+      // TODO: receive more data from backend
+      if (result.status === 'Success') {
+        ticketView.timeline.push({
+          date: (new Date()).toString(),
+          content: {
+            type: 'Message',
+            from: '',
+            text: message
+          }
+        })
+        state = 'Ok'
+        ticketView = ticketView
+      } else {
+        state = 'Error'
+        errorMessage = result.payload.report
+        messageField = message
+      }
+    } catch (error) {
+      // TODO check error content
       state = 'Error'
-      errorMessage = result.payload.report
-      message = keepMessage
-		}
+      errorMessage = 'Connection failure'
+    }
   }
 </script>
 
@@ -72,13 +78,13 @@
         name="message"
         rows=4
         placeholder="Write a message"
-        bind:value={message}
+        bind:value={messageField}
         disabled={state === 'Sending'}
       />
       <Button
         class="w-full"
         type="submit"
-        disabled={state === 'Sending' || message === ''}
+        disabled={state === 'Sending'}
       >
         {state === 'Sending' ? 'Sending' : 'Send message'}
       </Button>
