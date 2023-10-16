@@ -22,7 +22,7 @@ spec:
           env:
             - name: CONFIG_SERVER__ENDPOINT
               value: "127.0.0.1:3001"
-            - name: CONFIG_CONFIG_AUTH__TELEGRAM_SECRET
+            - name: CONFIG_AUTH__TELEGRAM_SECRET
               valueFrom:
                 secretKeyRef:
                   name: batts-secrets
