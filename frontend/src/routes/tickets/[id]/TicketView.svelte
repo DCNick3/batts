@@ -89,7 +89,7 @@
   <div class="flex flex-col gap-6 basis-1/4">
     <div>
       <div class="font-semibold text-zinc-600">Submitted To</div>
-      <div class="font-normal text-sm">TODO</div>  
+      <div class="font-normal text-sm">{ticketView.destination}</div>  
     </div>
 
     <div>
