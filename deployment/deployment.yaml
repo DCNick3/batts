@@ -17,11 +17,8 @@ spec:
         instrumentation.opentelemetry.io/inject-sdk: "true"
     spec:
       containers:
-        # the backend goes first to be the one that gets the otel sdk injected
-        # TODO: figure out the "multi-container instrumentation"
-        # https://github.com/open-telemetry/opentelemetry-operator/blob/main/README.md#multi-container-pods-with-multiple-instrumentations
         - name: batts-backend
-          image: ghcr.io/dcnick3/batts:backend-6a7d3d36a578c8592a2c2c55f94528c14e2e88ab
+          image: ghcr.io/dcnick3/batts:backend-ecb2a91f3df0f7e3482695ec2b6563b2f8bc4da1
           env:
             - name: CONFIG_SERVER__ENDPOINT
               value: "127.0.0.1:3001"
@@ -31,7 +28,7 @@ spec:
                   name: batts-secrets
                   key: telegram_secret
         - name: batts-frontend
-          image: ghcr.io/dcnick3/batts:frontend-fb7952c87c27e648264f7e3747771bafbc449330
+          image: ghcr.io/dcnick3/batts:frontend-ecb2a91f3df0f7e3482695ec2b6563b2f8bc4da1
           env:
             - name: BACKEND_URL
               value: "http://127.0.0.1:3001"
