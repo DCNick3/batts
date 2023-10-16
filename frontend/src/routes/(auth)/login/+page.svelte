@@ -34,10 +34,10 @@
 <div class="mx-auto mt-20 p-5 flex flex-col gap-2">
   <h1 class="mb-4 mx-auto text-2xl font-semibold">Login</h1>
   <Login username="batts_tatar_bot" on:auth={handleLogin} />
-  <LoginButton>
+  <!-- <LoginButton>
     <img class="w-8 h-8 rounded-full" src={iuIcon} alt=""/>
     IU account
-  </LoginButton>
+  </LoginButton> -->
 </div>
 
 {#if state === 'Error'}
