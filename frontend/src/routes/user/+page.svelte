@@ -3,7 +3,7 @@
   import { getContext } from 'svelte'
 	import type { UserView } from 'backend';
 
-  export const user = getContext<SvelteStore<null | UserView>>('user')
+  const user = getContext<SvelteStore<null | UserView>>('user')
 </script>
 
 {#if $user === null}

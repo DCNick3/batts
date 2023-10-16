@@ -9,8 +9,11 @@
 	import TicketList from '$lib/components/TicketList.svelte'
   import { goto } from '$app/navigation'
 	import type { PageData } from './$types'
-	import { Api, generateId, type TicketDestination } from 'backend'
+	import { Api, generateId } from 'backend'
+  import { getContext } from 'svelte'
+	import type { TicketDestination, UserView } from 'backend';
 
+  const user = getContext<SvelteStore<null | UserView>>('user')
 	let destination: {name: string, id: string}
 
 	const submit = async (event: SubmitEvent) => {
@@ -36,41 +39,43 @@
 
 </script>
 
-<form
-	on:submit|preventDefault={submit}
-	class="flex flex-col gap-4"
->
-	<Label>
-		Submit To:
-		<AutoComplete
-			bind:selectedItem={destination}
-			class="w-full"
-			items={data.receivers}
-			labelFieldName="name"
-			valueFieldName="id"
-			required
-		/>
-	</Label>
-	<Label>
-		Topic:
-		<Input class="mt-1" name="topic" required />
-	</Label>
-	<Label>
-		Description:
-		<Textarea
-			class="mt-1"
-			name="description"
-			rows=8
-			required
-		/>
-	</Label>
-	<Button type="submit">Submit</Button>
-</form>
+{#if $user !== null}
+	<form
+		on:submit|preventDefault={submit}
+		class="flex flex-col gap-4"
+	>
+		<Label>
+			Submit To:
+			<AutoComplete
+				bind:selectedItem={destination}
+				class="w-full"
+				items={data.receivers}
+				labelFieldName="name"
+				valueFieldName="id"
+				required
+			/>
+		</Label>
+		<Label>
+			Topic:
+			<Input class="mt-1" name="topic" required />
+		</Label>
+		<Label>
+			Description:
+			<Textarea
+				class="mt-1"
+				name="description"
+				rows=8
+				required
+			/>
+		</Label>
+		<Button type="submit">Submit</Button>
+	</form>
 
-{#if data.requests.length === 0}
-	<h1 class="mx-auto mt-10 text-xl font-semibold">You have no submitted requests</h1>
-{:else}
-	<h1 class="mx-auto mt-10 text-xl font-semibold">Submitted requests</h1>
-	<TicketList tickets={data.requests} />
+	{#if data.requests.length === 0}
+		<h1 class="mx-auto mt-10 text-xl font-semibold">You have no submitted requests</h1>
+	{:else}
+		<h1 class="mx-auto mt-10 text-xl font-semibold">Submitted requests</h1>
+		<TicketList tickets={data.requests} />
+	{/if}
 {/if}
 

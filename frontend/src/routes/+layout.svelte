@@ -3,22 +3,36 @@
 	import Logo from '$lib/components/Logo.svelte'
 	import { setContext } from 'svelte'
 	import { writable } from 'svelte/store'
+	import { Button } from 'flowbite-svelte'
 
 	import type { LayoutData } from './$types'
 	import type { UserView } from 'backend'
+	import { goto } from '$app/navigation';
 	export let data: LayoutData
 
 	const user = writable<null | UserView>()
 	$: user.set(data.user)
 
 	setContext('user', user)
+
+	const goToLogin = () => {
+		goto('/login')
+	}
 </script>
 
 <div class="flex grow shrink basis-full h-screen">
-	<aside class="flex flex-col items-center w-64 bg-slate-50 p-4">
+	<aside class="flex flex-col items-center w-64 bg-slate-50 gap-6 p-4">
 		<a href="/" class="block w-fit">
 			<Logo />
 		</a>
+		{#if $user === null}
+			<Button
+				on:click={goToLogin}
+				class="text-md"
+			>
+				Login
+			</Button>
+		{/if}
 	</aside>
 
 	<div class="flex flex-col w-full p-10 gap-6">
