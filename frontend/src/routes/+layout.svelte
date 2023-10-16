@@ -32,6 +32,8 @@
 			>
 				Login
 			</Button>
+		{:else}
+			<a href="/me">{$user.name}</a>
 		{/if}
 	</aside>
 
