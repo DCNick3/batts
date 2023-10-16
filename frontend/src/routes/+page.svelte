@@ -48,6 +48,7 @@
 			items={data.receivers}
 			labelFieldName="name"
 			valueFieldName="id"
+			required
 		/>
 	</Label>
 	<Label>
