@@ -21,12 +21,17 @@ spec:
         # TODO: figure out the "multi-container instrumentation"
         # https://github.com/open-telemetry/opentelemetry-operator/blob/main/README.md#multi-container-pods-with-multiple-instrumentations
         - name: batts-backend
-          image: ghcr.io/dcnick3/batts:backend-cee3fe2e94d591d1ee07ee31ca4d692c8a6a9b75
+          image: ghcr.io/dcnick3/batts:backend-6a7d3d36a578c8592a2c2c55f94528c14e2e88ab
           env:
             - name: CONFIG_SERVER__ENDPOINT
               value: "127.0.0.1:3001"
+            - name: CONFIG_CONFIG_AUTH__TELEGRAM_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: batts-secrets
+                  key: telegram_secret
         - name: batts-frontend
-          image: ghcr.io/dcnick3/batts:frontend-cb17a207b71a47baa02a713d99e1c511ee92e207
+          image: ghcr.io/dcnick3/batts:frontend-fb7952c87c27e648264f7e3747771bafbc449330
           env:
             - name: BACKEND_URL
               value: "http://127.0.0.1:3001"
