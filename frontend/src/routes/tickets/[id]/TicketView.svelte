@@ -71,7 +71,7 @@
       class="w-full gap-4"
     >
       {#if state === 'Error'}
-        <span>Failed to send message: {errorMessage}</span>
+        <span class="text-red-500">Failed to send message: {errorMessage}</span>
       {/if}
       <Textarea
         class="mt-2 resize-none"
