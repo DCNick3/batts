@@ -6,6 +6,7 @@
   import StatusBadge from '$lib/components/StatusBadge.svelte'
   import Ticket from './Ticket.svelte'
   import { Button, Textarea } from 'flowbite-svelte'
+  import { invalidateAll } from '$app/navigation'
 
   export let ticketView: TicketView
   export let ticketId: string
@@ -25,16 +26,8 @@
       const result = await api.sendTicketMessage(ticketId, { body: message })
       // TODO: receive more data from backend
       if (result.status === 'Success') {
-        ticketView.timeline.push({
-          date: (new Date()).toString(),
-          content: {
-            type: 'Message',
-            from: '',
-            text: message
-          }
-        })
         state = 'Ok'
-        ticketView = ticketView
+        invalidateAll()
       } else {
         state = 'Error'
         errorMessage = result.payload.report
@@ -44,6 +37,7 @@
       // TODO check error content
       state = 'Error'
       errorMessage = 'Connection failure'
+      messageField = message
     }
   }
 </script>
