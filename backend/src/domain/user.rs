@@ -2,6 +2,7 @@ use crate::error::ApiError;
 use crate::id::Id;
 use async_trait::async_trait;
 use axum::http::StatusCode;
+use chrono::{DateTime, Utc};
 use cqrs_es::persist::{ViewContext, ViewRepository};
 use cqrs_es::{Aggregate, DomainEvent, EventEnvelope, Query, View};
 use serde::{Deserialize, Serialize};
@@ -173,6 +174,17 @@ pub struct TelegramProfile {
     pub last_name: String,
     pub username: Option<String>,
     pub photo_url: Option<String>,
+}
+
+#[derive(Default, Debug, Clone, TS, Serialize, Deserialize, PartialEq)]
+#[ts(export)]
+pub struct TelegramLoginData {
+    #[serde(flatten)]
+    pub profile: TelegramProfile,
+    #[ts(type = "number")]
+    #[serde(with = "chrono::serde::ts_seconds")]
+    pub auth_date: DateTime<Utc>,
+    pub hash: String,
 }
 
 #[derive(Default, Debug, Clone, TS, Serialize, Deserialize, PartialEq)]

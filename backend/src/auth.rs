@@ -1,5 +1,5 @@
 use crate::domain::user::UserId;
-use crate::error::ApiError;
+use crate::error::{ApiError, Whatever};
 use axum::http::StatusCode;
 use axum_extra::extract::cookie::{Cookie, Expiration};
 use chrono::Duration;
@@ -7,7 +7,7 @@ use ed25519_dalek::Keypair;
 use jwt_compact::alg::Ed25519;
 use jwt_compact::{AlgorithmExt, TimeOptions, Token, UntrustedToken};
 use serde::{Deserialize, Serialize};
-use snafu::{ResultExt, Snafu, Whatever};
+use snafu::{ResultExt, Snafu};
 use std::sync::Arc;
 use time::OffsetDateTime;
 
@@ -30,7 +30,7 @@ impl ApiError for AuthError {
 }
 
 #[derive(Clone)]
-pub struct Authority {
+pub struct CookieAuthority {
     pub cookie_name: &'static str,
     key_pair: Arc<Keypair>,
     header: jwt_compact::Header,
@@ -38,7 +38,7 @@ pub struct Authority {
     duration: Duration,
 }
 
-impl Authority {
+impl CookieAuthority {
     pub fn new(cookie_name: &'static str, key_pair: Keypair, duration: Duration) -> Self {
         Self {
             cookie_name,

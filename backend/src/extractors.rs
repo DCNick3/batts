@@ -81,8 +81,8 @@ impl FromRequestParts<ApplicationState> for UserContext {
         let cookies = CookieJar::from_headers(&parts.headers);
 
         let token = state
-            .authority
-            .extract_from_cookie(cookies.get(state.authority.cookie_name))
+            .cookie_authority
+            .extract_from_cookie(cookies.get(state.cookie_authority.cookie_name))
             .context(AuthSnafu)
             .map_err(ApiResult::err)?;
 

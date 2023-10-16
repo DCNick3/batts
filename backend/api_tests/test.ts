@@ -131,6 +131,21 @@ test("create_ticket", async () => {
     expect(assignedTickets.length).toBe(0);
 })
 
+test("telegram_login", async () => {
+    const api = makeApi();
+    const result = await api.telegramLogin({
+        "id": 519776851,
+        "first_name": "Anatoliy",
+        "last_name": "Baskakov",
+        "username": "Nihon_V",
+        "photo_url": "https:\/\/t.me\/i\/userpic\/320\/MALv0jB4u8C_pdnrnxBygB9WiLfr7kfkas1yOfr4jQg.jpg",
+        "auth_date": 1697473082,
+        "hash": "922e211defd4965842f14a93c93c36ec03c6310cc6cc633f8036390e94e6935a"
+    });
+    // we expect an error because the auth is too old
+    expect(result.status).toBe("Error");
+});
+
 test("make_mock_tickets", async () => {
     const api1 = makeApi();
     const api2 = makeApi();

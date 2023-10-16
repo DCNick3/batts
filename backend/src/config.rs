@@ -1,3 +1,4 @@
+use crate::login::TelegramSecret;
 use serde::Deserialize;
 use snafu::{ResultExt, Whatever};
 use std::net::SocketAddr;
@@ -15,8 +16,18 @@ impl Config {
         let config = config::Config::builder()
             .add_source(config::File::new("config.yaml", config::FileFormat::Yaml).required(false))
             .add_source(
+                config::File::new("config.local.yaml", config::FileFormat::Yaml).required(false),
+            )
+            .add_source(
                 config::File::new(
                     &format!("config.{}.yaml", environment),
+                    config::FileFormat::Yaml,
+                )
+                .required(false),
+            )
+            .add_source(
+                config::File::new(
+                    &format!("config.{}.local.yaml", environment),
                     config::FileFormat::Yaml,
                 )
                 .required(false),
@@ -40,6 +51,7 @@ impl Config {
 pub struct Auth {
     #[serde(with = "humantime_serde")]
     pub token_duration: Duration,
+    pub telegram_secret: Option<TelegramSecret>,
 }
 
 #[derive(Deserialize, Clone, Debug)]

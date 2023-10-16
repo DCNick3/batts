@@ -1,4 +1,4 @@
-import type { ApiResult, FetchFn, UserId, UserView, UserProfileView, ExternalUserProfile, TicketId, CreateTicket, SendTicketMessage, TicketView, TicketListingViewExpandedItem, TicketStatus } from "../";
+import type { ApiResult, FetchFn, UserId, UserView, UserProfileView, ExternalUserProfile, TicketId, CreateTicket, SendTicketMessage, TicketView, TicketListingViewExpandedItem, TicketStatus, TelegramLoginData } from "../";
 export declare function generateId(): string;
 export declare class Api {
     #private;
@@ -6,6 +6,7 @@ export declare class Api {
     constructor(fetch: FetchFn);
     internalCreateUser(id: UserId, profile: ExternalUserProfile): Promise<ApiResult<null>>;
     internalFakeLogin(userId: UserId): Promise<ApiResult<null>>;
+    telegramLogin(data: TelegramLoginData): Promise<ApiResult<null>>;
     getMe(): Promise<ApiResult<UserView>>;
     getUserProfile(id: UserId): Promise<ApiResult<UserProfileView>>;
     createTicket(id: TicketId, creation: CreateTicket): Promise<ApiResult<null>>;

@@ -2,10 +2,42 @@ use crate::domain::ticket::TicketError;
 use crate::domain::user::UserError;
 use axum::http::StatusCode;
 use cqrs_es::AggregateError;
-use snafu::{Snafu, Whatever};
+use snafu::{Backtrace, Snafu};
+use std::error::Error as _;
 
 pub trait ApiError {
     fn status_code(&self) -> StatusCode;
+}
+
+#[derive(Debug, Snafu)]
+#[snafu(whatever)]
+#[snafu(display("{message}"))]
+#[snafu(provide(opt, ref, chain, dyn std::error::Error => source.as_deref()))]
+pub struct Whatever {
+    #[snafu(source(from(Box<dyn std::error::Error + Send + Sync>, Some)))]
+    #[snafu(provide(false))]
+    source: Option<Box<dyn std::error::Error + Send + Sync>>,
+    message: String,
+    backtrace: Backtrace,
+}
+
+impl Whatever {
+    /// Gets the backtrace from the deepest `Whatever` error. If none
+    /// of the underlying errors are `Whatever`, returns the backtrace
+    /// from when this instance was created.
+    pub fn backtrace(&self) -> Option<&Backtrace> {
+        let mut best_backtrace = &self.backtrace;
+
+        let mut source = self.source();
+        while let Some(s) = source {
+            if let Some(this) = s.downcast_ref::<Self>() {
+                best_backtrace = &this.backtrace;
+            }
+            source = s.source();
+        }
+
+        Some(best_backtrace)
+    }
 }
 
 /// An error to rule them all
@@ -26,6 +58,8 @@ pub enum Error {
     },
     /// Auth error
     Auth { source: crate::auth::AuthError },
+    /// Login error
+    Login { source: crate::login::LoginError },
     /// Error while manipulating a ticket
     Ticket { source: AggregateError<TicketError> },
     /// Error while manipulating a user
@@ -45,6 +79,7 @@ impl ApiError for Error {
             Error::Path { source } => source.status(),
             Error::Persistence { .. } => StatusCode::INTERNAL_SERVER_ERROR,
             Error::Auth { source } => source.status_code(),
+            Error::Login { source } => source.status_code(),
             Error::Ticket { source } => source.status_code(),
             Error::User { source } => source.status_code(),
             Error::NotFound => StatusCode::NOT_FOUND,

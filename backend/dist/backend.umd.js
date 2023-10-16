@@ -236,6 +236,9 @@ var __privateMethod = (obj, member, method) => {
       });
       return await res.json();
     }
+    async telegramLogin(data) {
+      return await __privateMethod(this, _sendCommand, sendCommand_fn).call(this, `/api/login/telegram`, data);
+    }
     async getMe() {
       return await __privateMethod(this, _get, get_fn).call(this, "/api/users/me");
     }

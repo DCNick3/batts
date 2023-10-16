@@ -1,8 +1,9 @@
-use crate::auth::Authority;
+use crate::auth::CookieAuthority;
 use crate::domain::ticket::{
     Ticket, TicketListingKind, TicketListingQuery, TicketListingView, TicketView,
 };
 use crate::domain::user::{IdentityQuery, IdentityView, User, UserServices, UserView};
+use crate::login::TelegramSecret;
 use crate::memory_view_repository::MemViewRepository;
 use cqrs_es::mem_store::MemStore;
 use cqrs_es::persist::GenericQuery;
@@ -15,7 +16,8 @@ type MyGenericQuery<V, A> = GenericQuery<MyViewRepository<V, A>, V, A>;
 
 #[derive(Clone)]
 pub struct ApplicationState {
-    pub authority: Authority,
+    pub cookie_authority: CookieAuthority,
+    pub telegram_login_secret: Option<TelegramSecret>,
 
     pub ticket_view_repository: Arc<MyViewRepository<TicketView, Ticket>>,
     pub ticket_owner_listing_view_repository: Arc<MyViewRepository<TicketListingView, Ticket>>,
@@ -28,7 +30,7 @@ pub struct ApplicationState {
 }
 
 pub async fn new_application_state(config: &crate::config::Config) -> ApplicationState {
-    let authority = Authority::new(
+    let authority = CookieAuthority::new(
         "session",
         ed25519_dalek::Keypair::from_bytes(&[
             // TODO: replace this hard-coded key with something more secure
@@ -89,7 +91,8 @@ pub async fn new_application_state(config: &crate::config::Config) -> Applicatio
     let user_cqrs = Arc::new(user_cqrs);
 
     ApplicationState {
-        authority,
+        cookie_authority: authority,
+        telegram_login_secret: config.auth.telegram_secret.clone(),
 
         ticket_view_repository,
         ticket_owner_listing_view_repository,

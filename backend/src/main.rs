@@ -6,26 +6,24 @@ mod error;
 mod extractors;
 mod id;
 mod init_tracing;
+mod login;
 mod memory_view_repository;
 mod state;
 
 use crate::api_result::ApiResult;
-use crate::auth::UserClaims;
 use crate::domain::ticket::{
     TicketCommand, TicketListingView, TicketListingViewExpandedItem, TicketView,
 };
 use crate::domain::user::{IdentityView, UserCommand, UserProfileView, UserView};
-use crate::error::{Error, PersistenceSnafu, TicketSnafu, UserSnafu, WhateverSnafu};
+use crate::error::{Error, PersistenceSnafu, TicketSnafu, UserSnafu};
 use crate::extractors::{Json, Path, State, UserContext};
 use crate::id::Id;
 use crate::state::{new_application_state, ApplicationState};
 use axum::routing::post;
 use axum::{routing::get, Router};
-use axum_extra::extract::CookieJar;
 use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
 use cqrs_es::persist::ViewRepository;
 use snafu::{ResultExt, Whatever};
-use std::cell::Cell;
 use tower_http::catch_panic::CatchPanicLayer;
 use tracing::{info, warn};
 
@@ -67,13 +65,15 @@ fn make_api_router(config: &config::Routes) -> Router<ApplicationState> {
         .route("/users/me", get(me_query))
         .route("/users/:id/profile", get(user_profile_query));
 
+    router = router.route("/login/telegram", post(login::telegram_login));
+
     if config.expose_internal {
         warn!("Running with internal routes exposed. DO NOT USE IN PRODUCTION!");
 
         router = router
             .route("/users/:id", get(user_query).post(user_command))
             .route("/user-identities/:id", get(user_identity))
-            .route("/fake-login/:id", post(fake_login))
+            .route("/fake-login/:id", post(login::fake_login))
     }
 
     router.fallback(fallback)
@@ -269,39 +269,4 @@ async fn user_identity(
         identity_view.ok_or(Error::NotFound)
     })
     .await
-}
-
-async fn fake_login(
-    jar: CookieJar,
-    State(state): State<ApplicationState>,
-    Path(id): Path<Id>,
-) -> (CookieJar, ApiResult<()>) {
-    let mut jar = Cell::new(jar);
-
-    let result = ApiResult::from_async_fn(|| async {
-        let Some(user) = state
-            .user_view_repository
-            .load(&id.to_string())
-            .await
-            .context(PersistenceSnafu)?
-        else {
-            return Err(Error::NotFound);
-        };
-
-        let cookie = state
-            .authority
-            .create_signed_cookie(UserClaims {
-                user_id: user.id,
-                name: user.name,
-            })
-            .context(WhateverSnafu)?;
-
-        let new_jar = jar.get_mut().clone().add(cookie);
-        jar.set(new_jar);
-
-        Ok(())
-    })
-    .await;
-
-    (jar.into_inner(), result)
 }

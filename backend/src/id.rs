@@ -9,6 +9,10 @@ use uuid::Uuid;
 pub struct Id(Uuid);
 
 impl Id {
+    pub fn generate() -> Self {
+        Id(Uuid::new_v4())
+    }
+
     pub fn is_default(&self) -> bool {
         self.0 == Uuid::from_bytes([0; 16])
     }

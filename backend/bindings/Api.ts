@@ -13,6 +13,7 @@ import type {
     TicketView,
     TicketListingViewExpandedItem,
     TicketStatus,
+    TelegramLoginData,
 } from "../";
 
 // import { toDates, toDatesByArray } from 'ts-transformer-dates';
@@ -55,6 +56,10 @@ export class Api {
             method: 'POST',
         });
         return await res.json();
+    }
+
+    async telegramLogin(data: TelegramLoginData): Promise<ApiResult<null>> {
+        return await this.#sendCommand(`/api/login/telegram`, data);
     }
 
     async getMe(): Promise<ApiResult<UserView>> {
