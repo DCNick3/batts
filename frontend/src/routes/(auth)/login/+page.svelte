@@ -17,7 +17,7 @@
       if (result.status === 'Success') {
         state = 'Ok'
         await invalidateAll()
-        await goto('/user')
+        await goto('/')
       } else {
         // TODO: handle error
         state = 'Error'
