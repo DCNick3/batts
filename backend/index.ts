@@ -6,6 +6,8 @@ export { Api, FetchFn };
 export { generateId } from './bindings/Api';
 export type { ApiError, ApiResult } from './bindings/ApiResult';
 
+export type { TelegramLoginData } from './bindings/TelegramLoginData';
+
 export type { UserId } from './bindings/UserId';
 export type { UserIdentities } from './bindings/UserIdentities';
 export type { UserProfile } from './bindings/UserProfile';
