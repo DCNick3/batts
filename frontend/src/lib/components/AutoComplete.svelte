@@ -1,4 +1,4 @@
-<script lang="ts">
+<script lang="ts" generics="T">
   	// @ts-ignore
 	import AutoComplete from "simple-svelte-autocomplete"
 
@@ -7,17 +7,20 @@
 	$: autocompleteClass = twMerge(defaultClass, $$props.class);
 
   // @ts-ignore
-  export let items
+  export let items: T[]
   export let required = false
   export let placeholder="Choose option..."
   export let labelFieldName: string
   export let valueFieldName: string
+
+	export let selectedItem: T
 </script>
 
 <AutoComplete
 	className="block w-full my-1"
 	class={autocompleteClass}
 	items={items}
+	bind:selectedItem
 	labelFieldName={labelFieldName}
 	valueFieldName={valueFieldName}
 	placeholder={placeholder}

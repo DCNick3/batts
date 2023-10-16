@@ -9,7 +9,9 @@
 	import TicketList from '$lib/components/TicketList.svelte'
   import { goto } from '$app/navigation'
 	import type { PageData } from './$types'
-	import { Api, generateId } from 'backend'
+	import { Api, generateId, type TicketDestination } from 'backend'
+
+	let destination: {name: string, id: string}
 
 	const submit = async (event: SubmitEvent) => {
 		if (!event.target) return
@@ -17,10 +19,11 @@
 		// TODO: use ts properly
 		const topic = formData.get("topic") as string
 		const description = formData.get("description") as string
+		// const destination = formData.get("destination") as TicketDestination
 
 		const api = new Api(fetch)
 		const newId = generateId()
-		const result = await api.createTicket(newId, { title: topic, body: description })
+		const result = await api.createTicket(newId, { title: topic, body: description, destination: destination.id as TicketDestination})
 		// TODO: handle error
 		if (result.status === 'Success') {
 			goto(`/tickets/${newId}`)
@@ -40,6 +43,7 @@
 	<Label>
 		Submit To:
 		<AutoComplete
+			bind:selectedItem={destination}
 			class="w-full"
 			items={data.receivers}
 			labelFieldName="name"

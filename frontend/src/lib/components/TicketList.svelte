@@ -6,9 +6,9 @@
 		TableBodyRow
 	} from 'flowbite-svelte'
 	import StatusBadge from '$lib/components/StatusBadge.svelte'
+	import type { TicketListingViewExpandedItem } from 'backend'
 
-  type Ticket = { id: string, status: string, receiver: string, topic: string, up: boolean }
-	export let tickets: Ticket[]
+	export let tickets: TicketListingViewExpandedItem[]
 
 </script>
 
@@ -20,7 +20,8 @@
 	</colgroup>
 	<TableBody tableBodyClass="rounded-sm">
 		{#each tickets as ticket}
-			<TableBodyRow class={"first:rounded-t-sm last:rounded-b-sm" + (ticket.up ? "" : " bg-gray-50")}>
+		<!-- TODO: Three hardcoded false's come from the `ticket.up` property -->
+			<TableBodyRow class={"first:rounded-t-sm last:rounded-b-sm" + (true ? "" : " bg-gray-50")}>
 				<TableBodyCell
 					class="px-2 text-sm rounded-l-md text-center"
 				>
@@ -30,17 +31,17 @@
 					class="text-sm text-slate-500"
 				>
 					<a href="/">
-						{ticket.receiver}
+						{ticket.destination}
 					</a>
 				</TableBodyCell>
 				<TableBodyCell
-					class={`text-base font-${ticket.up ? 'semibold' : 'medium'} rounded-r-md`}
+					class={`text-base font-${false ? 'semibold' : 'medium'} rounded-r-md`}
 				>
 					<a href={`/tickets/${ticket.id}`} class="flex">
-						{#if ticket.up}
+						{#if false}
 							<div class="w-2 h-2 rounded bg-primary-600 mr-1 self-center" />
 						{/if}
-						{ticket.topic}
+						{ticket.title}
 					</a>
 				</TableBodyCell>
 			</TableBodyRow>

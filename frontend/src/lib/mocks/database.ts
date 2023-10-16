@@ -1,10 +1,10 @@
-import { generateId } from 'backend'
+import type { TicketDestination } from 'backend'
 
 export async function getReceivers() {
   return [
-    { name : "IT Department", id : "it" },
-    { name : "Dorm Manager", id : "dorm" },
-  ]
+    { name : "IT Department", id : "ItDepartment" },
+    { name : "Dorm Manager", id : "DormManager" },
+  ] as { name: string, id: TicketDestination }[]
 }
 
 export async function getRequests() {
