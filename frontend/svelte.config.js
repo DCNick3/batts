@@ -9,7 +9,14 @@ const config = {
 	preprocess: [vitePreprocess({})],
 
 	kit: {
-		adapter: adapter()
+		adapter: adapter(),
+		csp: {
+			directives: {
+				"script-src": ['https://telegram.org', 'unsafe-eval'],
+				"frame-src": ['https://t.me', 'https://oauth.telegram.org/'],
+				"frame-ancestors": ['https://oauth.telegram.org/', 'http://localtest.me']
+			}
+		}
 	}
 };
 

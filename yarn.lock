@@ -2647,6 +2647,11 @@ svelte@^4.0.5:
     magic-string "^0.30.0"
     periscopic "^3.1.0"
 
+sveltegram@^1.1.6-2:
+  version "1.1.6-2"
+  resolved "https://registry.yarnpkg.com/sveltegram/-/sveltegram-1.1.6-2.tgz#80613c933d428df21c74c09c959ba15552832bf8"
+  integrity sha512-rKkN19sWYbS3y8V+4j5rEkR2lyRRgMC1LnN3Wuj85NqRV0W9Bm0KpHEBvQzyk5nrCfJjcTPfu52uYGfKVGZTEg==
+
 svg.draggable.js@^2.2.2:
   version "2.2.2"
   resolved "https://registry.yarnpkg.com/svg.draggable.js/-/svg.draggable.js-2.2.2.tgz#c514a2f1405efb6f0263e7958f5b68fce50603ba"
