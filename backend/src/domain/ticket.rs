@@ -5,19 +5,23 @@ use crate::id::Id;
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use chrono::{DateTime, Utc};
-use cqrs_es::{Aggregate, DomainEvent, EventEnvelope, View};
+use cqrs_es::persist::{ViewContext, ViewRepository};
+use cqrs_es::{Aggregate, DomainEvent, EventEnvelope, Query, View};
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
+use std::collections::HashSet;
 use std::str::FromStr;
+use std::sync::Arc;
 use ts_rs::TS;
 
-#[derive(Default, Debug, Copy, Clone, Eq, PartialEq, TS, Serialize, Deserialize)]
+#[derive(Default, Debug, Copy, Clone, Eq, PartialEq, Hash, TS, Serialize, Deserialize)]
 #[ts(export)]
 pub struct TicketId(pub Id);
 
 #[derive(Debug, TS, Serialize, Deserialize)]
 #[ts(export)]
 pub struct CreateTicket {
+    pub destination: TicketDestination,
     pub title: String,
     pub body: String,
 }
@@ -47,6 +51,7 @@ pub enum TicketCommand {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum TicketEvent {
     Create {
+        destination: TicketDestination,
         owner: UserId,
         title: String,
     },
@@ -97,6 +102,15 @@ pub enum TicketStatus {
     InProgress,
     Declined,
     Fixed,
+}
+
+// TODO: this is temporary until we have a proper queue system
+#[derive(Default, Debug, Copy, Clone, Eq, PartialEq, TS, Serialize, Deserialize)]
+#[ts(export)]
+pub enum TicketDestination {
+    #[default]
+    ItDepartment,
+    DormManager,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, TS, Serialize, Deserialize)]
@@ -152,12 +166,17 @@ impl Aggregate for Ticket {
         _service: &Self::Services,
     ) -> Result<Vec<Self::Event>, Self::Error> {
         match command.payload {
-            TicketCommand::Create(CreateTicket { title, body }) => {
+            TicketCommand::Create(CreateTicket {
+                destination,
+                title,
+                body,
+            }) => {
                 let Ticket::NotCreated = self else {
                     return Err(TicketError::AlreadyExists);
                 };
                 Ok(vec![
                     TicketEvent::Create {
+                        destination,
                         owner: command.user_id,
                         title,
                     },
@@ -190,7 +209,11 @@ impl Aggregate for Ticket {
 
     fn apply(&mut self, event: Self::Event) {
         match event {
-            TicketEvent::Create { owner, title } => {
+            TicketEvent::Create {
+                destination: _,
+                owner,
+                title,
+            } => {
                 let Ticket::NotCreated = self else {
                     panic!("Ticket already created");
                 };
@@ -226,6 +249,7 @@ impl Aggregate for Ticket {
 #[ts(export)]
 pub struct TicketView {
     pub id: TicketId,
+    pub destination: TicketDestination,
     pub owner: UserId,
     pub assignee: Option<UserId>,
     pub title: String,
@@ -240,7 +264,12 @@ impl View<Ticket> for TicketView {
         }
 
         match event.payload {
-            TicketEvent::Create { owner, ref title } => {
+            TicketEvent::Create {
+                destination,
+                owner,
+                ref title,
+            } => {
+                self.destination = destination;
                 self.owner = owner;
                 self.title = title.clone();
                 self.status = TicketStatus::Pending;
@@ -268,6 +297,88 @@ impl View<Ticket> for TicketView {
                         new: new_status,
                     },
                 });
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone, TS, Serialize, Deserialize)]
+#[ts(export)]
+pub struct TicketListingViewExpandedItem {
+    pub id: TicketId,
+    pub destination: TicketDestination,
+    pub owner: UserId,
+    pub assignee: Option<UserId>,
+    pub title: String,
+    pub status: TicketStatus,
+}
+
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+pub struct TicketListingView {
+    pub items: HashSet<TicketId>,
+}
+
+impl View<Ticket> for TicketListingView {
+    fn update(&mut self, _event: &EventEnvelope<Ticket>) {
+        // actually only used in GenericQuery
+        unreachable!()
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum TicketListingKind {
+    Owned,
+    Assigned,
+}
+
+pub struct TicketListingQuery<R>
+where
+    R: ViewRepository<TicketListingView, Ticket>,
+{
+    listing_view_repository: Arc<R>,
+    kind: TicketListingKind,
+}
+
+impl<R> TicketListingQuery<R>
+where
+    R: ViewRepository<TicketListingView, Ticket>,
+{
+    pub fn new(view_repository: Arc<R>, kind: TicketListingKind) -> Self {
+        Self {
+            listing_view_repository: view_repository,
+            kind,
+        }
+    }
+}
+
+#[async_trait]
+impl<R> Query<Ticket> for TicketListingQuery<R>
+where
+    R: ViewRepository<TicketListingView, Ticket>,
+{
+    async fn dispatch(&self, _aggregate_id: &str, events: &[EventEnvelope<Ticket>]) {
+        for event in events {
+            match (self.kind, &event.payload) {
+                (TicketListingKind::Owned, TicketEvent::Create { owner, .. }) => {
+                    let user_id = owner.0.to_string();
+
+                    let (mut view, context) = self
+                        .listing_view_repository
+                        .load_with_context(&user_id)
+                        .await
+                        .unwrap()
+                        .unwrap_or_else(|| {
+                            (TicketListingView::default(), ViewContext::new(user_id, 0))
+                        });
+
+                    view.items
+                        .insert(TicketId(Id::from_str(&event.aggregate_id).unwrap()));
+                    self.listing_view_repository
+                        .update_view(view, context)
+                        .await
+                        .unwrap();
+                }
+                _ => {}
             }
         }
     }

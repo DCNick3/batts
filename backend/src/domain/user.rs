@@ -12,7 +12,7 @@ use std::sync::Arc;
 use tracing::warn;
 use ts_rs::TS;
 
-#[derive(Default, Debug, Copy, Clone, Eq, PartialEq, TS, Serialize, Deserialize)]
+#[derive(Default, Debug, Copy, Clone, Eq, PartialEq, Hash, TS, Serialize, Deserialize)]
 #[ts(export)]
 pub struct UserId(pub Id);
 

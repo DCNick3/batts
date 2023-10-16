@@ -11,7 +11,8 @@ import type {
     SendTicketMessage,
     TicketCommand,
     TicketView,
-    TicketStatus
+    TicketListingViewExpandedItem,
+    TicketStatus,
 } from "../";
 
 // import { toDates, toDatesByArray } from 'ts-transformer-dates';
@@ -71,6 +72,14 @@ export class Api {
 
     async getTicket(id: TicketId): Promise<ApiResult<TicketView>> {
         return await this.#get(`/api/tickets/${id}`);
+    }
+
+    async getOwnedTickets(): Promise<ApiResult<Array<TicketListingViewExpandedItem>>> {
+        return await this.#get(`/api/tickets/owned`);
+    }
+
+    async getAssignedTickets(): Promise<ApiResult<Array<TicketListingViewExpandedItem>>> {
+        return await this.#get(`/api/tickets/assigned`);
     }
 
     async sendTicketMessage(id: TicketId, message: SendTicketMessage): Promise<ApiResult<null>> {

@@ -102,6 +102,7 @@ test("create_ticket", async () => {
     const ticketId = generateId();
 
     unwrap(await api.createTicket(ticketId, {
+        destination: "ItDepartment",
         title: "Everything is broken",
         body: "I can't do anything",
     }));
@@ -116,6 +117,18 @@ test("create_ticket", async () => {
         expect(timelineItem.content.text).toBe("I can't do anything");
         expect(timelineItem.content.from).toBe(userId);
     }
+
+    const myTickets = unwrap(await api.getOwnedTickets());
+    expect(myTickets.length).toBe(1);
+    expect(myTickets[0].id).toBe(ticketId);
+    expect(myTickets[0].title).toBe("Everything is broken");
+    expect(myTickets[0].status).toBe("Pending");
+    expect(myTickets[0].destination).toBe("ItDepartment");
+    expect(myTickets[0].owner).toBe(userId);
+    expect(myTickets[0].assignee).toBe(null);
+
+    const assignedTickets = unwrap(await api.getAssignedTickets());
+    expect(assignedTickets.length).toBe(0);
 })
 
 test("make_mock_tickets", async () => {
@@ -145,6 +158,7 @@ test("make_mock_tickets", async () => {
     await api2.internalFakeLogin(userId2);
 
     if ((await api1.createTicket(ticket1, {
+        destination: "DormManager",
         title: "Broken chair",
         body: "Hello,\n\nI'm writing to you because the chair in the room 123 is broken. Please fix it.",
     })).status == "Success") {
@@ -157,18 +171,22 @@ test("make_mock_tickets", async () => {
     }
 
     await api1.createTicket(ticket2, {
+        destination: "ItDepartment",
         title: "No internet",
         body: "Hello,\n\nI'm writing to you because there is no internet in the room 123. Please fix it.",
     });
     await api1.createTicket(ticket3, {
+        destination: "DormManager",
         title: "Doorknob",
         body: "Hello,\n\nI'm writing to you because the doorknob in the room 123 is broken. Please fix it.",
     });
     await api1.createTicket(ticket4, {
+        destination: "ItDepartment",
         title: "Broken bulb",
         body: "Hello,\n\nI'm writing to you because the light bulb in the room 123 is broken. Please fix it.",
     });
     await api1.createTicket(ticket5, {
+        destination: "ItDepartment",
         title: "Dashboard broken",
         body: "Hello,\n\nI'm writing to you because the dashboard is broken. Please fix it.",
     });

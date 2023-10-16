@@ -1,4 +1,4 @@
-import type { ApiResult, FetchFn, UserId, UserView, UserProfileView, ExternalUserProfile, TicketId, CreateTicket, SendTicketMessage, TicketView, TicketStatus } from "../";
+import type { ApiResult, FetchFn, UserId, UserView, UserProfileView, ExternalUserProfile, TicketId, CreateTicket, SendTicketMessage, TicketView, TicketListingViewExpandedItem, TicketStatus } from "../";
 export declare function generateId(): string;
 export declare class Api {
     #private;
@@ -10,6 +10,8 @@ export declare class Api {
     getUserProfile(id: UserId): Promise<ApiResult<UserProfileView>>;
     createTicket(id: TicketId, creation: CreateTicket): Promise<ApiResult<null>>;
     getTicket(id: TicketId): Promise<ApiResult<TicketView>>;
+    getOwnedTickets(): Promise<ApiResult<Array<TicketListingViewExpandedItem>>>;
+    getAssignedTickets(): Promise<ApiResult<Array<TicketListingViewExpandedItem>>>;
     sendTicketMessage(id: TicketId, message: SendTicketMessage): Promise<ApiResult<null>>;
     changeTicketStatus(id: TicketId, new_status: TicketStatus): Promise<ApiResult<null>>;
 }

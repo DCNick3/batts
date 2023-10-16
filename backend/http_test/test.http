@@ -73,9 +73,18 @@ Content-Type: application/json
 
 {
   "type": "Create",
+  "destination": "ItDepartment",
   "title": "Everything is broken",
   "body": "I can't log in to my account. Please help!"
 }
 
 ### Get ticket
 GET {{url}}/api/tickets/F2VaZtXgAKgxJncCbMbX9V
+
+### Get owned tickets
+GET {{url}}/api/tickets/owned
+Cookie: session=eyJhbGciOiJFZERTQSJ9.eyJleHAiOjE2OTY3MTA1NTcsImlhdCI6MTY5NjY5OTc1NywidXNlcl9pZCI6IkZEVWVhbnlLQURRRXB5cnlkWW43WEIiLCJuYW1lIjoiRWR3YXJkIFNub3dkZW4ifQ.wodYZRyBZMBwxeKqDrPJX2S6mKQwMBNH7Skb5GZeIBU53R3I08EOoTiytMXisqSV1bjPly4OqaCT2ZxkYGmCCw
+
+### Get assigned tickets
+GET {{url}}/api/tickets/assigned
+Cookie: session=eyJhbGciOiJFZERTQSJ9.eyJleHAiOjE2OTY3MTA1NTcsImlhdCI6MTY5NjY5OTc1NywidXNlcl9pZCI6IkZEVWVhbnlLQURRRXB5cnlkWW43WEIiLCJuYW1lIjoiRWR3YXJkIFNub3dkZW4ifQ.wodYZRyBZMBwxeKqDrPJX2S6mKQwMBNH7Skb5GZeIBU53R3I08EOoTiytMXisqSV1bjPly4OqaCT2ZxkYGmCCw

@@ -1,5 +1,7 @@
 use crate::auth::Authority;
-use crate::domain::ticket::{Ticket, TicketView};
+use crate::domain::ticket::{
+    Ticket, TicketListingKind, TicketListingQuery, TicketListingView, TicketView,
+};
 use crate::domain::user::{IdentityQuery, IdentityView, User, UserServices, UserView};
 use crate::memory_view_repository::MemViewRepository;
 use cqrs_es::mem_store::MemStore;
@@ -16,6 +18,8 @@ pub struct ApplicationState {
     pub authority: Authority,
 
     pub ticket_view_repository: Arc<MyViewRepository<TicketView, Ticket>>,
+    pub ticket_owner_listing_view_repository: Arc<MyViewRepository<TicketListingView, Ticket>>,
+    pub ticket_assignee_listing_view_repository: Arc<MyViewRepository<TicketListingView, Ticket>>,
     pub ticket_cqrs: Arc<MyCqrsFramework<Ticket>>,
 
     pub user_view_repository: Arc<MyViewRepository<UserView, User>>,
@@ -42,9 +46,26 @@ pub async fn new_application_state(config: &crate::config::Config) -> Applicatio
     let ticket_view_query =
         MyGenericQuery::<TicketView, Ticket>::new(ticket_view_repository.clone());
 
+    let ticket_owner_listing_view_repository =
+        Arc::new(MyViewRepository::<TicketListingView, Ticket>::new());
+    let ticket_owner_listing_view_query = TicketListingQuery::new(
+        ticket_owner_listing_view_repository.clone(),
+        TicketListingKind::Owned,
+    );
+    let ticket_assignee_listing_view_repository =
+        Arc::new(MyViewRepository::<TicketListingView, Ticket>::new());
+    let ticket_assignee_listing_view_query = TicketListingQuery::new(
+        ticket_assignee_listing_view_repository.clone(),
+        TicketListingKind::Assigned,
+    );
+
     let ticket_cqrs = CqrsFramework::new(
         MemStore::<Ticket>::default(),
-        vec![Box::new(ticket_view_query)],
+        vec![
+            Box::new(ticket_view_query),
+            Box::new(ticket_owner_listing_view_query),
+            Box::new(ticket_assignee_listing_view_query),
+        ],
         (),
     );
     let ticket_cqrs = Arc::new(ticket_cqrs);
@@ -71,6 +92,8 @@ pub async fn new_application_state(config: &crate::config::Config) -> Applicatio
         authority,
 
         ticket_view_repository,
+        ticket_owner_listing_view_repository,
+        ticket_assignee_listing_view_repository,
         ticket_cqrs,
 
         user_view_repository,

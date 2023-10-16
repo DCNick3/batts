@@ -11,7 +11,9 @@ mod state;
 
 use crate::api_result::ApiResult;
 use crate::auth::UserClaims;
-use crate::domain::ticket::{TicketCommand, TicketView};
+use crate::domain::ticket::{
+    TicketCommand, TicketListingView, TicketListingViewExpandedItem, TicketView,
+};
 use crate::domain::user::{IdentityView, UserCommand, UserProfileView, UserView};
 use crate::error::{Error, PersistenceSnafu, TicketSnafu, UserSnafu, WhateverSnafu};
 use crate::extractors::{Json, Path, State, UserContext};
@@ -56,7 +58,10 @@ async fn main() -> Result<(), Whatever> {
 
 fn make_api_router(config: &config::Routes) -> Router<ApplicationState> {
     let mut router = Router::new();
-    router = router.route("/tickets/:id", get(tickets_query).post(tickets_command));
+    router = router
+        .route("/tickets/:id", get(tickets_query).post(tickets_command))
+        .route("/tickets/assigned", get(ticket_assignee_listing_query))
+        .route("/tickets/owned", get(ticket_owner_listing_query));
 
     router = router
         .route("/users/me", get(me_query))
@@ -124,6 +129,71 @@ async fn tickets_command(
             .await
             .context(TicketSnafu),
     )
+}
+
+async fn expand_ticket_listing_view(
+    state: ApplicationState,
+    ticket_view: TicketListingView,
+) -> Result<Vec<TicketListingViewExpandedItem>, Error> {
+    let results = futures_util::future::join_all(
+        ticket_view
+            .items
+            .iter()
+            .map(|id| async { state.ticket_view_repository.load(&id.0.to_string()).await }),
+    )
+    .await;
+    let results = results
+        .into_iter()
+        .collect::<Result<Vec<_>, _>>()
+        .context(PersistenceSnafu)?;
+    Ok(results
+        .into_iter()
+        .map(|view| {
+            let view = view.unwrap();
+            TicketListingViewExpandedItem {
+                id: view.id,
+                destination: view.destination,
+                owner: view.owner,
+                assignee: view.assignee,
+                title: view.title,
+                status: view.status,
+            }
+        })
+        .collect())
+}
+
+async fn ticket_assignee_listing_query(
+    State(state): State<ApplicationState>,
+    user_context: UserContext,
+) -> ApiResult<Vec<TicketListingViewExpandedItem>> {
+    ApiResult::from_async_fn(|| async {
+        let view = state
+            .ticket_assignee_listing_view_repository
+            .load(&user_context.user_id().0.to_string())
+            .await
+            .context(PersistenceSnafu)?
+            .unwrap_or_default();
+
+        expand_ticket_listing_view(state, view).await
+    })
+    .await
+}
+
+async fn ticket_owner_listing_query(
+    State(state): State<ApplicationState>,
+    user_context: UserContext,
+) -> ApiResult<Vec<TicketListingViewExpandedItem>> {
+    ApiResult::from_async_fn(|| async {
+        let view = state
+            .ticket_owner_listing_view_repository
+            .load(&user_context.user_id().0.to_string())
+            .await
+            .context(PersistenceSnafu)?
+            .unwrap_or_default();
+
+        expand_ticket_listing_view(state, view).await
+    })
+    .await
 }
 
 async fn me_query(

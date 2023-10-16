@@ -249,6 +249,12 @@ var __privateMethod = (obj, member, method) => {
     async getTicket(id) {
       return await __privateMethod(this, _get, get_fn).call(this, `/api/tickets/${id}`);
     }
+    async getOwnedTickets() {
+      return await __privateMethod(this, _get, get_fn).call(this, `/api/tickets/owned`);
+    }
+    async getAssignedTickets() {
+      return await __privateMethod(this, _get, get_fn).call(this, `/api/tickets/assigned`);
+    }
     async sendTicketMessage(id, message) {
       let command = { type: "SendTicketMessage", ...message };
       return await __privateMethod(this, _sendCommand, sendCommand_fn).call(this, `/api/tickets/${id}`, command);

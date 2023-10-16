@@ -16,9 +16,12 @@ export type { ExternalUserProfile } from './bindings/ExternalUserProfile';
 
 export type { TicketId } from './bindings/TicketId';
 export type { TicketStatus } from './bindings/TicketStatus';
+export type { TicketDestination } from './bindings/TicketDestination';
 export type { TicketTimelineItem } from './bindings/TicketTimelineItem';
 export type { TicketTimelineItemContent } from './bindings/TicketTimelineItemContent';
 export type { TicketView } from './bindings/TicketView';
+export type { TicketListingViewExpandedItem } from './bindings/TicketListingViewExpandedItem';
 export type { TicketCommand } from './bindings/TicketCommand';
 export type { CreateTicket } from './bindings/CreateTicket';
 export type { SendTicketMessage } from './bindings/SendTicketMessage';
+export type { ChangeStatus } from './bindings/ChangeStatus';
