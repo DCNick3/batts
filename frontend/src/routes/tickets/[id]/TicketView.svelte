@@ -74,6 +74,7 @@
         placeholder="Write a message"
         bind:value={messageField}
         disabled={state === 'Sending'}
+        required
       />
       <Button
         class="w-full"
