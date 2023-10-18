@@ -15,7 +15,7 @@ const succeed = (data, status=200) => (_req, res) => {
 //@ts-ignore
 const fail = (data, status=404) => (_req, res) => {
     res.status(status).send({
-        status: 'Fail',
+        status: 'Error',
         payload: data
     })
 }

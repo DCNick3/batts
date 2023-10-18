@@ -4,6 +4,7 @@
 	import { setContext } from 'svelte'
 	import { writable } from 'svelte/store'
 	import { Button } from 'flowbite-svelte'
+	import NavLink from '$lib/components/NavLink.svelte'
 
 	import type { LayoutData } from './$types'
 	import type { UserView } from 'backend'
@@ -33,7 +34,8 @@
 				Login
 			</Button>
 		{:else}
-			<a href="/me">{$user.name}</a>
+			<NavLink href="/me">{$user.name}</NavLink>
+			<NavLink href="/assigned">Assigned Tickets</NavLink>
 		{/if}
 	</aside>
 
