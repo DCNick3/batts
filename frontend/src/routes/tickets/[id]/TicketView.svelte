@@ -1,12 +1,14 @@
 <script lang="ts">
   import { twMerge } from 'tailwind-merge'
   import { Api } from 'backend'
-  import type { TicketView } from 'backend'
+  import type { TicketView, UserView } from 'backend'
   import { Timeline } from '$lib/components/Timeline'
   import StatusBadge from '$lib/components/StatusBadge.svelte'
   import Ticket from './Ticket.svelte'
   import { Button, Textarea } from 'flowbite-svelte'
   import { invalidateAll } from '$app/navigation'
+  import { getContext } from 'svelte'
+  import A from '$lib/components/A.svelte'
 
   export let ticketView: TicketView
   export let ticketId: string
@@ -16,6 +18,8 @@
   let state: State = 'Ok'
   let messageField: string = ''
   let errorMessage: string = ''
+
+  const user = getContext<SvelteStore<null | UserView>>('user')
 
   const submit = async () => {
     const message = messageField
@@ -60,30 +64,35 @@
         <Ticket item={item} users={users} />
       {/each}
     </Timeline>
-    <form
-      on:submit|preventDefault={submit}
-      class="w-full gap-4"
-    >
-      {#if state === 'Error'}
-        <span class="text-red-500">Failed to send message: {errorMessage}</span>
-      {/if}
-      <Textarea
-        class="mt-2 resize-none"
-        name="message"
-        rows=4
-        placeholder="Write a message"
-        bind:value={messageField}
-        disabled={state === 'Sending'}
-        required
-      />
-      <Button
-        class="w-full"
-        type="submit"
-        disabled={state === 'Sending'}
+    <!-- Only logged-in users may write messages -->
+    {#if $user === null}
+      <h1><A href="/login">Log in</A> to send messages.</h1>
+    {:else}
+      <form
+        on:submit|preventDefault={submit}
+        class="w-full gap-4"
       >
-        {state === 'Sending' ? 'Sending' : 'Send message'}
-      </Button>
-    </form>
+        {#if state === 'Error'}
+          <span class="text-red-500">Failed to send message: {errorMessage}</span>
+        {/if}
+        <Textarea
+          class="mt-2 resize-none"
+          name="message"
+          rows=4
+          placeholder="Write a message"
+          bind:value={messageField}
+          disabled={state === 'Sending'}
+          required
+        />
+        <Button
+          class="w-full"
+          type="submit"
+          disabled={state === 'Sending'}
+        >
+          {state === 'Sending' ? 'Sending' : 'Send message'}
+        </Button>
+      </form>
+    {/if}
   </div>
 
   <!-- Status column -->

@@ -1,9 +1,12 @@
 import { getReceivers, getRequests } from "$lib/mocks/database"
+import { requireAuth } from "$lib/utils"
 import type { PageLoad } from './$types'
 import { Api } from 'backend'
 import type { TicketListingViewExpandedItem } from 'backend'
 
-export const load: PageLoad = async ({ fetch }) => {
+export const load: PageLoad = async ({ fetch, parent }) => {
+  await requireAuth(parent)
+
   const api = new Api(fetch)
 
   let ownedTickets: TicketListingViewExpandedItem[] = []
