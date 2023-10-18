@@ -1,0 +1,18 @@
+{
+  "id": "SvjVbyfzzMmoMLUCf3HwSQ",
+  "destination": "ItDepartment",
+  "owner": "K1HvQxt9kNw5CijEvP2s4d",
+  "assignee": null,
+  "title": "Dash",
+  "status": "Pending",
+  "timeline": [
+    {
+      "date": "2023-10-18T13:51:34.867784796Z",
+      "content": {
+        "type": "Message",
+        "from": "K1HvQxt9kNw5CijEvP2s4d",
+        "text": "Board"
+      }
+    }
+  ]
+}
