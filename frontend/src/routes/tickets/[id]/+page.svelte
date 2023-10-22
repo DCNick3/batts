@@ -11,6 +11,7 @@
     ticketView={data.payload}
     ticketId={data.ticketId}
     users={data.users}
+    editPermissions={data.editPermissions}
   />
 {:else if data.status === "Error"}
   <!-- Inform user on error -->

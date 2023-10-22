@@ -4,7 +4,8 @@
   function status2color (status: string) {
 		if (status === "Pending") return "yellow"
 		if (status === "Fixed") return "green"
-		if (status === "In process") return "blue"
+		if (status === "In progress") return "blue"
+		if (status === "Declined") return "red"
 		return "primary"
 	}
 
@@ -15,6 +16,7 @@
 	class={$$props.class}
 	rounded
 	color={status2color(status)}
+	on:click
 >
   {status}
 </Badge>

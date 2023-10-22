@@ -37,7 +37,26 @@ export const load: PageLoad<Data> = async ({ fetch, params }) => {
         }
       })
 
-      return { users, ticketId: params.id, ...result }
+      const editPermissions = new Set<string>()
+      const destination = result.payload.destination
+      // @ts-ignore
+      if (destination.Group) {
+        // @ts-ignore
+        const res = await api.getGroup(destination.Group)
+        if (res.status === 'Success') {
+          res.payload.members.forEach(m => { editPermissions.add(m) })
+        } else {
+          console.error(res.payload)
+        }
+      } else {
+        // @ts-ignore
+        editPermissions.add(destination.User)
+      }
+      if (result.payload.assignee) {
+        editPermissions.add(result.payload.assignee)
+      }
+
+      return { users, ticketId: params.id, editPermissions, ...result }
     }
 
     return { ticketId: params.id, ...result }
