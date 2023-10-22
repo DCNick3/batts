@@ -38,6 +38,7 @@ router.post('/tickets/:id', succeed(require('./data/ticket.json')))
 
 router.get('/groups/:id', succeed(require('./data/group.json')))
 // router.get('/groups/:id', fail(require(./data/?)))
+router.post('/groups/:id', succeed(require('./data/group.json')))
 
 const app = express()
 app.use(cors())

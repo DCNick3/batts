@@ -98,7 +98,7 @@
             <div class="font-semibold">Assigned To</div>
             <Settings />
           </summary>
-          <div class="absolute z-50 bg-white p-2">
+          <div class="absolute z-50 bg-white p-2 font-semibold text-sm border rounded-sm">
             Set assignee
             <div class="flex flex-col">
             </div>
