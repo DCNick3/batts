@@ -8,6 +8,7 @@
   let divCls = twMerge(divClass, $$props.classDiv);
   let timeCls = twMerge(timeClass, $$props.classTime);
   const h3Cls = twMerge('ml-4 text-lg font-semibold text-gray-900 dark:text-white', $$props.classH3);
+  import Time from '$lib/components/Time.svelte';
   </script>
   
   <li class={liCls}>
@@ -15,9 +16,9 @@
       <div class={divCls} />
     </slot>  
     {#if date}
-      <time class={timeCls}>{date}</time>
+      <Time class={timeCls} time={date}></Time>
     {/if}
-  
+
     {#if title}
       <h3 class={h3Cls}>
         {title}
