@@ -15,7 +15,9 @@ import type {
     TicketStatus,
     TelegramLoginData,
     CreateGroup,
-    GroupId, GroupCommand, GroupViewContent,
+    GroupViewContent,
+    GroupId,
+    GroupCommand,
 } from "../";
 
 // import { toDates, toDatesByArray } from 'ts-transformer-dates';
@@ -83,6 +85,10 @@ export class Api {
 
     async getGroupTickets(id: GroupId): Promise<ApiResult<Array<TicketListingViewExpandedItem>>> {
         return await this.#get(`/api/groups/${id}/tickets`);
+    }
+
+    async getGroup(id: GroupId): Promise<ApiResult<GroupViewContent>> {
+        return await this.#get(`/api/groups/${id}`);
     }
 
     async addGroupMember(id: GroupId, new_member: UserId): Promise<ApiResult<null>> {

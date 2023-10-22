@@ -7,12 +7,11 @@
 	} from 'flowbite-svelte'
 	import AutoComplete from '$lib/components/AutoComplete.svelte'
 	import TicketList from '$lib/components/TicketList.svelte'
-	import { TempName } from '$lib/components/TicketList'
   import { goto } from '$app/navigation'
 	import type { PageData } from './$types'
 	import { Api, generateId } from 'backend'
   import { getContext } from 'svelte'
-	import type { TicketDestination, UserView } from 'backend';
+	import type { TicketDestination, UserView } from 'backend'
 
   const user = getContext<SvelteStore<null | UserView>>('user')
 	let destination: {name: string, id: string}
@@ -23,11 +22,10 @@
 		// TODO: use ts properly
 		const topic = formData.get("topic") as string
 		const description = formData.get("description") as string
-		// const destination = formData.get("destination") as TicketDestination
 
 		const api = new Api(fetch)
 		const newId = generateId()
-		const result = await api.createTicket(newId, { title: topic, body: description, destination: destination.id as TicketDestination})
+		const result = await api.createTicket(newId, { title: topic, body: description, destination: { Group: destination.id }})
 		// TODO: handle error
 		if (result.status === 'Success') {
 			goto(`/tickets/${newId}`)
@@ -36,7 +34,7 @@
 		}
   }
 
-	export let data: PageData;
+	export let data: PageData
 
 </script>
 

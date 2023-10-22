@@ -1,5 +1,5 @@
 import type { PageLoad } from './$types'
-import type { TicketView, ApiError } from 'backend'
+import type { TicketViewContent, ApiError } from 'backend'
 import { Api } from 'backend'
 
 /*
@@ -8,7 +8,7 @@ import { Api } from 'backend'
 */
 type Hack = { status: 'ConnectionError', ticketId: string }
 type Data
-  = { status: 'Success', payload: TicketView, users: Map<string, string>, ticketId: string }
+  = { status: 'Success', payload: TicketViewContent, users: Map<string, string>, ticketId: string }
   | { status: 'Error', payload: ApiError, ticketId: string }
   | Hack
 

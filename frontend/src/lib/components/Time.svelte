@@ -8,7 +8,7 @@
 
   let display = ''
 
-  const stringify = n => n < 10 ? `0${n}` : `${n}`
+  const stringify = (n: number) => n < 10 ? `0${n}` : `${n}`
 
   if (now.getDay() === date.getDay()) {
     let hours = date.getHours()

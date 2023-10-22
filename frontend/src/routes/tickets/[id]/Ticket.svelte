@@ -31,7 +31,7 @@
 >
 </TimelineItem>
 
-{:else}
+{:else if (content.type === 'Message')}
 
 <TimelineItem>
   <svelte:fragment slot="icon">
@@ -55,5 +55,12 @@
     </div>
   </div>
 </TimelineItem>
+
+{:else}
+  <TimelineItem
+  title={`Assignee changed from ${content.old || 'no-one'} to ${content.new || 'no-one'}.`}
+  date={item.date}
+  >
+  </TimelineItem>
 
 {/if}

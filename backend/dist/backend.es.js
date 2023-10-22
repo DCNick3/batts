@@ -251,6 +251,9 @@ class Api {
   async getGroupTickets(id) {
     return await __privateMethod(this, _get, get_fn).call(this, `/api/groups/${id}/tickets`);
   }
+  async getGroup(id) {
+    return await __privateMethod(this, _get, get_fn).call(this, `/api/groups/${id}`);
+  }
   async addGroupMember(id, new_member) {
     let command = { type: "AddMember", new_member };
     return await __privateMethod(this, _sendCommand, sendCommand_fn).call(this, `/api/groups/${id}`, command);
