@@ -13,6 +13,9 @@
     duration: 200,
     easing: sineIn
   }
+  const hide = () => {
+    hidden = true
+  }
 </script>
 
 <Drawer
@@ -23,9 +26,9 @@
 >
   <div class="flex items-between py-2 px-4">
     <Logo class="w-8 h-8" />
-    <CloseButton on:click={() => hidden = true}/>
+    <CloseButton on:click={hide}/>
   </div>
-  <Content />
+  <Content click={hide} />
 </Drawer>
 
-<Content class="max-sm:hidden sm:fixed sm:top-14 sm:bottom-0" />
+<Content click={hide} class="max-sm:hidden sm:fixed sm:top-14 sm:bottom-0" />
