@@ -4,13 +4,18 @@
 	import { setContext } from 'svelte'
 	import { writable } from 'svelte/store'
 	import { Button } from 'flowbite-svelte'
-	import { Navbar, NavBrand, NavLi, NavUl, NavHamburger, Dropdown, DropdownItem } from 'flowbite-svelte'
+	import { Navbar, NavBrand } from 'flowbite-svelte'
+	// import { } from 'flowbite-svelte'
+	import NavHamburger from '$lib/components/NavHamburger.svelte'
 	import NavLink from '$lib/components/NavLink.svelte'
+	import { SidePanel } from '$lib/components/SidePanel'
 
 	import type { LayoutData } from './$types'
 	import type { UserView } from 'backend'
 	import { goto } from '$app/navigation';
 	export let data: LayoutData
+
+	let isHidden = true
 
 	const user = writable<null | UserView>()
 	$: user.set(data.user)
@@ -22,31 +27,40 @@
 	}
 </script>
 
-<div class="flex max-md:flex-col grow shrink basis-full h-screen">
-	<Navbar class="md:hidden p-4 bg-slate-50">
-		<NavBrand href="/">
-			<Logo class="w-8 h-8" />
+<Navbar
+	class="px-4 sm:px-10 border-b relative h-14"
+	fluid
+>
+	<div class="flex gap-3">
+		<NavHamburger
+			class="sm:hidden"
+			on:click={() => { isHidden = !isHidden; console.log("ABOBA") }}
+		/>
+		<NavBrand
+			class="font-semibold"
+			href="/"
+		>
+			<Logo class="w-8 h-8 mr-2" />
+			Batts
 		</NavBrand>
-		{#if $user == null}
-			<Button
-				on:click={goToLogin}
-				class="text-sm p-1"
-			>
-				Login
-			</Button>
-		{:else}
-			<NavLink class="text-sm" href="/me">{$user.name}</NavLink>
-			<NavHamburger class="m-0" />
-			<Dropdown>
-				<DropdownItem href="/">Open a Ticket</DropdownItem>
-				<DropdownItem href="/assigned">Assigned Tickets</DropdownItem>
-			</Dropdown>
-			{/if}
-	</Navbar>
-	<aside class="max-md:hidden flex flex-col items-center w-64 bg-slate-50 gap-6 p-4">
-		<a href="/" class="block w-fit">
-			<Logo />
-		</a>
+	</div>
+	{#if $user === null}
+		<Button
+			on:click={goToLogin}
+			class="text-sm p-1"
+		>
+			Login
+		</Button>
+	{:else}
+		<NavLink class="text-sm" href="/me">{$user.name}</NavLink>
+	{/if}
+</Navbar>
+
+<div class="flex flex-col sm:flex-row grow shrink basis-full h-screen">
+	{#if $user !== null}
+			<SidePanel bind:hidden={isHidden} />
+	{/if}
+	<!-- <aside class="max-md:hidden flex flex-col items-center w-64 bg-slate-50 gap-6 p-4">
 		{#if $user === null}
 			<Button
 				on:click={goToLogin}
@@ -58,10 +72,9 @@
 			<NavLink href="/me">{$user.name}</NavLink>
 			<NavLink href="/assigned">Assigned Tickets</NavLink>
 		{/if}
-	</aside>
+	</aside> -->
 
-	<div class="flex flex-col w-full p-10 gap-6">
+	<div class="flex flex-col w-full p-8 gap-6">
 		<slot />
 	</div>
 </div>
-
