@@ -96,13 +96,36 @@ test("get_me", async () => {
     expect(me.identities.telegram.username).toBe(null);
     expect(me.identities.telegram.photo_url).toBe(null);
 })
+
+async function make_groups(): Promise<{itDepartment: string, dormManager: string}> {
+    const api0 = makeApi();
+
+    const adminId = "B5dtR85kbjkmrLrZoyLrKW";
+    await api0.internalCreateUser(adminId, {
+        type: "Telegram", id: 123456,
+        first_name: "Super", last_name: "Admin",
+        username: null, photo_url: null,
+    });
+    await api0.internalFakeLogin(adminId);
+
+    const dormManager = "A3UkAiMrP79M9cDTBDUSzK";
+    const itDepartment = "UBAEhQUS8tJWFkWtmZSazX";
+
+    await api0.createGroup(dormManager, {title: "Dorm Manager"});
+    await api0.createGroup(itDepartment, {title: "IT Department"});
+
+    return {itDepartment, dormManager};
+}
+
 test("create_ticket", async () => {
+    const {itDepartment} = await make_groups();
+
     const api = makeApi();
     const userId = await makeFakeUser(api);
     const ticketId = generateId();
 
     unwrap(await api.createTicket(ticketId, {
-        destination: "ItDepartment",
+        destination: { Group: itDepartment },
         title: "Everything is broken",
         body: "I can't do anything",
     }));
@@ -123,12 +146,48 @@ test("create_ticket", async () => {
     expect(myTickets[0].id).toBe(ticketId);
     expect(myTickets[0].title).toBe("Everything is broken");
     expect(myTickets[0].status).toBe("Pending");
-    expect(myTickets[0].destination).toBe("ItDepartment");
+    expect(myTickets[0].destination.hasOwnProperty("Group")).toBe(true);
+    if ("Group" in myTickets[0].destination) {
+        expect(myTickets[0].destination.Group).toBe(itDepartment);
+    }
     expect(myTickets[0].owner).toBe(userId);
     expect(myTickets[0].assignee).toBe(null);
+})
+
+test("assign_ticket", async () => {
+    const api = makeApi();
+    const userId = await makeFakeUser(api);
+    const ticketId = generateId();
+
+    unwrap(await api.createTicket(ticketId, {
+        // send ticket to self
+        destination: { User: userId },
+        title: "Everything is broken",
+        body: "I can't do anything",
+    }));
+
+    const ticket = unwrap(await api.getTicket(ticketId));
+    expect(ticket.assignee).toBe(null);
 
     const assignedTickets = unwrap(await api.getAssignedTickets());
     expect(assignedTickets.length).toBe(0);
+
+    unwrap(await api.changeTicketAssignee(ticketId, userId));
+
+    const ticket2 = unwrap(await api.getTicket(ticketId));
+    expect(ticket2.assignee).toBe(userId);
+
+    const assignedTickets2 = unwrap(await api.getAssignedTickets());
+    expect(assignedTickets2.length).toBe(1);
+    expect(assignedTickets2[0].id).toBe(ticketId);
+
+    unwrap(await api.changeTicketAssignee(ticketId, null));
+
+    const ticket3 = unwrap(await api.getTicket(ticketId));
+    expect(ticket3.assignee).toBe(null);
+
+    const assignedTickets3 = unwrap(await api.getAssignedTickets());
+    expect(assignedTickets3.length).toBe(0);
 })
 
 test("telegram_login", async () => {
@@ -147,13 +206,15 @@ test("telegram_login", async () => {
 });
 
 test("make_mock_tickets", async () => {
+    const {itDepartment, dormManager} = await make_groups();
+
     const api1 = makeApi();
     const api2 = makeApi();
 
     const userId1 = "MekGz7Af4HwV8uwBm7c82P";
     const userId2 = "R9wBXTwKPgNXGxVzcvo8xv";
     const ticket1 = "F2VaZtXgAKgxJncCbMbX9V";
-    const ticket2 = "H3NbS5NeKY33AMr6Pvtw6H";
+    const ticket2 = "BlyatPochiniteInetUzhe1"; // "H3NbS5NeKY33AMr6Pvtw6H";
     const ticket3 = "XYF1Ur6Z4oeVBioYtW62nF";
     const ticket4 = "M1A5QazKGRUNoTqraWxYou";
     const ticket5 = "BJytpHn3GssUW24WJJkrPg";
@@ -173,7 +234,7 @@ test("make_mock_tickets", async () => {
     await api2.internalFakeLogin(userId2);
 
     if ((await api1.createTicket(ticket1, {
-        destination: "DormManager",
+        destination: { Group: dormManager },
         title: "Broken chair",
         body: "Hello,\n\nI'm writing to you because the chair in the room 123 is broken. Please fix it.",
     })).status == "Success") {
@@ -186,22 +247,22 @@ test("make_mock_tickets", async () => {
     }
 
     await api1.createTicket(ticket2, {
-        destination: "ItDepartment",
+        destination: { Group: dormManager },
         title: "No internet",
         body: "Hello,\n\nI'm writing to you because there is no internet in the room 123. Please fix it.",
     });
     await api1.createTicket(ticket3, {
-        destination: "DormManager",
+        destination: { Group: dormManager },
         title: "Doorknob",
         body: "Hello,\n\nI'm writing to you because the doorknob in the room 123 is broken. Please fix it.",
     });
     await api1.createTicket(ticket4, {
-        destination: "ItDepartment",
+        destination: { Group: itDepartment },
         title: "Broken bulb",
         body: "Hello,\n\nI'm writing to you because the light bulb in the room 123 is broken. Please fix it.",
     });
     await api1.createTicket(ticket5, {
-        destination: "ItDepartment",
+        destination: { Group: itDepartment },
         title: "Dashboard broken",
         body: "Hello,\n\nI'm writing to you because the dashboard is broken. Please fix it.",
     });

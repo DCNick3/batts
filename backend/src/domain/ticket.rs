@@ -70,10 +70,12 @@ pub enum TicketEvent {
     },
     StatusChange {
         date: DateTime<Utc>,
+        old_status: TicketStatus,
         new_status: TicketStatus,
     },
     AssigneeChange {
         date: DateTime<Utc>,
+        old_assignee: Option<UserId>,
         new_assignee: Option<UserId>,
     },
 }
@@ -161,6 +163,7 @@ pub struct TicketServices {
 pub struct TicketContent {
     pub destination: TicketDestination,
     pub owner: UserId,
+    pub assignee: Option<UserId>,
     pub title: String,
     pub status: TicketStatus,
 }
@@ -277,6 +280,7 @@ impl Aggregate for Ticket {
                 this.check_access(command.user_id, service).await?;
                 Ok(vec![TicketEvent::StatusChange {
                     date: Utc::now(),
+                    old_status: this.status,
                     new_status,
                 }])
             }
@@ -285,6 +289,7 @@ impl Aggregate for Ticket {
                 this.check_access(command.user_id, service).await?;
                 Ok(vec![TicketEvent::AssigneeChange {
                     date: Utc::now(),
+                    old_assignee: this.assignee,
                     new_assignee,
                 }])
             }
@@ -304,6 +309,7 @@ impl Aggregate for Ticket {
                 *self = Ticket::Created(TicketContent {
                     destination,
                     owner,
+                    assignee: None,
                     title,
                     status: TicketStatus::Pending,
                 });
@@ -317,6 +323,7 @@ impl Aggregate for Ticket {
             }
             TicketEvent::StatusChange {
                 date: _,
+                old_status: _,
                 new_status,
             } => {
                 let this = self.unwrap_mut();
@@ -324,9 +331,11 @@ impl Aggregate for Ticket {
             }
             TicketEvent::AssigneeChange {
                 date: _,
-                new_assignee: _,
+                old_assignee: _,
+                new_assignee,
             } => {
-                let _this = self.unwrap_mut();
+                let this = self.unwrap_mut();
+                this.assignee = new_assignee;
             }
         }
     }
@@ -403,9 +412,12 @@ impl View<Ticket> for TicketView {
                     },
                 });
             }
-            TicketEvent::StatusChange { date, new_status } => {
+            TicketEvent::StatusChange {
+                date,
+                old_status,
+                new_status,
+            } => {
                 let this = self.unwrap_mut();
-                let old_status = this.status;
                 this.status = new_status;
                 this.timeline.push(TicketTimelineItem {
                     date,
@@ -415,9 +427,12 @@ impl View<Ticket> for TicketView {
                     },
                 });
             }
-            TicketEvent::AssigneeChange { date, new_assignee } => {
+            TicketEvent::AssigneeChange {
+                date,
+                old_assignee,
+                new_assignee,
+            } => {
                 let this = self.unwrap_mut();
-                let old_assignee = this.assignee;
                 this.assignee = new_assignee;
                 this.timeline.push(TicketTimelineItem {
                     date,
@@ -506,6 +521,54 @@ where
                         .update_view(view, context)
                         .await
                         .unwrap();
+                }
+                (
+                    TicketListingKind::Assigned,
+                    TicketEvent::AssigneeChange {
+                        old_assignee,
+                        new_assignee,
+                        ..
+                    },
+                ) => {
+                    if let Some(old_assignee) = old_assignee {
+                        let user_id = old_assignee.0.to_string();
+
+                        let (mut view, context) = self
+                            .listing_view_repository
+                            .load_with_context(&user_id)
+                            .await
+                            .unwrap()
+                            .unwrap_or_else(|| {
+                                (TicketListingView::default(), ViewContext::new(user_id, 0))
+                            });
+
+                        view.items
+                            .remove(&TicketId(Id::from_str(&event.aggregate_id).unwrap()));
+                        self.listing_view_repository
+                            .update_view(view, context)
+                            .await
+                            .unwrap();
+                    }
+
+                    if let Some(new_assignee) = new_assignee {
+                        let user_id = new_assignee.0.to_string();
+
+                        let (mut view, context) = self
+                            .listing_view_repository
+                            .load_with_context(&user_id)
+                            .await
+                            .unwrap()
+                            .unwrap_or_else(|| {
+                                (TicketListingView::default(), ViewContext::new(user_id, 0))
+                            });
+
+                        view.items
+                            .insert(TicketId(Id::from_str(&event.aggregate_id).unwrap()));
+                        self.listing_view_repository
+                            .update_view(view, context)
+                            .await
+                            .unwrap();
+                    }
                 }
                 _ => {}
             }
