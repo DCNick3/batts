@@ -22,6 +22,7 @@
   let state: State = 'Ok'
   let messageField: string = ''
   let errorMessage: string = ''
+  const ticketStatuses: [string, TicketStatus][] = [['Pending', 'Pending'], ['In Progress', 'InProgress'], ['Fixed', 'Fixed'], ['Declined', 'Declined']]
 
   const user = getContext<SvelteStore<null | UserView>>('user')
 
@@ -161,18 +162,13 @@
           <div class="absolute z-50 bg-white p-2 font-semibold text-sm border rounded-sm">
             Set status to
             <div class="flex flex-col gap-1 font-normal text-sm mt-1">
-              <button on:click={() => handleStatusChange('Pending')}>
-                <StatusBadge status="Pending" class="hover:cursor-pointer w-full" />
-              </button>
-              <button on:click={() => handleStatusChange('InProgress')}>
-                <StatusBadge status="In progress" class="hover:cursor-pointer w-full" />
-              </button>
-              <button on:click={() => handleStatusChange('Fixed')}>
-                <StatusBadge status="Fixed" class="hover:cursor-pointer w-full" />
-              </button>
-              <button on:click={() => handleStatusChange('Declined')}>
-                <StatusBadge status="Declined" class="hover:cursor-pointer w-full" />
-              </button>
+              {#each ticketStatuses as [text, status]}
+                {#if status !== ticketView.status}
+                  <button on:click={() => handleStatusChange(status)}>
+                    <StatusBadge status={text} class="hover:cursor-pointer w-full" />
+                  </button>
+                {/if}
+              {/each}
             </div>
           </div>
         </details>

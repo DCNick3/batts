@@ -2,10 +2,10 @@
 	import { Badge } from 'flowbite-svelte'
 
   function status2color (status: string) {
-		if (status === "Pending") return "yellow"
-		if (status === "Fixed") return "green"
-		if (status === "In progress") return "blue"
-		if (status === "Declined") return "red"
+		if (status.toLowerCase() === "pending") return "yellow"
+		if (status.toLowerCase() === "fixed") return "green"
+		if (status.toLowerCase() === "in progress") return "blue"
+		if (status.toLowerCase() === "declined") return "red"
 		return "primary"
 	}
 
