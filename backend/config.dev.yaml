@@ -2,3 +2,8 @@ routes:
   expose_internal: true
 server:
   endpoint: 127.0.0.1:3000
+s3:
+  endpoint: http://localhost:9000
+  bucket: batts
+  access_key: minioadmin
+  secret_key: minioadmin

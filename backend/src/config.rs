@@ -9,6 +9,7 @@ pub struct Config {
     pub server: Server,
     pub routes: Routes,
     pub auth: Auth,
+    pub s3: Option<S3Config>,
 }
 
 impl Config {
@@ -62,4 +63,12 @@ pub struct Routes {
 #[derive(Deserialize, Clone, Debug)]
 pub struct Server {
     pub endpoint: SocketAddr,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct S3Config {
+    pub endpoint: String,
+    pub bucket: String,
+    pub access_key: String,
+    pub secret_key: String,
 }
