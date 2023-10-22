@@ -10,7 +10,7 @@
 	import StatusBadge from '$lib/components/StatusBadge.svelte'
 	import type { TicketListingViewExpandedItem } from 'backend'
 
-	export let tickets: TicketListingViewExpandedItem[]
+	export let tickets: [TicketListingViewExpandedItem, string][]
 
 </script>
 
@@ -35,7 +35,7 @@
 		{/each}
 	</TableHead>
 	<TableBody tableBodyClass="rounded-sm flex-1 sm:flex-none">
-		{#each tickets as ticket}
+		{#each tickets as [ticket, destination]}
 		<!-- TODO: Three hardcoded false's come from the `ticket.up` property -->
 			<TableBodyRow class={"flex sm:table-row flex-col flex-nowrap first:rounded-t-sm last:rounded-b-sm last:mb-0 mb-2 sm:mb-0 border-b-0" + (true ? "" : " bg-gray-50")}>
 				<TableBodyCell
@@ -47,7 +47,7 @@
 					class="py-2 sm:py-4 text-sm text-slate-500"
 				>
 					<a href="/">
-						{ticket.destination}
+						{destination}
 					</a>
 				</TableBodyCell>
 				<TableBodyCell
