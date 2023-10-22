@@ -26,6 +26,8 @@ pub struct ApplicationState {
     pub ticket_view_repository: Arc<MyViewRepository<TicketView, Ticket>>,
     pub ticket_owner_listing_view_repository: Arc<MyViewRepository<TicketListingView, Ticket>>,
     pub ticket_assignee_listing_view_repository: Arc<MyViewRepository<TicketListingView, Ticket>>,
+    pub ticket_destination_listing_view_repository:
+        Arc<MyViewRepository<TicketListingView, Ticket>>,
     pub ticket_cqrs: Arc<MyCqrsFramework<Ticket>>,
 
     pub user_view_repository: Arc<MyViewRepository<UserView, User>>,
@@ -73,6 +75,12 @@ pub async fn new_application_state(config: &crate::config::Config) -> Applicatio
         ticket_assignee_listing_view_repository.clone(),
         TicketListingKind::Assigned,
     );
+    let ticket_destination_listing_view_repository =
+        Arc::new(MyViewRepository::<TicketListingView, Ticket>::new());
+    let ticket_destination_listing_view_query = TicketListingQuery::new(
+        ticket_destination_listing_view_repository.clone(),
+        TicketListingKind::Destination,
+    );
 
     let ticket_cqrs = CqrsFramework::new(
         MemStore::<Ticket>::default(),
@@ -80,6 +88,7 @@ pub async fn new_application_state(config: &crate::config::Config) -> Applicatio
             Box::new(ticket_view_query),
             Box::new(ticket_owner_listing_view_query),
             Box::new(ticket_assignee_listing_view_query),
+            Box::new(ticket_destination_listing_view_query),
         ],
         TicketServices {
             group_view_repository: group_view_repository.clone(),
@@ -112,6 +121,7 @@ pub async fn new_application_state(config: &crate::config::Config) -> Applicatio
         ticket_view_repository,
         ticket_owner_listing_view_repository,
         ticket_assignee_listing_view_repository,
+        ticket_destination_listing_view_repository,
         ticket_cqrs,
 
         group_view_repository,

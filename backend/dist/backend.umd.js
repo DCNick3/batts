@@ -249,6 +249,9 @@ var __privateMethod = (obj, member, method) => {
       let command = { type: "Create", ...creation };
       return await __privateMethod(this, _sendCommand, sendCommand_fn).call(this, `/api/groups/${id}`, command);
     }
+    async getGroupTickets(id) {
+      return await __privateMethod(this, _get, get_fn).call(this, `/api/groups/${id}/tickets`);
+    }
     async addGroupMember(id, new_member) {
       let command = { type: "AddMember", new_member };
       return await __privateMethod(this, _sendCommand, sendCommand_fn).call(this, `/api/groups/${id}`, command);

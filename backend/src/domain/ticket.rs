@@ -11,6 +11,7 @@ use cqrs_es::{Aggregate, DomainEvent, EventEnvelope, Query, View};
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 use std::collections::HashSet;
+use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use std::sync::Arc;
 use tracing::error;
@@ -127,6 +128,15 @@ pub enum TicketStatus {
 pub enum TicketDestination {
     User(UserId),
     Group(GroupId),
+}
+
+impl Display for TicketDestination {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TicketDestination::User(user) => write!(f, "user-{}", user.0),
+            TicketDestination::Group(group) => write!(f, "group-{}", group.0),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, TS, Serialize, Deserialize)]
@@ -253,7 +263,7 @@ impl Aggregate for Ticket {
                 let Ticket::NotCreated = self else {
                     return Err(TicketError::AlreadyExists);
                 };
-                Ok(vec![
+                let mut result = vec![
                     TicketEvent::Create {
                         destination,
                         owner: command.user_id,
@@ -265,7 +275,16 @@ impl Aggregate for Ticket {
                         from: command.user_id,
                         text: body,
                     },
-                ])
+                ];
+                if let TicketDestination::User(dest) = destination {
+                    result.push(TicketEvent::AssigneeChange {
+                        date: Utc::now(),
+                        old_assignee: None,
+                        new_assignee: Some(dest),
+                    });
+                };
+
+                Ok(result)
             }
             TicketCommand::SendTicketMessage(SendTicketMessage { body }) => {
                 let _this = self.unwrap_ref();
@@ -473,6 +492,7 @@ impl View<Ticket> for TicketListingView {
 pub enum TicketListingKind {
     Owned,
     Assigned,
+    Destination,
 }
 
 pub struct TicketListingQuery<R>
@@ -569,6 +589,25 @@ where
                             .await
                             .unwrap();
                     }
+                }
+                (TicketListingKind::Destination, TicketEvent::Create { destination, .. }) => {
+                    let dest_id = destination.to_string();
+
+                    let (mut view, context) = self
+                        .listing_view_repository
+                        .load_with_context(&dest_id)
+                        .await
+                        .unwrap()
+                        .unwrap_or_else(|| {
+                            (TicketListingView::default(), ViewContext::new(dest_id, 0))
+                        });
+
+                    view.items
+                        .insert(TicketId(Id::from_str(&event.aggregate_id).unwrap()));
+                    self.listing_view_repository
+                        .update_view(view, context)
+                        .await
+                        .unwrap();
                 }
                 _ => {}
             }

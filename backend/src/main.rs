@@ -11,9 +11,10 @@ mod memory_view_repository;
 mod state;
 
 use crate::api_result::ApiResult;
-use crate::domain::group::{GroupCommand, GroupView, GroupViewContent};
+use crate::domain::group::{GroupCommand, GroupError, GroupId, GroupView, GroupViewContent};
 use crate::domain::ticket::{
-    TicketCommand, TicketListingView, TicketListingViewExpandedItem, TicketView, TicketViewContent,
+    TicketCommand, TicketDestination, TicketListingView, TicketListingViewExpandedItem, TicketView,
+    TicketViewContent,
 };
 use crate::domain::user::{IdentityView, UserCommand, UserProfileView, UserView};
 use crate::error::{Error, GroupSnafu, PersistenceSnafu, TicketSnafu, UserSnafu};
@@ -24,9 +25,10 @@ use axum::routing::post;
 use axum::{routing::get, Router};
 use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
 use cqrs_es::persist::ViewRepository;
+use cqrs_es::AggregateError;
 use snafu::{ResultExt, Whatever};
 use tower_http::catch_panic::CatchPanicLayer;
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 
 #[snafu::report]
 #[tokio::main]
@@ -62,7 +64,9 @@ fn make_api_router(config: &config::Routes) -> Router<ApplicationState> {
         .route("/tickets/assigned", get(ticket_assignee_listing_query))
         .route("/tickets/owned", get(ticket_owner_listing_query));
 
-    router = router.route("/groups/:id", get(group_query).post(group_command));
+    router = router
+        .route("/groups/:id", get(group_query).post(group_command))
+        .route("/groups/:id/tickets", get(group_tickets_query));
 
     router = router
         .route("/users/me", get(me_query))
@@ -229,6 +233,41 @@ async fn group_command(
             .await
             .context(GroupSnafu),
     )
+}
+
+async fn group_tickets_query(
+    State(state): State<ApplicationState>,
+    user_context: UserContext,
+    Path(id): Path<Id>,
+) -> ApiResult<Vec<TicketListingViewExpandedItem>> {
+    ApiResult::from_async_fn(|| async {
+        let group_view = state
+            .group_view_repository
+            .load(&id.to_string())
+            .await
+            .context(PersistenceSnafu)?
+            .map(GroupView::unwrap);
+        let group_view = group_view.ok_or(Error::NotFound)?;
+        if !group_view.members.contains(&user_context.user_id()) {
+            error!(
+                "User {:?} is not a member of group {:?}",
+                user_context.user_id(),
+                id
+            );
+            return Err(AggregateError::UserError(GroupError::Forbidden)).context(GroupSnafu);
+        }
+
+        let destination_id = TicketDestination::Group(GroupId(id));
+        let listing = state
+            .ticket_destination_listing_view_repository
+            .load(&destination_id.to_string())
+            .await
+            .context(PersistenceSnafu)?
+            .unwrap_or_default();
+
+        expand_ticket_listing_view(state, listing).await
+    })
+    .await
 }
 
 async fn me_query(

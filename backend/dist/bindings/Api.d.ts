@@ -10,6 +10,7 @@ export declare class Api {
     getMe(): Promise<ApiResult<UserView>>;
     getUserProfile(id: UserId): Promise<ApiResult<UserProfileView>>;
     createGroup(id: GroupId, creation: CreateGroup): Promise<ApiResult<null>>;
+    getGroupTickets(id: GroupId): Promise<ApiResult<Array<TicketListingViewExpandedItem>>>;
     addGroupMember(id: GroupId, new_member: UserId): Promise<ApiResult<null>>;
     createTicket(id: TicketId, creation: CreateTicket): Promise<ApiResult<null>>;
     getTicket(id: TicketId): Promise<ApiResult<TicketViewContent>>;

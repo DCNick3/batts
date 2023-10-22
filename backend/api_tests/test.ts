@@ -166,28 +166,49 @@ test("assign_ticket", async () => {
         body: "I can't do anything",
     }));
 
+    // ticket sent to a user is automatically assigned to them
     const ticket = unwrap(await api.getTicket(ticketId));
-    expect(ticket.assignee).toBe(null);
+    expect(ticket.assignee).toBe(userId);
 
     const assignedTickets = unwrap(await api.getAssignedTickets());
-    expect(assignedTickets.length).toBe(0);
-
-    unwrap(await api.changeTicketAssignee(ticketId, userId));
-
-    const ticket2 = unwrap(await api.getTicket(ticketId));
-    expect(ticket2.assignee).toBe(userId);
-
-    const assignedTickets2 = unwrap(await api.getAssignedTickets());
-    expect(assignedTickets2.length).toBe(1);
-    expect(assignedTickets2[0].id).toBe(ticketId);
+    expect(assignedTickets.length).toBe(1);
+    expect(assignedTickets[0].id).toBe(ticketId);
 
     unwrap(await api.changeTicketAssignee(ticketId, null));
 
+    const ticket2 = unwrap(await api.getTicket(ticketId));
+    expect(ticket2.assignee).toBe(null);
+
+    const assignedTickets2 = unwrap(await api.getAssignedTickets());
+    expect(assignedTickets2.length).toBe(0);
+
+    unwrap(await api.changeTicketAssignee(ticketId, userId));
+
     const ticket3 = unwrap(await api.getTicket(ticketId));
-    expect(ticket3.assignee).toBe(null);
+    expect(ticket3.assignee).toBe(userId);
 
     const assignedTickets3 = unwrap(await api.getAssignedTickets());
-    expect(assignedTickets3.length).toBe(0);
+    expect(assignedTickets3.length).toBe(1);
+    expect(assignedTickets3[0].id).toBe(ticketId);
+})
+
+test("group_ticket_list", async() => {
+    const api = makeApi();
+    const _userId = await makeFakeUser(api);
+    const ticketId = generateId();
+    const groupId = generateId();
+
+    unwrap(await api.createGroup(groupId, {title: "Test group"}));
+
+    unwrap(await api.createTicket(ticketId, {
+        destination: { Group: groupId },
+        title: "Everything is broken",
+        body: "I can't do anything",
+    }));
+
+    const tickets = unwrap(await api.getGroupTickets(groupId));
+    expect(tickets.length).toBe(1);
+    expect(tickets[0].id).toBe(ticketId);
 })
 
 test("telegram_login", async () => {
@@ -214,7 +235,7 @@ test("make_mock_tickets", async () => {
     const userId1 = "MekGz7Af4HwV8uwBm7c82P";
     const userId2 = "R9wBXTwKPgNXGxVzcvo8xv";
     const ticket1 = "F2VaZtXgAKgxJncCbMbX9V";
-    const ticket2 = "BlyatPochiniteInetUzhe1"; // "H3NbS5NeKY33AMr6Pvtw6H";
+    const ticket2 = "BLYATinetF1XTECYKA1111"; // "H3NbS5NeKY33AMr6Pvtw6H";
     const ticket3 = "XYF1Ur6Z4oeVBioYtW62nF";
     const ticket4 = "M1A5QazKGRUNoTqraWxYou";
     const ticket5 = "BJytpHn3GssUW24WJJkrPg";
