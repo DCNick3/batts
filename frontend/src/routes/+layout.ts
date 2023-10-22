@@ -1,7 +1,8 @@
 import { Api } from 'backend'
 import type { LayoutLoad } from './$types'
+import type { UserView } from 'backend'
 
-export const load: LayoutLoad = async ({ fetch }) => {
+export const load: LayoutLoad<{ user: UserView | null }> = async ({ fetch }) => {
   const api = new Api(fetch)
   try {
     const result = await api.getMe()
