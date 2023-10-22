@@ -16,6 +16,7 @@
   export let users: Map<string, string>
   export let editPermissions: Set<string>
   export let destination: string
+  export let groupMembers: Map<string, string>
 
   type State = 'Sending' | 'Ok' | 'Error'
   let state: State = 'Ok'
@@ -48,6 +49,23 @@
     }
   }
 
+  const handleSetAssignee = async (assigneeId: string) => {
+    const api = new Api(fetch)
+    try {
+      const result = await api.changeTicketAssignee(ticketId, assigneeId)
+      if (result.status === 'Success') {
+        state = 'Ok'
+        invalidateAll()
+      } else {
+        // TODO check error payload
+        state = 'Error'
+        errorMessage = 'Failed to assign ticket'
+      }
+    } catch (error) {
+      // TODO error handling
+      console.error(error)
+    }
+  }
   const handleStatusChange = async (status: TicketStatus) => {
 		const api = new Api(fetch)
     try {
@@ -64,7 +82,6 @@
       // TODO error handling
       console.error(error)
     }
-
   }
 
   const canEdit: boolean = $user !== null && editPermissions.has($user.id)
@@ -94,13 +111,21 @@
     <div>
       {#if canEdit}
         <details>
-          <summary class="list-none flex items-center gap-6 text-zinc-600 hover:text-primary-700 transition">
+          <summary class="list-none flex items-center gap-6 text-zinc-600 hover:text-primary-700 transition hover:cursor-pointer">
             <div class="font-semibold">Assigned To</div>
             <Settings />
           </summary>
           <div class="absolute z-50 bg-white p-2 font-semibold text-sm border rounded-sm">
             Set assignee
-            <div class="flex flex-col">
+            <div class="flex flex-col gap-1 font-normal text-sm mt-1">
+              {#each groupMembers as [id, name]}
+                <button
+                  on:click={() => handleSetAssignee(id)}
+                  class="hover:cursor-pointer w-full hover:text-primary-600 transition"
+                >
+                  {name}
+                </button>
+              {/each}
             </div>
           </div>
         </details>
@@ -142,7 +167,7 @@
               <button on:click={() => handleStatusChange('Declined')}>
                 <StatusBadge status="Declined" class="hover:cursor-pointer w-full" />
               </button>
-              </div>
+            </div>
           </div>
         </details>
       {:else}

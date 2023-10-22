@@ -13,6 +13,7 @@
     users={data.users}
     editPermissions={data.editPermissions}
     destination={data.destinationField}
+    groupMembers={data.groupMembers}
   />
 {:else if data.status === "Error"}
   <!-- Inform user on error -->

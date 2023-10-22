@@ -39,6 +39,7 @@ export const load: PageLoad<Data> = async ({ fetch, params }) => {
           console.error(res.payload.report)
         }
       })
+      const groupMembers = new Map<string,string>()
 
       const editPermissions = new Set<string>()
       let destinationField: string = ''
@@ -50,6 +51,16 @@ export const load: PageLoad<Data> = async ({ fetch, params }) => {
         if (res.status === 'Success') {
           res.payload.members.forEach(m => { editPermissions.add(m) })
           destinationField = res.payload.title
+
+          const responses = await Promise.all(res.payload.members.map(id => api.getUserProfile(id)))
+          responses.forEach(resp => {
+            if (resp.status === 'Success') {
+              groupMembers.set(resp.payload.id, resp.payload.name)
+            } else {
+              // TODO: error handling
+              console.error(resp.payload)
+            }
+          })
         } else {
           // TODO handle group info load failure
           console.error(res.payload)
@@ -67,7 +78,7 @@ export const load: PageLoad<Data> = async ({ fetch, params }) => {
         editPermissions.add(result.payload.assignee)
       }
 
-      return { users, ticketId: params.id, editPermissions, destinationField, ...result }
+      return { users, ticketId: params.id, editPermissions, destinationField, groupMembers, ...result }
     }
 
     return { ticketId: params.id, ...result }
