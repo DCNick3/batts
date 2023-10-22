@@ -11,11 +11,12 @@ mod memory_view_repository;
 mod state;
 
 use crate::api_result::ApiResult;
+use crate::domain::group::{GroupCommand, GroupView, GroupViewContent};
 use crate::domain::ticket::{
-    TicketCommand, TicketListingView, TicketListingViewExpandedItem, TicketView,
+    TicketCommand, TicketListingView, TicketListingViewExpandedItem, TicketView, TicketViewContent,
 };
 use crate::domain::user::{IdentityView, UserCommand, UserProfileView, UserView};
-use crate::error::{Error, PersistenceSnafu, TicketSnafu, UserSnafu};
+use crate::error::{Error, GroupSnafu, PersistenceSnafu, TicketSnafu, UserSnafu};
 use crate::extractors::{Json, Path, State, UserContext};
 use crate::id::Id;
 use crate::state::{new_application_state, ApplicationState};
@@ -61,6 +62,8 @@ fn make_api_router(config: &config::Routes) -> Router<ApplicationState> {
         .route("/tickets/assigned", get(ticket_assignee_listing_query))
         .route("/tickets/owned", get(ticket_owner_listing_query));
 
+    router = router.route("/groups/:id", get(group_query).post(group_command));
+
     router = router
         .route("/users/me", get(me_query))
         .route("/users/:id/profile", get(user_profile_query));
@@ -104,13 +107,14 @@ async fn fallback() -> ApiResult<()> {
 async fn tickets_query(
     State(state): State<ApplicationState>,
     Path(id): Path<Id>,
-) -> ApiResult<TicketView> {
+) -> ApiResult<TicketViewContent> {
     ApiResult::from_async_fn(|| async {
         let ticket_view = state
             .ticket_view_repository
             .load(&id.to_string())
             .await
-            .context(PersistenceSnafu)?;
+            .context(PersistenceSnafu)?
+            .map(TicketView::unwrap);
         ticket_view.ok_or(Error::NotFound)
     })
     .await
@@ -149,7 +153,7 @@ async fn expand_ticket_listing_view(
     Ok(results
         .into_iter()
         .map(|view| {
-            let view = view.unwrap();
+            let view = view.unwrap().unwrap();
             TicketListingViewExpandedItem {
                 id: view.id,
                 destination: view.destination,
@@ -194,6 +198,37 @@ async fn ticket_owner_listing_query(
         expand_ticket_listing_view(state, view).await
     })
     .await
+}
+
+async fn group_query(
+    State(state): State<ApplicationState>,
+    Path(id): Path<Id>,
+) -> ApiResult<GroupViewContent> {
+    ApiResult::from_async_fn(|| async {
+        let group_view = state
+            .group_view_repository
+            .load(&id.to_string())
+            .await
+            .context(PersistenceSnafu)?
+            .map(GroupView::unwrap);
+        group_view.ok_or(Error::NotFound)
+    })
+    .await
+}
+
+async fn group_command(
+    State(state): State<ApplicationState>,
+    user_context: UserContext,
+    Path(id): Path<Id>,
+    Json(command): Json<GroupCommand>,
+) -> ApiResult {
+    ApiResult::from_result(
+        state
+            .group_cqrs
+            .execute(&id.to_string(), user_context.authenticated(command))
+            .await
+            .context(GroupSnafu),
+    )
 }
 
 async fn me_query(

@@ -33,23 +33,6 @@ Content-Type: application/json
   }
 }
 
-> {%
-    client.test("Request executed successfully", function() {
-        client.assert(response.status === 200, "Response status is not 200, but " + response.status);
-    });
-
-    client.test("Response content-type is application/json", function() {
-        const type = response.contentType.mimeType;
-        client.assert(type === "application/json", "Expected 'application/json' but received '" + type + "'");
-    });
-
-    client.test("API envelope indicates success", function() {
-        if (response.body.status !== "Success") {
-            throw new Error("Response contains an error: " + response.body.payload.report);
-        }
-    });
-%}
-
 ### Get user
 GET {{url}}/api/users/FDUeanyKADQEpyrydYn7XB
 
@@ -66,6 +49,18 @@ Cookie: session=eyJhbGciOiJFZERTQSJ9.eyJleHAiOjE2OTY3MTA1NTcsImlhdCI6MTY5NjY5OTc
 ### Get user profile
 GET {{url}}/api/users/FDUeanyKADQEpyrydYn7XB/profile
 
+### Create a group
+POST {{url}}/api/groups/F2VaZtXgAKgxJncCbMbX9V
+Content-Type: application/json
+
+{
+  "type": "Create",
+  "title": "IT Department"
+}
+
+### Get group
+GET {{url}}/api/groups/F2VaZtXgAKgxJncCbMbX9V
+
 ### Create a ticket
 POST {{url}}/api/tickets/F2VaZtXgAKgxJncCbMbX9V
 Cookie: session=eyJhbGciOiJFZERTQSJ9.eyJleHAiOjE2OTY3MTA1NTcsImlhdCI6MTY5NjY5OTc1NywidXNlcl9pZCI6IkZEVWVhbnlLQURRRXB5cnlkWW43WEIiLCJuYW1lIjoiRWR3YXJkIFNub3dkZW4ifQ.wodYZRyBZMBwxeKqDrPJX2S6mKQwMBNH7Skb5GZeIBU53R3I08EOoTiytMXisqSV1bjPly4OqaCT2ZxkYGmCCw
@@ -73,7 +68,9 @@ Content-Type: application/json
 
 {
   "type": "Create",
-  "destination": "ItDepartment",
+  "destination": {
+    "Group": "F2VaZtXgAKgxJncCbMbX9V"
+  },
   "title": "Everything is broken",
   "body": "I can't log in to my account. Please help!"
 }

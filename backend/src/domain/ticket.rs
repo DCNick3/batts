@@ -1,4 +1,5 @@
 use crate::auth::Authenticated;
+use crate::domain::group::{Group, GroupId, GroupView};
 use crate::domain::user::UserId;
 use crate::error::ApiError;
 use crate::id::Id;
@@ -12,9 +13,10 @@ use snafu::Snafu;
 use std::collections::HashSet;
 use std::str::FromStr;
 use std::sync::Arc;
+use tracing::error;
 use ts_rs::TS;
 
-#[derive(Default, Debug, Copy, Clone, Eq, PartialEq, Hash, TS, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, PartialOrd, Ord, Hash, TS, Serialize, Deserialize)]
 #[ts(export)]
 pub struct TicketId(pub Id);
 
@@ -40,12 +42,18 @@ pub struct ChangeStatus {
 
 #[derive(Debug, TS, Serialize, Deserialize)]
 #[ts(export)]
+pub struct ChangeAssignee {
+    pub new_assignee: Option<UserId>,
+}
+
+#[derive(Debug, TS, Serialize, Deserialize)]
+#[ts(export)]
 #[serde(tag = "type")]
 pub enum TicketCommand {
     Create(CreateTicket),
     SendTicketMessage(SendTicketMessage),
-    // TODO: actually, only admins should be able to change status
     ChangeStatus(ChangeStatus),
+    ChangeAssignee(ChangeAssignee),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -64,6 +72,10 @@ pub enum TicketEvent {
         date: DateTime<Utc>,
         new_status: TicketStatus,
     },
+    AssigneeChange {
+        date: DateTime<Utc>,
+        new_assignee: Option<UserId>,
+    },
 }
 
 impl DomainEvent for TicketEvent {
@@ -72,6 +84,7 @@ impl DomainEvent for TicketEvent {
             TicketEvent::Create { .. } => "Create".to_string(),
             TicketEvent::Message { .. } => "Message".to_string(),
             TicketEvent::StatusChange { .. } => "StatusChange".to_string(),
+            TicketEvent::AssigneeChange { .. } => "AssigneeChange".to_string(),
         }
     }
 
@@ -84,12 +97,15 @@ impl DomainEvent for TicketEvent {
 pub enum TicketError {
     /// Ticket with the specified ID already exists
     AlreadyExists,
+    /// User cannot perform this action with this ticket
+    Forbidden,
 }
 
 impl ApiError for TicketError {
     fn status_code(&self) -> StatusCode {
         match self {
             TicketError::AlreadyExists => StatusCode::BAD_REQUEST,
+            TicketError::Forbidden => StatusCode::FORBIDDEN,
         }
     }
 }
@@ -104,13 +120,11 @@ pub enum TicketStatus {
     Fixed,
 }
 
-// TODO: this is temporary until we have a proper queue system
-#[derive(Default, Debug, Copy, Clone, Eq, PartialEq, TS, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, TS, Serialize, Deserialize)]
 #[ts(export)]
 pub enum TicketDestination {
-    #[default]
-    ItDepartment,
-    DormManager,
+    User(UserId),
+    Group(GroupId),
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, TS, Serialize, Deserialize)]
@@ -125,6 +139,10 @@ pub enum TicketTimelineItemContent {
         old: TicketStatus,
         new: TicketStatus,
     },
+    AssigneeChange {
+        old: Option<UserId>,
+        new: Option<UserId>,
+    },
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, TS, Serialize, Deserialize)]
@@ -135,11 +153,53 @@ pub struct TicketTimelineItem {
     content: TicketTimelineItemContent,
 }
 
+pub struct TicketServices {
+    pub group_view_repository: Arc<dyn ViewRepository<GroupView, Group>>,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TicketContent {
+    pub destination: TicketDestination,
     pub owner: UserId,
     pub title: String,
     pub status: TicketStatus,
+}
+
+impl TicketContent {
+    pub async fn check_access(
+        &self,
+        user: UserId,
+        services: &TicketServices,
+    ) -> Result<(), TicketError> {
+        match self.destination {
+            TicketDestination::User(dest_user) => {
+                if user == dest_user {
+                    Ok(())
+                } else {
+                    error!("User does not have access to this ticket because it is not addressed to them");
+                    Err(TicketError::Forbidden)
+                }
+            }
+            TicketDestination::Group(group) => {
+                let Some(group) = services
+                    .group_view_repository
+                    .load(&group.0.to_string())
+                    .await
+                    .unwrap()
+                else {
+                    error!("Group not found");
+                    return Err(TicketError::Forbidden);
+                };
+                let group = group.unwrap();
+                if group.members.contains(&user) {
+                    Ok(())
+                } else {
+                    error!("User does not have access to this ticket because they are not a member of the group it is addressed to");
+                    Err(TicketError::Forbidden)
+                }
+            }
+        }
+    }
 }
 
 #[derive(Default, Debug, Serialize, Deserialize)]
@@ -149,12 +209,28 @@ pub enum Ticket {
     Created(TicketContent),
 }
 
+impl Ticket {
+    fn unwrap_ref(&self) -> &TicketContent {
+        match self {
+            Ticket::NotCreated => panic!("Ticket not created"),
+            Ticket::Created(content) => content,
+        }
+    }
+
+    fn unwrap_mut(&mut self) -> &mut TicketContent {
+        match self {
+            Ticket::NotCreated => panic!("Ticket not created"),
+            Ticket::Created(content) => content,
+        }
+    }
+}
+
 #[async_trait]
 impl Aggregate for Ticket {
     type Command = Authenticated<TicketCommand>;
     type Event = TicketEvent;
     type Error = TicketError;
-    type Services = ();
+    type Services = TicketServices;
 
     fn aggregate_type() -> String {
         "Ticket".to_string()
@@ -163,7 +239,7 @@ impl Aggregate for Ticket {
     async fn handle(
         &self,
         command: Self::Command,
-        _service: &Self::Services,
+        service: &Self::Services,
     ) -> Result<Vec<Self::Event>, Self::Error> {
         match command.payload {
             TicketCommand::Create(CreateTicket {
@@ -189,6 +265,7 @@ impl Aggregate for Ticket {
                 ])
             }
             TicketCommand::SendTicketMessage(SendTicketMessage { body }) => {
+                let _this = self.unwrap_ref();
                 Ok(vec![TicketEvent::Message {
                     date: Utc::now(),
                     from: command.user_id,
@@ -196,12 +273,19 @@ impl Aggregate for Ticket {
                 }])
             }
             TicketCommand::ChangeStatus(ChangeStatus { new_status }) => {
-                let Ticket::Created(_content) = self else {
-                    panic!("Ticket not created");
-                };
+                let this = self.unwrap_ref();
+                this.check_access(command.user_id, service).await?;
                 Ok(vec![TicketEvent::StatusChange {
                     date: Utc::now(),
                     new_status,
+                }])
+            }
+            TicketCommand::ChangeAssignee(ChangeAssignee { new_assignee }) => {
+                let this = self.unwrap_ref();
+                this.check_access(command.user_id, service).await?;
+                Ok(vec![TicketEvent::AssigneeChange {
+                    date: Utc::now(),
+                    new_assignee,
                 }])
             }
         }
@@ -210,7 +294,7 @@ impl Aggregate for Ticket {
     fn apply(&mut self, event: Self::Event) {
         match event {
             TicketEvent::Create {
-                destination: _,
+                destination,
                 owner,
                 title,
             } => {
@@ -218,6 +302,7 @@ impl Aggregate for Ticket {
                     panic!("Ticket already created");
                 };
                 *self = Ticket::Created(TicketContent {
+                    destination,
                     owner,
                     title,
                     status: TicketStatus::Pending,
@@ -228,26 +313,51 @@ impl Aggregate for Ticket {
                 from: _,
                 text: _,
             } => {
-                let Ticket::Created(_content) = self else {
-                    panic!("Ticket not created");
-                };
+                let _this = self.unwrap_mut();
             }
             TicketEvent::StatusChange {
                 date: _,
                 new_status,
             } => {
-                let Ticket::Created(content) = self else {
-                    panic!("Ticket not created");
-                };
-                content.status = new_status;
+                let this = self.unwrap_mut();
+                this.status = new_status;
+            }
+            TicketEvent::AssigneeChange {
+                date: _,
+                new_assignee: _,
+            } => {
+                let _this = self.unwrap_mut();
             }
         }
     }
 }
 
-#[derive(Default, Debug, Clone, TS, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+pub enum TicketView {
+    #[default]
+    NotCreated,
+    Created(TicketViewContent),
+}
+
+impl TicketView {
+    pub fn unwrap(self) -> TicketViewContent {
+        match self {
+            TicketView::NotCreated => panic!("Ticket not created"),
+            TicketView::Created(content) => content,
+        }
+    }
+
+    pub fn unwrap_mut(&mut self) -> &mut TicketViewContent {
+        match self {
+            TicketView::NotCreated => panic!("Ticket not created"),
+            TicketView::Created(content) => content,
+        }
+    }
+}
+
+#[derive(Debug, Clone, TS, Serialize, Deserialize)]
 #[ts(export)]
-pub struct TicketView {
+pub struct TicketViewContent {
     pub id: TicketId,
     pub destination: TicketDestination,
     pub owner: UserId,
@@ -259,27 +369,33 @@ pub struct TicketView {
 
 impl View<Ticket> for TicketView {
     fn update(&mut self, event: &EventEnvelope<Ticket>) {
-        if self.id.0.is_default() {
-            self.id = TicketId(Id::from_str(&event.aggregate_id).unwrap());
-        }
-
         match event.payload {
             TicketEvent::Create {
                 destination,
                 owner,
                 ref title,
             } => {
-                self.destination = destination;
-                self.owner = owner;
-                self.title = title.clone();
-                self.status = TicketStatus::Pending;
+                let TicketView::NotCreated = self else {
+                    panic!("Ticket already created");
+                };
+
+                *self = TicketView::Created(TicketViewContent {
+                    id: TicketId(Id::from_str(&event.aggregate_id).unwrap()),
+                    destination,
+                    owner,
+                    assignee: None,
+                    title: title.clone(),
+                    status: TicketStatus::Pending,
+                    timeline: vec![],
+                });
             }
             TicketEvent::Message {
                 date,
                 from,
                 ref text,
             } => {
-                self.timeline.push(TicketTimelineItem {
+                let this = self.unwrap_mut();
+                this.timeline.push(TicketTimelineItem {
                     date,
                     content: TicketTimelineItemContent::Message {
                         from,
@@ -288,13 +404,26 @@ impl View<Ticket> for TicketView {
                 });
             }
             TicketEvent::StatusChange { date, new_status } => {
-                let old_status = self.status;
-                self.status = new_status;
-                self.timeline.push(TicketTimelineItem {
+                let this = self.unwrap_mut();
+                let old_status = this.status;
+                this.status = new_status;
+                this.timeline.push(TicketTimelineItem {
                     date,
                     content: TicketTimelineItemContent::StatusChange {
                         old: old_status,
                         new: new_status,
+                    },
+                });
+            }
+            TicketEvent::AssigneeChange { date, new_assignee } => {
+                let this = self.unwrap_mut();
+                let old_assignee = this.assignee;
+                this.assignee = new_assignee;
+                this.timeline.push(TicketTimelineItem {
+                    date,
+                    content: TicketTimelineItemContent::AssigneeChange {
+                        old: old_assignee,
+                        new: new_assignee,
                     },
                 });
             }

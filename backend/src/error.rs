@@ -1,3 +1,4 @@
+use crate::domain::group::GroupError;
 use crate::domain::ticket::TicketError;
 use crate::domain::user::UserError;
 use axum::http::StatusCode;
@@ -62,6 +63,8 @@ pub enum Error {
     Login { source: crate::login::LoginError },
     /// Error while manipulating a ticket
     Ticket { source: AggregateError<TicketError> },
+    /// Error while manipulating a group
+    Group { source: AggregateError<GroupError> },
     /// Error while manipulating a user
     User { source: AggregateError<UserError> },
     /// The requested object was not found
@@ -81,6 +84,7 @@ impl ApiError for Error {
             Error::Auth { source } => source.status_code(),
             Error::Login { source } => source.status_code(),
             Error::Ticket { source } => source.status_code(),
+            Error::Group { source } => source.status_code(),
             Error::User { source } => source.status_code(),
             Error::NotFound => StatusCode::NOT_FOUND,
             Error::RouteNotFound => StatusCode::NOT_FOUND,

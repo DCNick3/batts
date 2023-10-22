@@ -1,6 +1,7 @@
 use crate::auth::CookieAuthority;
+use crate::domain::group::{Group, GroupView};
 use crate::domain::ticket::{
-    Ticket, TicketListingKind, TicketListingQuery, TicketListingView, TicketView,
+    Ticket, TicketListingKind, TicketListingQuery, TicketListingView, TicketServices, TicketView,
 };
 use crate::domain::user::{IdentityQuery, IdentityView, User, UserServices, UserView};
 use crate::login::TelegramSecret;
@@ -18,6 +19,9 @@ type MyGenericQuery<V, A> = GenericQuery<MyViewRepository<V, A>, V, A>;
 pub struct ApplicationState {
     pub cookie_authority: CookieAuthority,
     pub telegram_login_secret: Option<TelegramSecret>,
+
+    pub group_view_repository: Arc<MyViewRepository<GroupView, Group>>,
+    pub group_cqrs: Arc<MyCqrsFramework<Group>>,
 
     pub ticket_view_repository: Arc<MyViewRepository<TicketView, Ticket>>,
     pub ticket_owner_listing_view_repository: Arc<MyViewRepository<TicketListingView, Ticket>>,
@@ -44,6 +48,15 @@ pub async fn new_application_state(config: &crate::config::Config) -> Applicatio
         chrono::Duration::from_std(config.auth.token_duration).unwrap(),
     );
 
+    let group_view_repository = Arc::new(MyViewRepository::<GroupView, Group>::new());
+    let group_view_query = MyGenericQuery::<GroupView, Group>::new(group_view_repository.clone());
+    let group_cqrs = CqrsFramework::new(
+        MemStore::<Group>::default(),
+        vec![Box::new(group_view_query)],
+        (),
+    );
+    let group_cqrs = Arc::new(group_cqrs);
+
     let ticket_view_repository = Arc::new(MyViewRepository::<TicketView, Ticket>::new());
     let ticket_view_query =
         MyGenericQuery::<TicketView, Ticket>::new(ticket_view_repository.clone());
@@ -68,7 +81,9 @@ pub async fn new_application_state(config: &crate::config::Config) -> Applicatio
             Box::new(ticket_owner_listing_view_query),
             Box::new(ticket_assignee_listing_view_query),
         ],
-        (),
+        TicketServices {
+            group_view_repository: group_view_repository.clone(),
+        },
     );
     let ticket_cqrs = Arc::new(ticket_cqrs);
 
@@ -98,6 +113,9 @@ pub async fn new_application_state(config: &crate::config::Config) -> Applicatio
         ticket_owner_listing_view_repository,
         ticket_assignee_listing_view_repository,
         ticket_cqrs,
+
+        group_view_repository,
+        group_cqrs,
 
         user_view_repository,
         user_identity_view_repository,

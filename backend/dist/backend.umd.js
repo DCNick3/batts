@@ -245,6 +245,14 @@ var __privateMethod = (obj, member, method) => {
     async getUserProfile(id) {
       return await __privateMethod(this, _get, get_fn).call(this, `/api/users/${id}/profile`);
     }
+    async createGroup(id, creation) {
+      let command = { type: "Create", ...creation };
+      return await __privateMethod(this, _sendCommand, sendCommand_fn).call(this, `/api/groups/${id}`, command);
+    }
+    async addGroupMember(id, new_member) {
+      let command = { type: "AddMember", new_member };
+      return await __privateMethod(this, _sendCommand, sendCommand_fn).call(this, `/api/groups/${id}`, command);
+    }
     async createTicket(id, creation) {
       let command = { type: "Create", ...creation };
       return await __privateMethod(this, _sendCommand, sendCommand_fn).call(this, `/api/tickets/${id}`, command);
@@ -264,6 +272,10 @@ var __privateMethod = (obj, member, method) => {
     }
     async changeTicketStatus(id, new_status) {
       let command = { type: "ChangeStatus", new_status };
+      return await __privateMethod(this, _sendCommand, sendCommand_fn).call(this, `/api/tickets/${id}`, command);
+    }
+    async changeTicketAssignee(id, new_assignee) {
+      let command = { type: "ChangeAssignee", new_assignee };
       return await __privateMethod(this, _sendCommand, sendCommand_fn).call(this, `/api/tickets/${id}`, command);
     }
   }

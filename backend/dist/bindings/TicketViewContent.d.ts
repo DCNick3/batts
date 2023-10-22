@@ -3,7 +3,7 @@ import type { TicketId } from "./TicketId";
 import type { TicketStatus } from "./TicketStatus";
 import type { TicketTimelineItem } from "./TicketTimelineItem";
 import type { UserId } from "./UserId";
-export interface TicketView {
+export interface TicketViewContent {
     id: TicketId;
     destination: TicketDestination;
     owner: UserId;

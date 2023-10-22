@@ -13,7 +13,9 @@ use std::sync::Arc;
 use tracing::warn;
 use ts_rs::TS;
 
-#[derive(Default, Debug, Copy, Clone, Eq, PartialEq, Hash, TS, Serialize, Deserialize)]
+#[derive(
+    Default, Debug, Copy, Clone, Eq, PartialEq, PartialOrd, Ord, Hash, TS, Serialize, Deserialize,
+)]
 #[ts(export)]
 pub struct UserId(pub Id);
 
@@ -102,9 +104,9 @@ impl UserIdentities {
 #[derive(Snafu, Debug)]
 pub enum UserError {
     /// The user with the provided id already exists.
-    UserExists,
+    AlreadyExists,
     /// The user with the provided id does not exist.
-    UserDoesNotExist,
+    DoesNotExist,
     /// The user already has a profile for the provided identity provider.
     IdentityExists,
     /// Some user already has associated the provided identity with their account.
@@ -114,8 +116,8 @@ pub enum UserError {
 impl ApiError for UserError {
     fn status_code(&self) -> StatusCode {
         match self {
-            UserError::UserExists => StatusCode::BAD_REQUEST,
-            UserError::UserDoesNotExist => StatusCode::NOT_FOUND,
+            UserError::AlreadyExists => StatusCode::BAD_REQUEST,
+            UserError::DoesNotExist => StatusCode::NOT_FOUND,
             UserError::IdentityExists => StatusCode::BAD_REQUEST,
             UserError::IdentityUsed => StatusCode::BAD_REQUEST,
         }
@@ -219,7 +221,7 @@ impl Aggregate for User {
         match command {
             UserCommand::Create { profile } => {
                 let User::NotCreated = self else {
-                    return Err(UserError::UserExists);
+                    return Err(UserError::AlreadyExists);
                 };
                 Ok(vec![
                     UserEvent::Created {
@@ -230,7 +232,7 @@ impl Aggregate for User {
             }
             UserCommand::AddIdentity { profile } => {
                 let User::Created(user) = self else {
-                    return Err(UserError::UserDoesNotExist);
+                    return Err(UserError::DoesNotExist);
                 };
                 if !user.identities.can_add_identity(&profile) {
                     return Err(UserError::IdentityExists);

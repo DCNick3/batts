@@ -10,10 +10,12 @@ import type {
     CreateTicket,
     SendTicketMessage,
     TicketCommand,
-    TicketView,
+    TicketViewContent,
     TicketListingViewExpandedItem,
     TicketStatus,
     TelegramLoginData,
+    CreateGroup,
+    GroupId, GroupCommand,
 } from "../";
 
 // import { toDates, toDatesByArray } from 'ts-transformer-dates';
@@ -70,12 +72,22 @@ export class Api {
         return await this.#get(`/api/users/${id}/profile`);
     }
 
+    async createGroup(id: GroupId, creation: CreateGroup): Promise<ApiResult<null>> {
+        let command: GroupCommand = {type: "Create", ...creation};
+        return await this.#sendCommand(`/api/groups/${id}`, command);
+    }
+
+    async addGroupMember(id: GroupId, new_member: UserId): Promise<ApiResult<null>> {
+        let command: GroupCommand = {type: "AddMember", new_member};
+        return await this.#sendCommand(`/api/groups/${id}`, command);
+    }
+
     async createTicket(id: TicketId, creation: CreateTicket): Promise<ApiResult<null>> {
         let command: TicketCommand = {type: "Create", ...creation};
         return await this.#sendCommand(`/api/tickets/${id}`, command);
     }
 
-    async getTicket(id: TicketId): Promise<ApiResult<TicketView>> {
+    async getTicket(id: TicketId): Promise<ApiResult<TicketViewContent>> {
         return await this.#get(`/api/tickets/${id}`);
     }
 
@@ -94,6 +106,11 @@ export class Api {
 
     async changeTicketStatus(id: TicketId, new_status: TicketStatus): Promise<ApiResult<null>> {
         let command: TicketCommand = {type: "ChangeStatus", new_status};
+        return await this.#sendCommand(`/api/tickets/${id}`, command);
+    }
+
+    async changeTicketAssignee(id: TicketId, new_assignee: UserId | null): Promise<ApiResult<null>> {
+        let command: TicketCommand = {type: "ChangeAssignee", new_assignee};
         return await this.#sendCommand(`/api/tickets/${id}`, command);
     }
 }

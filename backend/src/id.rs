@@ -5,16 +5,12 @@ use std::str::FromStr;
 use ts_rs::TS;
 use uuid::Uuid;
 
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Id(Uuid);
 
 impl Id {
     pub fn generate() -> Self {
         Id(Uuid::new_v4())
-    }
-
-    pub fn is_default(&self) -> bool {
-        self.0 == Uuid::from_bytes([0; 16])
     }
 }
 

@@ -8,4 +8,8 @@ export type TicketTimelineItemContent = {
     "type": "StatusChange";
     old: TicketStatus;
     new: TicketStatus;
+} | {
+    "type": "AssigneeChange";
+    old: UserId | null;
+    new: UserId | null;
 };
