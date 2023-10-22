@@ -28,7 +28,7 @@
 </script>
 
 <Navbar
-	class="px-4 sm:px-10 border-b relative h-14"
+	class="px-4 sm:px-10 border-b relative sm:fixed h-14 z-50"
 	fluid
 >
 	<div class="flex gap-3">
@@ -60,21 +60,8 @@
 	{#if $user !== null}
 			<SidePanel bind:hidden={isHidden} />
 	{/if}
-	<!-- <aside class="max-md:hidden flex flex-col items-center w-64 bg-slate-50 gap-6 p-4">
-		{#if $user === null}
-			<Button
-				on:click={goToLogin}
-				class="text-md"
-			>
-				Login
-			</Button>
-		{:else}
-			<NavLink href="/me">{$user.name}</NavLink>
-			<NavLink href="/assigned">Assigned Tickets</NavLink>
-		{/if}
-	</aside> -->
 
-	<div class="flex flex-col w-full p-8 gap-6">
+	<div class="flex flex-col w-full p-4 sm:p-8 gap-6 sm:ml-64 sm:mt-14">
 		<slot />
 	</div>
 </div>

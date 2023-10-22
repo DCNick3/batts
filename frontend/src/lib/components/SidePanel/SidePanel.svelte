@@ -28,4 +28,4 @@
   <Content />
 </Drawer>
 
-<Content class="max-sm:hidden sm:sticky sm:top-0 sm:bottom-0" />
+<Content class="max-sm:hidden sm:fixed sm:top-14 sm:bottom-0" />
