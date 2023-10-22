@@ -2,8 +2,8 @@ import type { TicketDestination } from 'backend'
 
 export async function getReceivers() {
   return [
-    { name : "IT Department", id : "ItDepartment" },
-    { name : "Dorm Manager", id : "DormManager" },
+    { name : "IT Department", id : "UBAEhQUS8tJWFkWtmZSazX" },
+    { name : "Dorm Manager", id : "A3UkAiMrP79M9cDTBDUSzK" },
   ]
 }
 
