@@ -45,7 +45,7 @@
 
 {:else}
   <TimelineItem
-  title={`Assignee changed from ${content.old || 'no-one'} to ${content.new || 'no-one'}.`}
+  title={`Assignee changed from ${content.old ? users.get(content.old) : 'no-one'} to ${content.new ? users.get(content.new) : 'no-one'}.`}
   date={item.date}
   >
   </TimelineItem>

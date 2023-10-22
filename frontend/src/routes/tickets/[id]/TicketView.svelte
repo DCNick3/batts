@@ -49,7 +49,7 @@
     }
   }
 
-  const handleSetAssignee = async (assigneeId: string) => {
+  const handleSetAssignee = async (assigneeId: string | null) => {
     const api = new Api(fetch)
     try {
       const result = await api.changeTicketAssignee(ticketId, assigneeId)
@@ -117,15 +117,21 @@
           </summary>
           <div class="absolute z-50 bg-white p-2 font-semibold text-sm border rounded-sm">
             Set assignee
-            <div class="flex flex-col gap-1 font-normal text-sm mt-1">
+            <div class="flex flex-col gap-1 font-normal text-sm mt-1 items-start">
               {#each groupMembers as [id, name]}
                 <button
                   on:click={() => handleSetAssignee(id)}
-                  class="hover:cursor-pointer w-full hover:text-primary-600 transition"
+                  class="hover:cursor-pointer hover:text-primary-600 transition"
                 >
                   {name}
                 </button>
               {/each}
+              <button
+                on:click={() => handleSetAssignee(null)}
+                class="hover:cursor-pointer hover:text-primary-600 transition"
+              >
+                Remove assignee
+              </button>
             </div>
           </div>
         </details>
