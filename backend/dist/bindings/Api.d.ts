@@ -1,4 +1,4 @@
-import type { ApiResult, FetchFn, UserId, UserView, UserProfileView, ExternalUserProfile, TicketId, CreateTicket, SendTicketMessage, TicketViewContent, TicketListingViewExpandedItem, TicketStatus, TelegramLoginData, CreateGroup, GroupId } from "../";
+import type { ApiResult, FetchFn, UserId, UserView, UserProfileView, ExternalUserProfile, TicketId, CreateTicket, SendTicketMessage, TicketViewContent, TicketListingViewExpandedItem, TicketStatus, TelegramLoginData, CreateGroup, GroupId, GroupViewContent } from "../";
 export declare function generateId(): string;
 export declare class Api {
     #private;
@@ -9,6 +9,7 @@ export declare class Api {
     telegramLogin(data: TelegramLoginData): Promise<ApiResult<null>>;
     getMe(): Promise<ApiResult<UserView>>;
     getUserProfile(id: UserId): Promise<ApiResult<UserProfileView>>;
+    getUserGroups(id: UserId): Promise<ApiResult<GroupViewContent[]>>;
     createGroup(id: GroupId, creation: CreateGroup): Promise<ApiResult<null>>;
     getGroupTickets(id: GroupId): Promise<ApiResult<Array<TicketListingViewExpandedItem>>>;
     addGroupMember(id: GroupId, new_member: UserId): Promise<ApiResult<null>>;

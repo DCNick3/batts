@@ -1,5 +1,5 @@
 use crate::auth::CookieAuthority;
-use crate::domain::group::{Group, GroupView};
+use crate::domain::group::{Group, GroupView, UserGroupsQuery, UserGroupsView};
 use crate::domain::ticket::{
     Ticket, TicketListingKind, TicketListingQuery, TicketListingView, TicketServices, TicketView,
 };
@@ -21,6 +21,7 @@ pub struct ApplicationState {
     pub telegram_login_secret: Option<TelegramSecret>,
 
     pub group_view_repository: Arc<MyViewRepository<GroupView, Group>>,
+    pub user_groups_view_repository: Arc<MyViewRepository<UserGroupsView, Group>>,
     pub group_cqrs: Arc<MyCqrsFramework<Group>>,
 
     pub ticket_view_repository: Arc<MyViewRepository<TicketView, Ticket>>,
@@ -52,9 +53,13 @@ pub async fn new_application_state(config: &crate::config::Config) -> Applicatio
 
     let group_view_repository = Arc::new(MyViewRepository::<GroupView, Group>::new());
     let group_view_query = MyGenericQuery::<GroupView, Group>::new(group_view_repository.clone());
+
+    let user_groups_view_repository = Arc::new(MyViewRepository::<UserGroupsView, Group>::new());
+    let user_groups_view_query = UserGroupsQuery::new(user_groups_view_repository.clone());
+
     let group_cqrs = CqrsFramework::new(
         MemStore::<Group>::default(),
-        vec![Box::new(group_view_query)],
+        vec![Box::new(group_view_query), Box::new(user_groups_view_query)],
         (),
     );
     let group_cqrs = Arc::new(group_cqrs);
@@ -125,6 +130,7 @@ pub async fn new_application_state(config: &crate::config::Config) -> Applicatio
         ticket_cqrs,
 
         group_view_repository,
+        user_groups_view_repository,
         group_cqrs,
 
         user_view_repository,

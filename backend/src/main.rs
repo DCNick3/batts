@@ -70,7 +70,8 @@ fn make_api_router(config: &config::Routes) -> Router<ApplicationState> {
 
     router = router
         .route("/users/me", get(me_query))
-        .route("/users/:id/profile", get(user_profile_query));
+        .route("/users/:id/profile", get(user_profile_query))
+        .route("/users/:id/groups", get(user_groups_query));
 
     router = router.route("/login/telegram", post(login::telegram_login));
 
@@ -297,6 +298,38 @@ async fn user_profile_query(
             .context(PersistenceSnafu)?
             .map(UserView::profile);
         user_view.ok_or(Error::NotFound)
+    })
+    .await
+}
+
+async fn user_groups_query(
+    State(state): State<ApplicationState>,
+    Path(id): Path<Id>,
+) -> ApiResult<Vec<GroupViewContent>> {
+    ApiResult::from_async_fn(|| async {
+        let groups_view = state
+            .user_groups_view_repository
+            .load(&id.to_string())
+            .await
+            .context(PersistenceSnafu)?
+            .unwrap_or_default();
+
+        let results = futures_util::future::join_all(
+            groups_view
+                .items
+                .iter()
+                .map(|id| async { state.group_view_repository.load(&id.0.to_string()).await }),
+        )
+        .await;
+        let results = results
+            .into_iter()
+            .collect::<Result<Vec<_>, _>>()
+            .context(PersistenceSnafu)?;
+
+        Ok(results
+            .into_iter()
+            .map(|view| view.unwrap().unwrap())
+            .collect())
     })
     .await
 }

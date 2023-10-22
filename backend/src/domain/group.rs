@@ -4,11 +4,13 @@ use crate::error::ApiError;
 use crate::id::Id;
 use async_trait::async_trait;
 use axum::http::StatusCode;
-use cqrs_es::{Aggregate, DomainEvent, EventEnvelope, View};
+use cqrs_es::persist::{ViewContext, ViewRepository};
+use cqrs_es::{Aggregate, DomainEvent, EventEnvelope, Query, View};
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 use std::collections::{BTreeSet, HashSet};
 use std::str::FromStr;
+use std::sync::Arc;
 use ts_rs::TS;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, PartialOrd, Ord, Hash, TS, Serialize, Deserialize)]
@@ -199,6 +201,62 @@ impl View<Group> for GroupView {
             GroupEvent::MemberAdded { member } => {
                 let this = self.unwrap_mut();
                 this.members.insert(*member);
+            }
+        }
+    }
+}
+
+#[derive(Default, Debug, Clone, TS, Serialize, Deserialize)]
+#[ts(export)]
+pub struct UserGroupsView {
+    pub items: HashSet<GroupId>,
+}
+
+impl View<Group> for UserGroupsView {
+    fn update(&mut self, _event: &EventEnvelope<Group>) {
+        unreachable!()
+    }
+}
+
+pub struct UserGroupsQuery<R>
+where
+    R: ViewRepository<UserGroupsView, Group>,
+{
+    view_repository: Arc<R>,
+}
+
+impl<R> UserGroupsQuery<R>
+where
+    R: ViewRepository<UserGroupsView, Group>,
+{
+    pub fn new(view_repository: Arc<R>) -> Self {
+        Self { view_repository }
+    }
+}
+
+#[async_trait]
+impl<R> Query<Group> for UserGroupsQuery<R>
+where
+    R: ViewRepository<UserGroupsView, Group>,
+{
+    async fn dispatch(&self, _aggregate_id: &str, events: &[EventEnvelope<Group>]) {
+        for event in events {
+            if let GroupEvent::MemberAdded { member } = &event.payload {
+                let user_id = member.0.to_string();
+
+                let (mut view, context) = self
+                    .view_repository
+                    .load_with_context(&user_id)
+                    .await
+                    .unwrap()
+                    .unwrap_or_else(|| (UserGroupsView::default(), ViewContext::new(user_id, 0)));
+
+                view.items
+                    .insert(GroupId(Id::from_str(&event.aggregate_id).unwrap()));
+                self.view_repository
+                    .update_view(view, context)
+                    .await
+                    .unwrap();
             }
         }
     }

@@ -241,6 +241,9 @@ class Api {
   async getUserProfile(id) {
     return await __privateMethod(this, _get, get_fn).call(this, `/api/users/${id}/profile`);
   }
+  async getUserGroups(id) {
+    return await __privateMethod(this, _get, get_fn).call(this, `/api/users/${id}/groups`);
+  }
   async createGroup(id, creation) {
     let command = { type: "Create", ...creation };
     return await __privateMethod(this, _sendCommand, sendCommand_fn).call(this, `/api/groups/${id}`, command);

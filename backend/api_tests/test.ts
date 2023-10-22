@@ -211,6 +211,29 @@ test("group_ticket_list", async() => {
     expect(tickets[0].id).toBe(ticketId);
 })
 
+test("user_groups", async() => {
+    const api = makeApi();
+    const userId = await makeFakeUser(api);
+    const groupId1 = generateId();
+    const groupId2 = generateId();
+
+    const groups = unwrap(await api.getUserGroups(userId));
+    expect(groups.length).toBe(0);
+
+    unwrap(await api.createGroup(groupId1, {title: "Test group 1"}));
+
+    const groups2 = unwrap(await api.getUserGroups(userId));
+    expect(groups2.length).toBe(1);
+    expect(groups2[0].id).toBe(groupId1);
+    expect(groups2[0].title).toBe("Test group 1");
+
+    unwrap(await api.createGroup(groupId2, {title: "Test group 2"}));
+
+    const groups3 = unwrap(await api.getUserGroups(userId));
+    expect(groups3.length).toBe(2);
+    // ordering is not stable
+})
+
 test("telegram_login", async () => {
     const api = makeApi();
     const result = await api.telegramLogin({

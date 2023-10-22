@@ -72,6 +72,10 @@ export class Api {
         return await this.#get(`/api/users/${id}/profile`);
     }
 
+    async getUserGroups(id: UserId): Promise<ApiResult<GroupViewContent[]>> {
+        return await this.#get(`/api/users/${id}/groups`);
+    }
+
     async createGroup(id: GroupId, creation: CreateGroup): Promise<ApiResult<null>> {
         let command: GroupCommand = {type: "Create", ...creation};
         return await this.#sendCommand(`/api/groups/${id}`, command);
