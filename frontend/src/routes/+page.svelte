@@ -7,6 +7,7 @@
 	} from 'flowbite-svelte'
 	import AutoComplete from '$lib/components/AutoComplete.svelte'
 	import TicketList from '$lib/components/TicketList.svelte'
+	import { TempName } from '$lib/components/TicketList'
   import { goto } from '$app/navigation'
 	import type { PageData } from './$types'
 	import { Api, generateId } from 'backend'

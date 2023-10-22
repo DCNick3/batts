@@ -11,6 +11,10 @@
   export let status: string
 </script>
 
-<Badge rounded color={status2color(status)}>
+<Badge
+	class={$$props.class}
+	rounded
+	color={status2color(status)}
+>
   {status}
 </Badge>
