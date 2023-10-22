@@ -11,7 +11,6 @@
     ticketView={data.payload}
     ticketId={data.ticketId}
     users={data.users}
-    class="mb-10"
   />
 {:else if data.status === "Error"}
   <!-- Inform user on error -->

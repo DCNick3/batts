@@ -1,7 +1,7 @@
 <script>import { twMerge } from 'tailwind-merge';
   export let title = '';
   export let date = '';
-  const liClass = 'pb-6 pl-4 last:border-0 border-l border-gray-200 dark:border-gray-700'
+  const liClass = 'pb-2 sm:pb-6 sm:pl-4 last:border-0 sm:border-l border-gray-200 dark:border-gray-700'
   const divClass = 'absolute w-3 h-3 bg-gray-200 rounded-full mt-1.5 -left-1.5 border border-white dark:border-gray-900 dark:bg-gray-700'
   const timeClass = 'ml-4 mb-1 text-sm font-normal leading-none text-gray-400 dark:text-gray-500'
   let liCls = twMerge(liClass, $$props.classLi);

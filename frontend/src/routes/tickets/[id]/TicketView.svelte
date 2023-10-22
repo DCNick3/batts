@@ -50,15 +50,46 @@
     A grid with two columns:
     Main body and status column
   -->
-<div class={twMerge("mx-10 grid grid-cols-[3fr_1fr] gap-y-10 gap-x-14", $$props.class)}>
+<div class={twMerge("mb-10 sm:mx-10 flex flex-col sm:grid sm:grid-cols-[3fr_1fr] gap-y-4 sm:gap-y-10 gap-x-14", $$props.class)}>
+  <div class="sm:hidden grid grid-cols-2 mb-4">
+      <div class="font-semibold text-zinc-600">Submitted To</div>
+      <div class="font-normal text-sm">{ticketView.destination}</div>  
+
+      <div class="font-semibold text-zinc-600">Requested By</div>
+      <div class="font-normal text-sm">{users.get(ticketView.owner) || "Unknown User"}</div>
+
+      <div class="font-semibold text-zinc-600">Status</div>
+      <div>
+        <StatusBadge status={ticketView.status} />
+      </div>
+  </div>
+
+  <!-- Status column -->
+  <div class="max-sm:hidden flex flex-col gap-2 sm:gap-6 basis-1/4 sm:order-4">
+    <div>
+      <div class="font-semibold text-zinc-600">Submitted To</div>
+      <div class="font-normal text-sm">{ticketView.destination}</div>  
+    </div>
+
+    <div>
+      <div class="font-semibold text-zinc-600">Requested By</div>
+      <div class="font-normal text-sm">{users.get(ticketView.owner) || "Unknown User"}</div>
+    </div>
+
+    <div>
+      <div class="font-semibold text-zinc-600">Status</div>
+      <StatusBadge status={ticketView.status} />
+    </div>
+  </div>
+
   <!-- Title -->
   <h1 class="text-2xl font-semibold text-center">{ticketView.title}</h1>
 
   <!-- For alignment -->
-  <div></div>
+  <div class="max-sm:hidden"></div>
 
   <!-- Main body -->
-  <div class="flex flex-col items-center gap-4 basis-3/4">  
+  <div class="flex flex-col items-center sm:gap-4 basis-3/4">  
     <Timeline class="w-full">
       {#each ticketView.timeline as item}
         <Ticket item={item} users={users} />
@@ -95,21 +126,4 @@
     {/if}
   </div>
 
-  <!-- Status column -->
-  <div class="flex flex-col gap-6 basis-1/4">
-    <div>
-      <div class="font-semibold text-zinc-600">Submitted To</div>
-      <div class="font-normal text-sm">{ticketView.destination}</div>  
-    </div>
-
-    <div>
-      <div class="font-semibold text-zinc-600">Requested By</div>
-      <div class="font-normal text-sm">{users.get(ticketView.owner) || "Unknown User"}</div>
-    </div>
-
-    <div>
-      <div class="font-semibold text-zinc-600">Status</div>
-      <StatusBadge status={ticketView.status} />
-    </div>
-  </div>
 </div>

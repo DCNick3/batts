@@ -36,13 +36,13 @@
 <TimelineItem>
   <svelte:fragment slot="icon">
     <div
-      class={`absolute w-10 h-10 rounded-full -left-5`}
+      class={`absolute w-10 h-10 rounded-full -left-5 max-sm:hidden`}
       style:background-color={stringToColour(content.from)}
     />
   </svelte:fragment>
-  <div class="px-5 py-2 ml-4 border rounded-lg">
-    <div class="flex justify-between">
-      <span class="text-lg font-semibold text-gray-900 mb-2">
+  <div class="px-5 py-2 sm:ml-4 border rounded-lg">
+    <div class="flex justify-between items-center mb-1">
+      <span class="text-lg font-semibold text-gray-900 mb-1">
         {users.get(content.from) || "Unknown user"}
       </span>
       <Time
@@ -50,7 +50,7 @@
       />
     </div>
 
-    <div>
+    <div class="leading-5">
       {content.text}
     </div>
   </div>

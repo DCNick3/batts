@@ -34,6 +34,7 @@ router.get('/tickets/assigned', succeed(require('./data/assignedTickets.json')))
 
 router.get('/tickets/:id', succeed(require('./data/ticket.json')))
 // router.get('/tickets/:id', fail(require('./data/ticket.404.json')))
+router.post('/tickets/:id', succeed(require('./data/ticket.json')))
 
 const app = express()
 app.use(cors())
