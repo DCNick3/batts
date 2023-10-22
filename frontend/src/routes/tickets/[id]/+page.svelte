@@ -12,6 +12,7 @@
     ticketId={data.ticketId}
     users={data.users}
     editPermissions={data.editPermissions}
+    destination={data.destinationField}
   />
 {:else if data.status === "Error"}
   <!-- Inform user on error -->

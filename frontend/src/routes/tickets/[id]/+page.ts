@@ -25,6 +25,9 @@ export const load: PageLoad<Data> = async ({ fetch, params }) => {
           userIds.add(item.content.from)
         }
       })
+      if (result.payload.assignee) {
+        userIds.add(result.payload.assignee)
+      }
       const users = new Map<string,string>()
 
       const responses = await Promise.all(Array.from(userIds).map(id => api.getUserProfile(id)))
@@ -38,6 +41,7 @@ export const load: PageLoad<Data> = async ({ fetch, params }) => {
       })
 
       const editPermissions = new Set<string>()
+      let destinationField: string = ''
       const destination = result.payload.destination
       // @ts-ignore
       if (destination.Group) {
@@ -45,18 +49,25 @@ export const load: PageLoad<Data> = async ({ fetch, params }) => {
         const res = await api.getGroup(destination.Group)
         if (res.status === 'Success') {
           res.payload.members.forEach(m => { editPermissions.add(m) })
+          destinationField = res.payload.title
         } else {
+          // TODO handle group info load failure
           console.error(res.payload)
         }
       } else {
         // @ts-ignore
         editPermissions.add(destination.User)
+        // @ts-ignore
+        const res = await api.getUserProfile(destination.User)
+        if (res.status === 'Success') {
+          destinationField = res.payload.name
+        }
       }
       if (result.payload.assignee) {
         editPermissions.add(result.payload.assignee)
       }
 
-      return { users, ticketId: params.id, editPermissions, ...result }
+      return { users, ticketId: params.id, editPermissions, destinationField, ...result }
     }
 
     return { ticketId: params.id, ...result }

@@ -15,13 +15,12 @@
   export let ticketId: string
   export let users: Map<string, string>
   export let editPermissions: Set<string>
+  export let destination: string
 
   type State = 'Sending' | 'Ok' | 'Error'
   let state: State = 'Ok'
   let messageField: string = ''
   let errorMessage: string = ''
-  // @ts-ignore
-  const destination = ticketView.destination.Group || ticketView.destination.User
 
   const user = getContext<SvelteStore<null | UserView>>('user')
 
@@ -76,6 +75,7 @@
     Main body and status column
   -->
 <div class={twMerge("mb-10 sm:mx-10 flex flex-col sm:grid sm:grid-cols-[3fr_1fr] gap-y-4 sm:gap-y-10 gap-x-14", $$props.class)}>
+  <!-- Status view for mobile devices -->
   <div class="sm:hidden grid grid-cols-2 mb-4">
       <div class="font-semibold text-zinc-600">Submitted To</div>
       <div class="font-normal text-sm">{ticketView.destination}</div>  
@@ -107,7 +107,7 @@
       {:else}
         <div class="font-semibold text-zinc-600">Assigned To</div>
       {/if}
-      <div class="font-normal text-sm">{ticketView.assignee || 'No-one'}</div>  
+      <div class="font-normal text-sm">{ticketView.assignee ? users.get(ticketView.assignee) : 'No-one'}</div>  
     </div>
 
     <div>
