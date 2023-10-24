@@ -9,6 +9,7 @@ export type { UserIdentities } from './bindings/UserIdentities';
 export type { UserProfile } from './bindings/UserProfile';
 export type { UserProfileView } from './bindings/UserProfileView';
 export type { UserView } from './bindings/UserView';
+export type { UserGroupsView } from './bindings/UserGroupsView';
 export type { UserCommand } from './bindings/UserCommand';
 export type { ExternalUserProfile } from './bindings/ExternalUserProfile';
 export type { GroupId } from './bindings/GroupId';
