@@ -208,7 +208,7 @@ pub struct UniversityProfile {
 }
 
 pub struct UserServices {
-    pub user_identity_view_repository: Arc<dyn ViewRepository<IdentityView, User>>,
+    pub user_identity_view_repository: Arc<dyn ViewRepository<IdentityView>>,
 }
 
 #[async_trait]
@@ -299,9 +299,11 @@ impl UserView {
     }
 }
 
-impl View<User> for UserView {}
+impl View for UserView {
+    type Aggregate = User;
+}
 
-impl GenericView<User> for UserView {
+impl GenericView for UserView {
     fn update(&mut self, event: &EventEnvelope<User>) {
         match &event.payload {
             UserEvent::Created { name } => {
@@ -328,18 +330,20 @@ pub struct IdentityView {
     pub user_id: UserId,
 }
 
-impl View<User> for IdentityView {}
+impl View for IdentityView {
+    type Aggregate = User;
+}
 
 pub struct IdentityQuery<R>
 where
-    R: ViewRepository<IdentityView, User>,
+    R: ViewRepository<IdentityView>,
 {
     view_repository: Arc<R>,
 }
 
 impl<R> IdentityQuery<R>
 where
-    R: ViewRepository<IdentityView, User>,
+    R: ViewRepository<IdentityView>,
 {
     pub fn new(view_repository: Arc<R>) -> Self {
         Self { view_repository }
@@ -349,7 +353,7 @@ where
 #[async_trait]
 impl<R> Query<User> for IdentityQuery<R>
 where
-    R: ViewRepository<IdentityView, User>,
+    R: ViewRepository<IdentityView>,
 {
     async fn dispatch(&self, user_id: UserId, events: &[EventEnvelope<User>]) {
         for event in events {

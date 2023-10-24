@@ -12,27 +12,26 @@ use cqrs_es::CqrsFramework;
 use std::sync::Arc;
 
 type MyCqrsFramework<A> = CqrsFramework<A, MemStore<A>>;
-type MyViewRepository<V, A> = MemViewRepository<V, A>;
-type MyGenericQuery<V, A> = GenericQuery<MyViewRepository<V, A>, V, A>;
+type MyViewRepository<V> = MemViewRepository<V>;
+type MyGenericQuery<V> = GenericQuery<MyViewRepository<V>, V>;
 
 #[derive(Clone)]
 pub struct ApplicationState {
     pub cookie_authority: CookieAuthority,
     pub telegram_login_secret: Option<TelegramSecret>,
 
-    pub group_view_repository: Arc<MyViewRepository<GroupView, GroupAggregate>>,
-    pub user_groups_view_repository: Arc<MyViewRepository<UserGroupsView, GroupAggregate>>,
+    pub group_view_repository: Arc<MyViewRepository<GroupView>>,
+    pub user_groups_view_repository: Arc<MyViewRepository<UserGroupsView>>,
     pub group_cqrs: Arc<MyCqrsFramework<GroupAggregate>>,
 
-    pub ticket_view_repository: Arc<MyViewRepository<TicketView, Ticket>>,
-    pub ticket_owner_listing_view_repository: Arc<MyViewRepository<TicketListingView, Ticket>>,
-    pub ticket_assignee_listing_view_repository: Arc<MyViewRepository<TicketListingView, Ticket>>,
-    pub ticket_destination_listing_view_repository:
-        Arc<MyViewRepository<TicketListingView, Ticket>>,
+    pub ticket_view_repository: Arc<MyViewRepository<TicketView>>,
+    pub ticket_owner_listing_view_repository: Arc<MyViewRepository<TicketListingView>>,
+    pub ticket_assignee_listing_view_repository: Arc<MyViewRepository<TicketListingView>>,
+    pub ticket_destination_listing_view_repository: Arc<MyViewRepository<TicketListingView>>,
     pub ticket_cqrs: Arc<MyCqrsFramework<Ticket>>,
 
-    pub user_view_repository: Arc<MyViewRepository<UserView, User>>,
-    pub user_identity_view_repository: Arc<MyViewRepository<IdentityView, User>>,
+    pub user_view_repository: Arc<MyViewRepository<UserView>>,
+    pub user_identity_view_repository: Arc<MyViewRepository<IdentityView>>,
     pub user_cqrs: Arc<MyCqrsFramework<User>>,
 }
 
@@ -51,12 +50,10 @@ pub async fn new_application_state(config: &crate::config::Config) -> Applicatio
         chrono::Duration::from_std(config.auth.token_duration).unwrap(),
     );
 
-    let group_view_repository = Arc::new(MyViewRepository::<GroupView, GroupAggregate>::new());
-    let group_view_query =
-        MyGenericQuery::<GroupView, GroupAggregate>::new(group_view_repository.clone());
+    let group_view_repository = Arc::new(MyViewRepository::<GroupView>::new());
+    let group_view_query = MyGenericQuery::<GroupView>::new(group_view_repository.clone());
 
-    let user_groups_view_repository =
-        Arc::new(MyViewRepository::<UserGroupsView, GroupAggregate>::new());
+    let user_groups_view_repository = Arc::new(MyViewRepository::<UserGroupsView>::new());
     let user_groups_view_query = UserGroupsQuery::new(user_groups_view_repository.clone());
 
     let group_cqrs = CqrsFramework::new(
@@ -66,24 +63,23 @@ pub async fn new_application_state(config: &crate::config::Config) -> Applicatio
     );
     let group_cqrs = Arc::new(group_cqrs);
 
-    let ticket_view_repository = Arc::new(MyViewRepository::<TicketView, Ticket>::new());
-    let ticket_view_query =
-        MyGenericQuery::<TicketView, Ticket>::new(ticket_view_repository.clone());
+    let ticket_view_repository = Arc::new(MyViewRepository::<TicketView>::new());
+    let ticket_view_query = MyGenericQuery::<TicketView>::new(ticket_view_repository.clone());
 
     let ticket_owner_listing_view_repository =
-        Arc::new(MyViewRepository::<TicketListingView, Ticket>::new());
+        Arc::new(MyViewRepository::<TicketListingView>::new());
     let ticket_owner_listing_view_query = TicketListingQuery::new(
         ticket_owner_listing_view_repository.clone(),
         TicketListingKind::Owned,
     );
     let ticket_assignee_listing_view_repository =
-        Arc::new(MyViewRepository::<TicketListingView, Ticket>::new());
+        Arc::new(MyViewRepository::<TicketListingView>::new());
     let ticket_assignee_listing_view_query = TicketListingQuery::new(
         ticket_assignee_listing_view_repository.clone(),
         TicketListingKind::Assigned,
     );
     let ticket_destination_listing_view_repository =
-        Arc::new(MyViewRepository::<TicketListingView, Ticket>::new());
+        Arc::new(MyViewRepository::<TicketListingView>::new());
     let ticket_destination_listing_view_query = TicketListingQuery::new(
         ticket_destination_listing_view_repository.clone(),
         TicketListingKind::Destination,
@@ -103,10 +99,10 @@ pub async fn new_application_state(config: &crate::config::Config) -> Applicatio
     );
     let ticket_cqrs = Arc::new(ticket_cqrs);
 
-    let user_view_repository = Arc::new(MyViewRepository::<UserView, User>::new());
-    let user_view_query = MyGenericQuery::<UserView, User>::new(user_view_repository.clone());
+    let user_view_repository = Arc::new(MyViewRepository::<UserView>::new());
+    let user_view_query = MyGenericQuery::<UserView>::new(user_view_repository.clone());
 
-    let user_identity_view_repository = Arc::new(MyViewRepository::<IdentityView, User>::new());
+    let user_identity_view_repository = Arc::new(MyViewRepository::<IdentityView>::new());
     let user_identity_view_query = IdentityQuery::new(user_identity_view_repository.clone());
 
     let user_cqrs = CqrsFramework::new(

@@ -1,5 +1,5 @@
 use crate::auth::Authenticated;
-use crate::domain::group::{GroupAggregate, GroupId, GroupView};
+use crate::domain::group::{GroupId, GroupView};
 use crate::domain::user::UserId;
 use crate::error::ApiError;
 use async_trait::async_trait;
@@ -175,7 +175,7 @@ pub struct TicketTimelineItem {
 }
 
 pub struct TicketServices {
-    pub group_view_repository: Arc<dyn ViewRepository<GroupView, GroupAggregate>>,
+    pub group_view_repository: Arc<dyn ViewRepository<GroupView>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -405,8 +405,10 @@ pub struct TicketViewContent {
     pub timeline: Vec<TicketTimelineItem>,
 }
 
-impl View<Ticket> for TicketView {}
-impl GenericView<Ticket> for TicketView {
+impl View for TicketView {
+    type Aggregate = Ticket;
+}
+impl GenericView for TicketView {
     fn update(&mut self, event: &EventEnvelope<Ticket>) {
         match event.payload {
             TicketEvent::Create {
@@ -492,7 +494,9 @@ pub struct TicketListingView {
     pub items: HashSet<TicketId>,
 }
 
-impl View<Ticket> for TicketListingView {}
+impl View for TicketListingView {
+    type Aggregate = Ticket;
+}
 
 #[derive(Copy, Clone, Debug)]
 pub enum TicketListingKind {
@@ -503,7 +507,7 @@ pub enum TicketListingKind {
 
 pub struct TicketListingQuery<R>
 where
-    R: ViewRepository<TicketListingView, Ticket>,
+    R: ViewRepository<TicketListingView>,
 {
     listing_view_repository: Arc<R>,
     kind: TicketListingKind,
@@ -511,7 +515,7 @@ where
 
 impl<R> TicketListingQuery<R>
 where
-    R: ViewRepository<TicketListingView, Ticket>,
+    R: ViewRepository<TicketListingView>,
 {
     pub fn new(view_repository: Arc<R>, kind: TicketListingKind) -> Self {
         Self {
@@ -524,7 +528,7 @@ where
 #[async_trait]
 impl<R> Query<Ticket> for TicketListingQuery<R>
 where
-    R: ViewRepository<TicketListingView, Ticket>,
+    R: ViewRepository<TicketListingView>,
 {
     async fn dispatch(&self, _aggregate_id: TicketId, events: &[EventEnvelope<Ticket>]) {
         for event in events {

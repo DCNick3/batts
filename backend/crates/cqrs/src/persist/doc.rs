@@ -12,7 +12,9 @@ use serde_json::Value;
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct MyView;
 
-impl View<MyAggregate> for MyView {}
+impl View for MyView {
+    type Aggregate = MyAggregate;
+}
 
 pub struct MyDatabaseConnection;
 pub struct MyViewRepository;
@@ -24,7 +26,7 @@ impl MyViewRepository {
 }
 
 #[async_trait]
-impl ViewRepository<MyView, MyAggregate> for MyViewRepository {
+impl ViewRepository<MyView> for MyViewRepository {
     async fn load(&self, _view_id: &str) -> Result<Option<MyView>, PersistenceError> {
         todo!()
     }

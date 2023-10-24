@@ -8,22 +8,20 @@ use crate::{Aggregate, AnyId, EventEnvelope, GenericView, Query};
 
 /// A simple query and view repository. This is used both to act as a `Query` for processing events
 /// and to return materialized views.
-pub struct GenericQuery<R, V, A>
+pub struct GenericQuery<R, V>
 where
-    R: ViewRepository<V, A>,
-    V: GenericView<A>,
-    A: Aggregate,
+    R: ViewRepository<V>,
+    V: GenericView,
 {
     view_repository: Arc<R>,
     error_handler: Option<Box<QueryErrorHandler>>,
-    phantom: PhantomData<(V, A)>,
+    phantom: PhantomData<V>,
 }
 
-impl<R, V, A> GenericQuery<R, V, A>
+impl<R, V> GenericQuery<R, V>
 where
-    R: ViewRepository<V, A>,
-    V: GenericView<A>,
-    A: Aggregate,
+    R: ViewRepository<V>,
+    V: GenericView,
 {
     /// Creates a new `GenericQuery` using the provided `ViewRepository`.
     ///
@@ -34,7 +32,7 @@ where
     /// # use cqrs_es::persist::GenericQuery;
     /// # fn config(my_db_connection: MyDatabaseConnection) {
     /// let repo = Arc::new(MyViewRepository::new(my_db_connection));
-    /// let query = GenericQuery::<MyViewRepository, MyView, MyAggregate>::new(repo);
+    /// let query = GenericQuery::<MyViewRepository, MyView>::new(repo);
     /// # }
     /// ```
     pub fn new(view_repository: Arc<R>) -> Self {
@@ -58,7 +56,7 @@ where
     /// # use cqrs_es::doc::MyAggregate;
     /// # use cqrs_es::persist::GenericQuery;
     /// # use cqrs_es::persist::doc::{MyViewRepository,MyView};
-    /// # fn config(mut query: GenericQuery<MyViewRepository,MyView,MyAggregate>) {
+    /// # fn config(mut query: GenericQuery<MyViewRepository, MyView>) {
     /// query.use_error_handler(Box::new(|e|panic!("{}",e)));
     /// # }
     /// ```
@@ -73,7 +71,7 @@ where
     /// # use cqrs_es::doc::MyAggregate;
     /// # use cqrs_es::persist::GenericQuery;
     /// # use cqrs_es::persist::doc::{MyViewRepository,MyView};
-    /// # async fn config(mut query: GenericQuery<MyViewRepository,MyView,MyAggregate>) {
+    /// # async fn config(mut query: GenericQuery<MyViewRepository,MyView>) {
     /// let view = query.load("customer-B24DA0").await;
     /// # }
     /// ```
@@ -97,8 +95,8 @@ where
 
     pub(crate) async fn apply_events(
         &self,
-        aggregate_id: A::Id,
-        events: &[EventEnvelope<A>],
+        aggregate_id: <V::Aggregate as Aggregate>::Id,
+        events: &[EventEnvelope<V::Aggregate>],
     ) -> Result<(), PersistenceError> {
         let view_id = aggregate_id.id().to_string();
         let (mut view, view_context) = self.load_mut(view_id).await?;
@@ -117,13 +115,16 @@ where
 }
 
 #[async_trait]
-impl<R, V, A> Query<A> for GenericQuery<R, V, A>
+impl<R, V> Query<V::Aggregate> for GenericQuery<R, V>
 where
-    R: ViewRepository<V, A>,
-    V: GenericView<A>,
-    A: Aggregate,
+    R: ViewRepository<V>,
+    V: GenericView,
 {
-    async fn dispatch(&self, aggregate_id: A::Id, events: &[EventEnvelope<A>]) {
+    async fn dispatch(
+        &self,
+        aggregate_id: <V::Aggregate as Aggregate>::Id,
+        events: &[EventEnvelope<V::Aggregate>],
+    ) {
         if let Err(err) = self.apply_events(aggregate_id, events).await {
             self.handle_error(err);
         };

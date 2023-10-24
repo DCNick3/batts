@@ -209,8 +209,10 @@ impl GroupView {
     }
 }
 
-impl View<GroupAggregate> for GroupView {}
-impl GenericView<GroupAggregate> for GroupView {
+impl View for GroupView {
+    type Aggregate = GroupAggregate;
+}
+impl GenericView for GroupView {
     fn update(&mut self, event: &EventEnvelope<GroupAggregate>) {
         match &event.payload {
             LifecycleEvent::Created(GroupCreated { title }) => {
@@ -238,18 +240,20 @@ pub struct UserGroupsView {
     pub items: HashSet<GroupId>,
 }
 
-impl View<GroupAggregate> for UserGroupsView {}
+impl View for UserGroupsView {
+    type Aggregate = GroupAggregate;
+}
 
 pub struct UserGroupsQuery<R>
 where
-    R: ViewRepository<UserGroupsView, GroupAggregate>,
+    R: ViewRepository<UserGroupsView>,
 {
     view_repository: Arc<R>,
 }
 
 impl<R> UserGroupsQuery<R>
 where
-    R: ViewRepository<UserGroupsView, GroupAggregate>,
+    R: ViewRepository<UserGroupsView>,
 {
     pub fn new(view_repository: Arc<R>) -> Self {
         Self { view_repository }
@@ -259,7 +263,7 @@ where
 #[async_trait]
 impl<R> Query<GroupAggregate> for UserGroupsQuery<R>
 where
-    R: ViewRepository<UserGroupsView, GroupAggregate>,
+    R: ViewRepository<UserGroupsView>,
 {
     async fn dispatch(&self, _aggregate_id: GroupId, events: &[EventEnvelope<GroupAggregate>]) {
         for event in events {
