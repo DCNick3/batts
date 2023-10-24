@@ -2,12 +2,12 @@ use crate::auth::Authenticated;
 use crate::domain::group::{Group, GroupId, GroupView};
 use crate::domain::user::UserId;
 use crate::error::ApiError;
-use crate::id::Id;
+use crate::id::{AnyId, Id};
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use chrono::{DateTime, Utc};
 use cqrs_es::persist::{ViewContext, ViewRepository};
-use cqrs_es::{Aggregate, DomainEvent, EventEnvelope, Query, View};
+use cqrs_es::{Aggregate, DomainEvent, EventEnvelope, GenericView, Query, View};
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 use std::collections::HashSet;
@@ -20,6 +20,16 @@ use ts_rs::TS;
 #[derive(Debug, Copy, Clone, Eq, PartialEq, PartialOrd, Ord, Hash, TS, Serialize, Deserialize)]
 #[ts(export)]
 pub struct TicketId(pub Id);
+
+impl AnyId for TicketId {
+    fn from_id(id: Id) -> Self {
+        Self(id)
+    }
+
+    fn id(&self) -> Id {
+        self.0
+    }
+}
 
 #[derive(Debug, TS, Serialize, Deserialize)]
 #[ts(export)]
@@ -395,7 +405,8 @@ pub struct TicketViewContent {
     pub timeline: Vec<TicketTimelineItem>,
 }
 
-impl View<Ticket> for TicketView {
+impl View<Ticket> for TicketView {}
+impl GenericView<Ticket> for TicketView {
     fn update(&mut self, event: &EventEnvelope<Ticket>) {
         match event.payload {
             TicketEvent::Create {
@@ -481,12 +492,7 @@ pub struct TicketListingView {
     pub items: HashSet<TicketId>,
 }
 
-impl View<Ticket> for TicketListingView {
-    fn update(&mut self, _event: &EventEnvelope<Ticket>) {
-        // actually only used in GenericQuery
-        unreachable!()
-    }
-}
+impl View<Ticket> for TicketListingView {}
 
 #[derive(Copy, Clone, Debug)]
 pub enum TicketListingKind {

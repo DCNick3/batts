@@ -85,3 +85,8 @@ impl<'de> Deserialize<'de> for Id {
             .map_err(serde::de::Error::custom)
     }
 }
+
+pub trait AnyId {
+    fn from_id(id: Id) -> Self;
+    fn id(&self) -> Id;
+}

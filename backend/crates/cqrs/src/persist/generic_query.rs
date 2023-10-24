@@ -4,14 +4,14 @@ use std::sync::Arc;
 use async_trait::async_trait;
 
 use crate::persist::{PersistenceError, ViewContext, ViewRepository};
-use crate::{Aggregate, EventEnvelope, Query, View};
+use crate::{Aggregate, EventEnvelope, GenericView, Query, View};
 
 /// A simple query and view repository. This is used both to act as a `Query` for processing events
 /// and to return materialized views.
 pub struct GenericQuery<R, V, A>
 where
     R: ViewRepository<V, A>,
-    V: View<A>,
+    V: GenericView<A>,
     A: Aggregate,
 {
     view_repository: Arc<R>,
@@ -22,7 +22,7 @@ where
 impl<R, V, A> GenericQuery<R, V, A>
 where
     R: ViewRepository<V, A>,
-    V: View<A>,
+    V: GenericView<A>,
     A: Aggregate,
 {
     /// Creates a new `GenericQuery` using the provided `ViewRepository`.
@@ -119,7 +119,7 @@ where
 impl<R, V, A> Query<A> for GenericQuery<R, V, A>
 where
     R: ViewRepository<V, A>,
-    V: View<A>,
+    V: GenericView<A>,
     A: Aggregate,
 {
     async fn dispatch(&self, view_id: &str, events: &[EventEnvelope<A>]) {

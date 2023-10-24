@@ -9,6 +9,7 @@ mod init_tracing;
 mod login;
 mod memory_view_repository;
 mod state;
+mod view_repositry_ext;
 
 use crate::api_result::ApiResult;
 use crate::domain::group::{GroupCommand, GroupError, GroupId, GroupView, GroupViewContent};

@@ -1,10 +1,10 @@
 use crate::error::ApiError;
-use crate::id::Id;
+use crate::id::{AnyId, Id};
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use chrono::{DateTime, Utc};
 use cqrs_es::persist::{ViewContext, ViewRepository};
-use cqrs_es::{Aggregate, DomainEvent, EventEnvelope, Query, View};
+use cqrs_es::{Aggregate, DomainEvent, EventEnvelope, GenericView, Query, View};
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 use std::fmt::Display;
@@ -18,6 +18,16 @@ use ts_rs::TS;
 )]
 #[ts(export)]
 pub struct UserId(pub Id);
+
+impl AnyId for UserId {
+    fn from_id(id: Id) -> Self {
+        Self(id)
+    }
+
+    fn id(&self) -> Id {
+        self.0
+    }
+}
 
 #[derive(Debug, TS, Serialize, Deserialize)]
 #[serde(tag = "type")]
@@ -289,7 +299,9 @@ impl UserView {
     }
 }
 
-impl View<User> for UserView {
+impl View<User> for UserView {}
+
+impl GenericView<User> for UserView {
     fn update(&mut self, event: &EventEnvelope<User>) {
         match &event.payload {
             UserEvent::Created { name } => {
@@ -316,12 +328,7 @@ pub struct IdentityView {
     pub user_id: UserId,
 }
 
-impl View<User> for IdentityView {
-    fn update(&mut self, event: &EventEnvelope<User>) {
-        let id = UserId(Id::from_str(&event.aggregate_id).unwrap());
-        self.user_id = id;
-    }
-}
+impl View<User> for IdentityView {}
 
 pub struct IdentityQuery<R>
 where
@@ -358,7 +365,7 @@ where
                 {
                     Some((mut view, context)) => {
                         warn!("Identity already exists, reassigning to another user");
-                        view.update(event);
+                        view.user_id = UserId(Id::from_str(&event.aggregate_id).unwrap());
                         self.view_repository
                             .update_view(view, context)
                             .await

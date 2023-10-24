@@ -12,11 +12,7 @@ use serde_json::Value;
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct MyView;
 
-impl View<MyAggregate> for MyView {
-    fn update(&mut self, _event: &EventEnvelope<MyAggregate>) {
-        todo!()
-    }
-}
+impl View<MyAggregate> for MyView {}
 
 pub struct MyDatabaseConnection;
 pub struct MyViewRepository;
