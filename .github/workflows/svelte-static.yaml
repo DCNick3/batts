@@ -1,8 +1,8 @@
 on:
   push:
-    branches: [ master, frontend/mvp-forms ]
+    branches: [ main, frontend/mvp-forms ]
   pull_request:
-    branches: [ master, frontend/mvp-forms ]
+    branches: [ main, frontend/mvp-forms ]
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -16,4 +16,5 @@ jobs:
           cmd: install
       - run: yarn svelte-kit sync
       - uses: prgm-dev/svelte-check-pr-annotator@main
-      - run: yarn svelte-check --output machine --use-new-transformation true
+      - run: yarn svelte-check --tsconfig ./tsconfig.json --output machine
+        working-directory: frontend
