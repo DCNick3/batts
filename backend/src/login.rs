@@ -1,15 +1,17 @@
 use crate::api_result::ApiResult;
 use crate::auth::UserClaims;
 use crate::domain::user::{
-    ExternalUserIdentity, ExternalUserProfile, TelegramLoginData, UserCommand, UserId,
+    CreateUser, ExternalUserIdentity, ExternalUserProfile, TelegramLoginData, UserId,
 };
 use crate::error::{ApiError, Error, LoginSnafu, PersistenceSnafu, UserSnafu, WhateverSnafu};
 use crate::extractors::{Json, Path};
 use crate::state::ApplicationState;
+use crate::view_repositry_ext::LifecycleViewRepositoryExt;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum_extra::extract::CookieJar;
 use chrono::Utc;
+use cqrs_es::lifecycle::LifecycleCommand;
 use cqrs_es::persist::ViewRepository;
 use cqrs_es::Id;
 use hmac::{Hmac, Mac};
@@ -47,7 +49,7 @@ pub async fn fake_login(
     let result = ApiResult::from_async_fn(|| async {
         let Some(user) = state
             .user_view_repository
-            .load(&id.0.to_string())
+            .load_lifecycle(id)
             .await
             .context(PersistenceSnafu)?
         else {
@@ -98,8 +100,10 @@ fn validate_telegram_login(data: &TelegramLoginData, secret: &TelegramSecret) ->
         format!("auth_date={}", data.auth_date.timestamp()),
         format!("first_name={}", data.profile.first_name),
         format!("id={}", data.profile.id),
-        format!("last_name={}", data.profile.last_name),
     ];
+    if let Some(last_name) = &data.profile.last_name {
+        check_string_parts.push(format!("last_name={}", last_name));
+    }
     if let Some(photo_url) = &data.profile.photo_url {
         check_string_parts.push(format!("photo_url={}", photo_url));
     }
@@ -175,9 +179,9 @@ pub async fn telegram_login(
                     .user_cqrs
                     .execute(
                         user_id,
-                        UserCommand::Create {
+                        LifecycleCommand::Create(CreateUser {
                             profile: ExternalUserProfile::Telegram(data.profile),
-                        },
+                        }),
                     )
                     .await
                     .context(UserSnafu)?;
@@ -187,7 +191,7 @@ pub async fn telegram_login(
 
         let Some(user) = state
             .user_view_repository
-            .load(&user_id.0.to_string())
+            .load_lifecycle(user_id)
             .await
             .context(PersistenceSnafu)?
         else {

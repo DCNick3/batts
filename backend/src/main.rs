@@ -11,12 +11,14 @@ mod state;
 mod view_repositry_ext;
 
 use crate::api_result::ApiResult;
-use crate::domain::group::{CreateGroup, GroupCommand, GroupError, GroupId, GroupView};
+use crate::domain::group::{CreateGroup, GroupError, GroupId, GroupView, UpdateGroup};
 use crate::domain::ticket::{
     TicketCommand, TicketDestination, TicketId, TicketListingView, TicketListingViewExpandedItem,
     TicketView, TicketViewContent,
 };
-use crate::domain::user::{IdentityView, UserCommand, UserId, UserProfileView, UserView};
+use crate::domain::user::{
+    CreateUser, IdentityView, UpdateUser, UserId, UserProfileView, UserView,
+};
 use crate::error::{Error, GroupSnafu, PersistenceSnafu, TicketSnafu, UserSnafu};
 use crate::extractors::{Json, Path, State, UserContext};
 use crate::state::{new_application_state, ApplicationState};
@@ -86,7 +88,12 @@ fn make_api_router(config: &config::Routes) -> Router<ApplicationState> {
         warn!("Running with internal routes exposed. DO NOT USE IN PRODUCTION!");
 
         router = router
-            .route("/users/:id", get(user_query).post(user_command))
+            .route(
+                "/users/:id",
+                get(user_query)
+                    .put(create_user_command)
+                    .post(update_user_command),
+            )
             .route("/user-identities/:id", get(user_identity))
             .route("/fake-login/:id", post(login::fake_login))
     }
@@ -249,7 +256,7 @@ async fn group_update_command(
     State(state): State<ApplicationState>,
     user_context: UserContext,
     Path(id): Path<GroupId>,
-    Json(command): Json<GroupCommand>,
+    Json(command): Json<UpdateGroup>,
 ) -> ApiResult {
     ApiResult::from_result(
         state
@@ -306,12 +313,12 @@ async fn me_query(
     user_context: UserContext,
 ) -> ApiResult<UserView> {
     ApiResult::from_async_fn(|| async {
-        let user_view = state
+        state
             .user_view_repository
-            .load(&user_context.user_id().0.to_string())
+            .load_lifecycle(user_context.user_id())
             .await
-            .context(PersistenceSnafu)?;
-        user_view.ok_or(Error::NotFound)
+            .context(PersistenceSnafu)?
+            .ok_or(Error::NotFound)
     })
     .await
 }
@@ -321,13 +328,13 @@ async fn user_profile_query(
     Path(id): Path<UserId>,
 ) -> ApiResult<UserProfileView> {
     ApiResult::from_async_fn(|| async {
-        let user_view = state
+        state
             .user_view_repository
-            .load(&id.0.to_string())
+            .load_lifecycle(id)
             .await
             .context(PersistenceSnafu)?
-            .map(UserView::profile);
-        user_view.ok_or(Error::NotFound)
+            .map(UserView::profile)
+            .ok_or(Error::NotFound)
     })
     .await
 }
@@ -375,25 +382,39 @@ async fn user_query(
     Path(id): Path<UserId>,
 ) -> ApiResult<UserView> {
     ApiResult::from_async_fn(|| async {
-        let user_view = state
+        state
             .user_view_repository
-            .load(&id.0.to_string())
+            .load_lifecycle(id)
             .await
-            .context(PersistenceSnafu)?;
-        user_view.ok_or(Error::NotFound)
+            .context(PersistenceSnafu)?
+            .ok_or(Error::NotFound)
     })
     .await
 }
 
-async fn user_command(
+async fn create_user_command(
     State(state): State<ApplicationState>,
     Path(id): Path<UserId>,
-    Json(command): Json<UserCommand>,
+    Json(command): Json<CreateUser>,
 ) -> ApiResult {
     ApiResult::from_result(
         state
             .user_cqrs
-            .execute(id, command)
+            .execute(id, LifecycleCommand::Create(command))
+            .await
+            .context(UserSnafu),
+    )
+}
+
+async fn update_user_command(
+    State(state): State<ApplicationState>,
+    Path(id): Path<UserId>,
+    Json(command): Json<UpdateUser>,
+) -> ApiResult {
+    ApiResult::from_result(
+        state
+            .user_cqrs
+            .execute(id, LifecycleCommand::Update(command))
             .await
             .context(UserSnafu),
     )

@@ -5,12 +5,12 @@ use crate::view_repositry_ext::ViewRepositoryExt;
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use cqrs_es::lifecycle::{
-    CreateEnvelope, LifecycleAggregate, LifecycleAggregateState, LifecycleEvent, LifecycleView,
-    UpdateEnvelope,
+    CreateEnvelope, LifecycleAggregate, LifecycleAggregateState, LifecycleEnvelope, LifecycleEvent,
+    LifecycleView, UpdateEnvelope,
 };
 use cqrs_es::persist::ViewRepository;
 use cqrs_es::{AnyId, Id};
-use cqrs_es::{DomainEvent, EventEnvelope, Query, View};
+use cqrs_es::{DomainEvent, Query, View};
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 use std::collections::{BTreeSet, HashSet};
@@ -46,7 +46,7 @@ pub struct AddGroupMember {
 #[derive(Debug, TS, Serialize, Deserialize)]
 #[serde(tag = "type")]
 #[ts(export)]
-pub enum GroupCommand {
+pub enum UpdateGroup {
     AddMember(AddGroupMember),
 }
 
@@ -114,7 +114,7 @@ impl ApiError for GroupError {
 impl LifecycleAggregate for Group {
     type Id = GroupId;
     type CreateCommand = Authenticated<CreateGroup>;
-    type UpdateCommand = Authenticated<GroupCommand>;
+    type UpdateCommand = Authenticated<UpdateGroup>;
     type DeleteCommand = ();
     type CreateEvent = GroupCreated;
     type UpdateEvent = GroupUpdated;
@@ -146,7 +146,7 @@ impl LifecycleAggregate for Group {
         let performer = command.user_id;
 
         match command.payload {
-            GroupCommand::AddMember(AddGroupMember { new_member }) => {
+            UpdateGroup::AddMember(AddGroupMember { new_member }) => {
                 if !self.members.contains(&performer) {
                     return Err(GroupError::Forbidden);
                 }
@@ -242,11 +242,7 @@ impl<R> Query<GroupAggregate> for UserGroupsQuery<R>
 where
     R: ViewRepository<UserGroupsView>,
 {
-    async fn dispatch(
-        &self,
-        _aggregate_id: GroupId,
-        events: &[EventEnvelope<GroupId, LifecycleEvent<GroupCreated, GroupUpdated>>],
-    ) {
+    async fn dispatch(&self, _aggregate_id: GroupId, events: &[LifecycleEnvelope<Group>]) {
         for event in events {
             if let LifecycleEvent::Updated(GroupUpdated::MemberAdded { member }) = &event.payload {
                 let user_id = member.0.to_string();

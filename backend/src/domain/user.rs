@@ -3,9 +3,13 @@ use crate::view_repositry_ext::ViewRepositoryExt;
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use chrono::{DateTime, Utc};
+use cqrs_es::lifecycle::{
+    CreateEnvelope, LifecycleAggregate, LifecycleAggregateState, LifecycleEnvelope, LifecycleEvent,
+    LifecycleView, UpdateEnvelope,
+};
 use cqrs_es::persist::ViewRepository;
-use cqrs_es::{Aggregate, DomainEvent, EventEnvelope, GenericView, Query, View};
 use cqrs_es::{AnyId, Id};
+use cqrs_es::{DomainEvent, Query, View};
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 use std::fmt::Display;
@@ -30,24 +34,42 @@ impl AnyId for UserId {
 }
 
 #[derive(Debug, TS, Serialize, Deserialize)]
+#[ts(export)]
+pub struct CreateUser {
+    pub profile: ExternalUserProfile,
+}
+
+#[derive(Debug, TS, Serialize, Deserialize)]
 #[serde(tag = "type")]
 #[ts(export)]
-pub enum UserCommand {
-    Create { profile: ExternalUserProfile },
+pub enum UpdateUser {
     AddIdentity { profile: ExternalUserProfile },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub enum UserEvent {
-    Created { name: String },
+pub struct UserCreated {
+    name: String,
+}
+
+impl DomainEvent for UserCreated {
+    fn event_type(&self) -> String {
+        "Created".to_string()
+    }
+
+    fn event_version(&self) -> String {
+        "1.0".to_string()
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum UserUpdated {
     IdentityAdded { profile: ExternalUserProfile },
 }
 
-impl DomainEvent for UserEvent {
+impl DomainEvent for UserUpdated {
     fn event_type(&self) -> String {
         match self {
-            UserEvent::Created { .. } => "Created".to_string(),
-            UserEvent::IdentityAdded { .. } => "IdentityAdded".to_string(),
+            UserUpdated::IdentityAdded { .. } => "IdentityAdded".to_string(),
         }
     }
 
@@ -56,19 +78,13 @@ impl DomainEvent for UserEvent {
     }
 }
 
-#[allow(clippy::large_enum_variant)]
-#[derive(Default, Debug, Serialize, Deserialize)]
-pub enum User {
-    #[default]
-    NotCreated,
-    Created(UserContent),
-}
-
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
-pub struct UserContent {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct User {
     pub name: String,
     pub identities: UserIdentities,
 }
+
+pub type UserAggregate = LifecycleAggregateState<User>;
 
 #[derive(Default, Debug, Clone, TS, Serialize, Deserialize)]
 #[ts(export)]
@@ -161,7 +177,12 @@ impl ExternalUserProfile {
     pub fn name(&self) -> String {
         match self {
             ExternalUserProfile::Telegram(profile) => {
-                format!("{} {}", profile.first_name, profile.last_name)
+                match (&profile.first_name, &profile.last_name) {
+                    (first_name, Some(last_name)) => {
+                        format!("{} {}", first_name, last_name)
+                    }
+                    (first_name, None) => first_name.to_string(),
+                }
             }
             ExternalUserProfile::University(profile) => profile.commonname.clone(),
         }
@@ -183,7 +204,7 @@ pub struct TelegramProfile {
     #[ts(type = "number")]
     pub id: i64,
     pub first_name: String,
-    pub last_name: String,
+    pub last_name: Option<String>,
     pub username: Option<String>,
     pub photo_url: Option<String>,
 }
@@ -213,10 +234,13 @@ pub struct UserServices {
 }
 
 #[async_trait]
-impl Aggregate for User {
+impl LifecycleAggregate for User {
     type Id = UserId;
-    type Command = UserCommand;
-    type Event = UserEvent;
+    type CreateCommand = CreateUser;
+    type UpdateCommand = UpdateUser;
+    type DeleteCommand = ();
+    type CreateEvent = UserCreated;
+    type UpdateEvent = UserUpdated;
     type Error = UserError;
     type Services = UserServices;
 
@@ -224,28 +248,26 @@ impl Aggregate for User {
         "User".to_string()
     }
 
+    async fn handle_create(
+        CreateUser { profile }: Self::CreateCommand,
+        _service: &Self::Services,
+    ) -> Result<(Self::CreateEvent, Vec<Self::UpdateEvent>), Self::Error> {
+        Ok((
+            UserCreated {
+                name: profile.name(),
+            },
+            vec![UserUpdated::IdentityAdded { profile }],
+        ))
+    }
+
     async fn handle(
         &self,
-        command: Self::Command,
+        command: Self::UpdateCommand,
         service: &Self::Services,
-    ) -> Result<Vec<Self::Event>, Self::Error> {
+    ) -> Result<Vec<Self::UpdateEvent>, Self::Error> {
         match command {
-            UserCommand::Create { profile } => {
-                let User::NotCreated = self else {
-                    return Err(UserError::AlreadyExists);
-                };
-                Ok(vec![
-                    UserEvent::Created {
-                        name: profile.name(),
-                    },
-                    UserEvent::IdentityAdded { profile },
-                ])
-            }
-            UserCommand::AddIdentity { profile } => {
-                let User::Created(user) = self else {
-                    return Err(UserError::DoesNotExist);
-                };
-                if !user.identities.can_add_identity(&profile) {
+            UpdateUser::AddIdentity { profile } => {
+                if !self.identities.can_add_identity(&profile) {
                     return Err(UserError::IdentityExists);
                 }
                 if service
@@ -257,27 +279,30 @@ impl Aggregate for User {
                 {
                     return Err(UserError::IdentityUsed);
                 }
-                Ok(vec![UserEvent::IdentityAdded { profile }])
+                Ok(vec![UserUpdated::IdentityAdded { profile }])
             }
         }
     }
 
-    fn apply(&mut self, event: Self::Event) {
+    async fn handle_delete(
+        &self,
+        _command: Self::DeleteCommand,
+        _service: &Self::Services,
+    ) -> Result<Vec<Self::UpdateEvent>, Self::Error> {
+        todo!()
+    }
+
+    fn apply_create(UserCreated { name }: Self::CreateEvent) -> Self {
+        Self {
+            name,
+            identities: Default::default(),
+        }
+    }
+
+    fn apply(&mut self, event: Self::UpdateEvent) {
         match event {
-            UserEvent::Created { name } => {
-                let User::NotCreated = self else {
-                    panic!("User already created");
-                };
-                *self = User::Created(UserContent {
-                    name,
-                    identities: Default::default(),
-                });
-            }
-            UserEvent::IdentityAdded { profile } => {
-                let User::Created(user) = self else {
-                    panic!("User not created");
-                };
-                user.identities.add_identity(profile);
+            UserUpdated::IdentityAdded { profile } => {
+                self.identities.add_identity(profile);
             }
         }
     }
@@ -300,18 +325,21 @@ impl UserView {
     }
 }
 
-impl View for UserView {
+impl LifecycleView for UserView {
     type Aggregate = User;
-}
 
-impl GenericView for UserView {
-    fn update(&mut self, event: &EventEnvelope<UserId, UserEvent>) {
+    fn create(event: CreateEnvelope<'_, Self::Aggregate>) -> Self {
+        let UserCreated { name } = event.payload;
+        Self {
+            id: event.aggregate_id,
+            name: name.clone(),
+            identities: Default::default(),
+        }
+    }
+
+    fn update(&mut self, event: UpdateEnvelope<'_, Self::Aggregate>) {
         match &event.payload {
-            UserEvent::Created { name } => {
-                self.id = event.aggregate_id;
-                self.name = name.clone();
-            }
-            UserEvent::IdentityAdded { profile } => {
+            UserUpdated::IdentityAdded { profile } => {
                 self.identities.add_identity(profile.clone());
             }
         }
@@ -332,7 +360,7 @@ pub struct IdentityView {
 }
 
 impl View for IdentityView {
-    type Aggregate = User;
+    type Aggregate = UserAggregate;
 }
 
 pub struct IdentityQuery<R>
@@ -352,13 +380,14 @@ where
 }
 
 #[async_trait]
-impl<R> Query<User> for IdentityQuery<R>
+impl<R> Query<UserAggregate> for IdentityQuery<R>
 where
     R: ViewRepository<IdentityView>,
 {
-    async fn dispatch(&self, user_id: UserId, events: &[EventEnvelope<UserId, UserEvent>]) {
+    async fn dispatch(&self, user_id: UserId, events: &[LifecycleEnvelope<User>]) {
         for event in events {
-            if let UserEvent::IdentityAdded { profile } = &event.payload {
+            if let LifecycleEvent::Updated(UserUpdated::IdentityAdded { profile }) = &event.payload
+            {
                 let identity_id = profile.identity().to_string();
 
                 self.view_repository

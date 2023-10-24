@@ -16,8 +16,8 @@ pub type CreateEnvelope<'a, A> =
     LifecycleViewEventEnvelope<'a, AggregateId<A>, AggregateCreateEvent<A>>;
 pub type UpdateEnvelope<'a, A> =
     LifecycleViewEventEnvelope<'a, AggregateId<A>, AggregateUpdateEvent<A>>;
-type LifecycleEnvelope<A> =
-    EventEnvelope<AggregateId<A>, LifecycleEvent<AggregateCreateEvent<A>, AggregateUpdateEvent<A>>>;
+pub type LifecycleEventFor<A> = LifecycleEvent<AggregateCreateEvent<A>, AggregateUpdateEvent<A>>;
+pub type LifecycleEnvelope<A> = EventEnvelope<AggregateId<A>, LifecycleEventFor<A>>;
 
 pub struct LifecycleViewEventEnvelope<'a, Id: AnyId, Event: DomainEvent> {
     /// The id of the aggregate instance.

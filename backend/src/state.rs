@@ -3,7 +3,7 @@ use crate::domain::group::{GroupAggregate, GroupView, UserGroupsQuery, UserGroup
 use crate::domain::ticket::{
     Ticket, TicketListingKind, TicketListingQuery, TicketListingView, TicketServices, TicketView,
 };
-use crate::domain::user::{IdentityQuery, IdentityView, User, UserServices, UserView};
+use crate::domain::user::{IdentityQuery, IdentityView, UserAggregate, UserServices, UserView};
 use crate::login::TelegramSecret;
 use crate::memory_view_repository::MemViewRepository;
 use cqrs_es::lifecycle::{LifecycleQuery, LifecycleViewState};
@@ -35,9 +35,9 @@ pub struct ApplicationState {
     pub ticket_destination_listing_view_repository: Arc<MyViewRepository<TicketListingView>>,
     pub ticket_cqrs: Arc<MyCqrsFramework<Ticket>>,
 
-    pub user_view_repository: Arc<MyViewRepository<UserView>>,
+    pub user_view_repository: Arc<MyLifecycleViewRepository<UserView>>,
     pub user_identity_view_repository: Arc<MyViewRepository<IdentityView>>,
-    pub user_cqrs: Arc<MyCqrsFramework<User>>,
+    pub user_cqrs: Arc<MyCqrsFramework<UserAggregate>>,
 }
 
 pub async fn new_application_state(config: &crate::config::Config) -> ApplicationState {
@@ -104,14 +104,14 @@ pub async fn new_application_state(config: &crate::config::Config) -> Applicatio
     );
     let ticket_cqrs = Arc::new(ticket_cqrs);
 
-    let user_view_repository = Arc::new(MyViewRepository::<UserView>::new());
-    let user_view_query = MyGenericQuery::<UserView>::new(user_view_repository.clone());
+    let user_view_repository = Arc::new(MyLifecycleViewRepository::new());
+    let user_view_query = MyLifecycleQuery::new(user_view_repository.clone());
 
     let user_identity_view_repository = Arc::new(MyViewRepository::<IdentityView>::new());
     let user_identity_view_query = IdentityQuery::new(user_identity_view_repository.clone());
 
     let user_cqrs = CqrsFramework::new(
-        MemStore::<User>::default(),
+        MemStore::<UserAggregate>::default(),
         vec![
             Box::new(user_view_query),
             Box::new(user_identity_view_query),

@@ -70,7 +70,9 @@ pub enum Error {
         source: AggregateError<LifecycleError<GroupError>>,
     },
     /// Error while manipulating a user
-    User { source: AggregateError<UserError> },
+    User {
+        source: AggregateError<LifecycleError<UserError>>,
+    },
     /// The requested object was not found
     NotFound,
     /// Could not find a route for the request
