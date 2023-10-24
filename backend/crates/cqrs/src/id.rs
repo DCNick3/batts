@@ -1,5 +1,6 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
+use std::hash::Hash;
 use std::str::FromStr;
 use ts_rs::TS;
 use uuid::Uuid;
@@ -95,7 +96,7 @@ impl<'de> Deserialize<'de> for Id {
 }
 
 /// Trait for types that can be converted to id. Used for id newtypes
-pub trait AnyId {
+pub trait AnyId: Debug + Send + Sync + Clone + Copy + PartialEq + Eq + Hash {
     /// Convert to id.
     fn from_id(id: Id) -> Self;
     /// Convert from id.

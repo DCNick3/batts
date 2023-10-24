@@ -13,8 +13,8 @@ mod view_repositry_ext;
 use crate::api_result::ApiResult;
 use crate::domain::group::{GroupCommand, GroupError, GroupId, GroupView, GroupViewContent};
 use crate::domain::ticket::{
-    TicketCommand, TicketDestination, TicketListingView, TicketListingViewExpandedItem, TicketView,
-    TicketViewContent,
+    TicketCommand, TicketDestination, TicketId, TicketListingView, TicketListingViewExpandedItem,
+    TicketView, TicketViewContent,
 };
 use crate::domain::user::{IdentityView, UserCommand, UserId, UserProfileView, UserView};
 use crate::error::{Error, GroupSnafu, PersistenceSnafu, TicketSnafu, UserSnafu};
@@ -128,7 +128,7 @@ async fn tickets_query(
 async fn tickets_command(
     State(state): State<ApplicationState>,
     user_context: UserContext,
-    Path(id): Path<Id>,
+    Path(id): Path<TicketId>,
     Json(command): Json<TicketCommand>,
 ) -> ApiResult {
     ApiResult::from_result(
@@ -224,7 +224,7 @@ async fn group_query(
 async fn group_command(
     State(state): State<ApplicationState>,
     user_context: UserContext,
-    Path(id): Path<Id>,
+    Path(id): Path<GroupId>,
     Json(command): Json<GroupCommand>,
 ) -> ApiResult {
     ApiResult::from_result(

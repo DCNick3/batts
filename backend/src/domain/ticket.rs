@@ -249,6 +249,7 @@ impl Ticket {
 
 #[async_trait]
 impl Aggregate for Ticket {
+    type Id = TicketId;
     type Command = Authenticated<TicketCommand>;
     type Event = TicketEvent;
     type Error = TicketError;
@@ -418,7 +419,7 @@ impl GenericView<Ticket> for TicketView {
                 };
 
                 *self = TicketView::Created(TicketViewContent {
-                    id: TicketId(event.aggregate_id),
+                    id: event.aggregate_id,
                     destination,
                     owner,
                     assignee: None,
@@ -525,7 +526,7 @@ impl<R> Query<Ticket> for TicketListingQuery<R>
 where
     R: ViewRepository<TicketListingView, Ticket>,
 {
-    async fn dispatch(&self, _aggregate_id: Id, events: &[EventEnvelope<Ticket>]) {
+    async fn dispatch(&self, _aggregate_id: TicketId, events: &[EventEnvelope<Ticket>]) {
         for event in events {
             match (self.kind, &event.payload) {
                 (TicketListingKind::Owned, TicketEvent::Create { owner, .. }) => {
@@ -540,7 +541,7 @@ where
                             (TicketListingView::default(), ViewContext::new(user_id, 0))
                         });
 
-                    view.items.insert(TicketId(event.aggregate_id));
+                    view.items.insert(event.aggregate_id);
                     self.listing_view_repository
                         .update_view(view, context)
                         .await
@@ -566,7 +567,7 @@ where
                                 (TicketListingView::default(), ViewContext::new(user_id, 0))
                             });
 
-                        view.items.remove(&TicketId(event.aggregate_id));
+                        view.items.remove(&event.aggregate_id);
                         self.listing_view_repository
                             .update_view(view, context)
                             .await
@@ -585,7 +586,7 @@ where
                                 (TicketListingView::default(), ViewContext::new(user_id, 0))
                             });
 
-                        view.items.insert(TicketId(event.aggregate_id));
+                        view.items.insert(event.aggregate_id);
                         self.listing_view_repository
                             .update_view(view, context)
                             .await
@@ -604,7 +605,7 @@ where
                             (TicketListingView::default(), ViewContext::new(dest_id, 0))
                         });
 
-                    view.items.insert(TicketId(event.aggregate_id));
+                    view.items.insert(event.aggregate_id);
                     self.listing_view_repository
                         .update_view(view, context)
                         .await

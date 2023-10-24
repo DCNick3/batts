@@ -30,6 +30,7 @@ pub struct MyAggregate;
 
 #[async_trait]
 impl Aggregate for MyAggregate {
+    type Id = Id;
     type Command = MyCommands;
     type Event = MyEvents;
     type Error = MyUserError;
@@ -83,6 +84,7 @@ impl Query<MyAggregate> for MyQuery {
 
 #[async_trait]
 impl Aggregate for Customer {
+    type Id = Id;
     type Command = CustomerCommand;
     type Event = CustomerEvent;
     type Error = CustomerError;
@@ -198,14 +200,14 @@ pub struct MyRepository;
 impl PersistedEventRepository for MyRepository {
     async fn get_events<A: Aggregate>(
         &self,
-        _aggregate_id: Id,
+        _aggregate_id: A::Id,
     ) -> Result<Vec<SerializedEvent>, PersistenceError> {
         todo!()
     }
 
     async fn get_last_events<A: Aggregate>(
         &self,
-        _aggregate_id: Id,
+        _aggregate_id: A::Id,
         _number_events: usize,
     ) -> Result<Vec<SerializedEvent>, PersistenceError> {
         todo!()
@@ -213,7 +215,7 @@ impl PersistedEventRepository for MyRepository {
 
     async fn get_snapshot<A: Aggregate>(
         &self,
-        _aggregate_id: Id,
+        _aggregate_id: A::Id,
     ) -> Result<Option<SerializedSnapshot>, PersistenceError> {
         todo!()
     }
@@ -221,14 +223,14 @@ impl PersistedEventRepository for MyRepository {
     async fn persist<A: Aggregate>(
         &self,
         _events: &[SerializedEvent],
-        _snapshot_update: Option<(Id, Value, usize)>,
+        _snapshot_update: Option<(A::Id, Value, usize)>,
     ) -> Result<(), PersistenceError> {
         todo!()
     }
 
     async fn stream_events<A: Aggregate>(
         &self,
-        _aggregate_id: Id,
+        _aggregate_id: A::Id,
     ) -> Result<ReplayStream, PersistenceError> {
         todo!()
     }

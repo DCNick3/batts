@@ -8,7 +8,7 @@ use crate::persist::serialized_event::{deserialize_events, serialize_events};
 use crate::persist::{
     EventStoreAggregateContext, EventUpcaster, PersistedEventRepository, SerializedEvent,
 };
-use crate::{Aggregate, AggregateError, EventEnvelope, EventStore, Id};
+use crate::{Aggregate, AggregateError, EventEnvelope, EventStore};
 
 enum SourceOfTruth {
     EventStore,
@@ -186,7 +186,7 @@ where
 
     async fn load_events(
         &self,
-        aggregate_id: Id,
+        aggregate_id: A::Id,
     ) -> Result<Vec<EventEnvelope<A>>, AggregateError<A::Error>> {
         let serialized_events = self.repo.get_events::<A>(aggregate_id).await?;
         Ok(deserialize_events(
@@ -197,7 +197,7 @@ where
 
     async fn load_aggregate(
         &self,
-        aggregate_id: Id,
+        aggregate_id: A::Id,
     ) -> Result<EventStoreAggregateContext<A>, AggregateError<A::Error>> {
         let mut context: EventStoreAggregateContext<A> =
             if let SourceOfTruth::EventStore = self.storage {
@@ -284,7 +284,7 @@ where
     /// Method to wrap a set of events with the additional metadata needed for persistence and publishing
     fn wrap_events(
         &self,
-        aggregate_id: Id,
+        aggregate_id: A::Id,
         last_sequence: usize,
         resultant_events: Vec<A::Event>,
         base_metadata: HashMap<String, String>,

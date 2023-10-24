@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use crate::persist::{PersistedEventRepository, PersistenceError, QueryErrorHandler};
-use crate::{Aggregate, AggregateError, EventEnvelope, Id, Query};
+use crate::{Aggregate, AggregateError, EventEnvelope, Query};
 
 /// A utility for replaying committed events to a `Query`.
 ///
@@ -58,7 +58,7 @@ where
     }
 
     /// Replay the events of a single aggregate instance.
-    pub async fn replay(&self, aggregate_id: Id) -> Result<(), AggregateError<A::Error>> {
+    pub async fn replay(&self, aggregate_id: A::Id) -> Result<(), AggregateError<A::Error>> {
         let mut stream = self.repository.stream_events::<A>(aggregate_id).await?;
         while let Some(event) = stream.next().await {
             self.apply(event).await;

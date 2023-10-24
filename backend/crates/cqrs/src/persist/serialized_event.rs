@@ -1,6 +1,6 @@
 use std::convert::TryFrom;
 
-use crate::{Aggregate, DomainEvent, EventEnvelope, Id};
+use crate::{Aggregate, AnyId, DomainEvent, EventEnvelope, Id};
 use serde_json::Value;
 
 use crate::persist::{EventStoreAggregateContext, EventUpcaster, PersistenceError};
@@ -93,7 +93,7 @@ impl<A: Aggregate> TryFrom<&EventEnvelope<A>> for SerializedEvent {
         let payload = serde_json::to_value(&event.payload)?;
         let metadata = serde_json::to_value(&event.metadata)?;
         Ok(Self {
-            aggregate_id: event.aggregate_id.clone(),
+            aggregate_id: event.aggregate_id.id(),
             sequence: event.sequence,
             aggregate_type,
             event_type,
@@ -124,7 +124,7 @@ impl<A: Aggregate> TryFrom<SerializedSnapshot> for EventStoreAggregateContext<A>
     fn try_from(snapshot: SerializedSnapshot) -> Result<Self, Self::Error> {
         let aggregate = serde_json::from_value(snapshot.aggregate.clone())?;
         Ok(Self {
-            aggregate_id: snapshot.aggregate_id,
+            aggregate_id: A::Id::from_id(snapshot.aggregate_id),
             aggregate,
             current_sequence: snapshot.current_sequence,
             current_snapshot: Some(snapshot.current_snapshot),
@@ -139,7 +139,7 @@ impl<A: Aggregate> TryFrom<SerializedEvent> for EventEnvelope<A> {
         let payload = serde_json::from_value(event.payload)?;
         let metadata = serde_json::from_value(event.metadata)?;
         Ok(Self {
-            aggregate_id: event.aggregate_id,
+            aggregate_id: A::Id::from_id(event.aggregate_id),
             sequence: event.sequence,
             payload,
             metadata,

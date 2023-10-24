@@ -1,10 +1,10 @@
-use crate::{Aggregate, AggregateContext, Id};
+use crate::{Aggregate, AggregateContext};
 
 /// Holds context for the pure event store implementation PostgresStore.
 /// This is only used internally within the `EventStore`.
 pub struct EventStoreAggregateContext<A: Aggregate> {
     /// The aggregate ID of the aggregate instance that has been loaded.
-    pub aggregate_id: Id,
+    pub aggregate_id: A::Id,
     /// The current state of the aggregate instance.
     pub aggregate: A,
     /// The last committed event sequence number for this aggregate instance.
@@ -14,7 +14,7 @@ pub struct EventStoreAggregateContext<A: Aggregate> {
 }
 
 impl<A: Aggregate> EventStoreAggregateContext<A> {
-    pub(crate) fn context_for(aggregate_id: Id, _is_event_source: bool) -> Self {
+    pub(crate) fn context_for(aggregate_id: A::Id, _is_event_source: bool) -> Self {
         Self {
             aggregate_id,
             aggregate: A::default(),

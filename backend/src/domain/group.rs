@@ -101,6 +101,7 @@ impl ApiError for GroupError {
 
 #[async_trait]
 impl Aggregate for Group {
+    type Id = GroupId;
     type Command = Authenticated<GroupCommand>;
     type Event = GroupEvent;
     type Error = GroupError;
@@ -203,7 +204,7 @@ impl GenericView<Group> for GroupView {
                     panic!("Group already created");
                 };
                 *self = GroupView::Created(GroupViewContent {
-                    id: GroupId(event.aggregate_id),
+                    id: event.aggregate_id,
                     title: name.clone(),
                     members: BTreeSet::new(),
                 })
@@ -245,7 +246,7 @@ impl<R> Query<Group> for UserGroupsQuery<R>
 where
     R: ViewRepository<UserGroupsView, Group>,
 {
-    async fn dispatch(&self, _aggregate_id: Id, events: &[EventEnvelope<Group>]) {
+    async fn dispatch(&self, _aggregate_id: GroupId, events: &[EventEnvelope<Group>]) {
         for event in events {
             if let GroupEvent::MemberAdded { member } = &event.payload {
                 let user_id = member.0.to_string();
@@ -257,7 +258,7 @@ where
                     .unwrap()
                     .unwrap_or_else(|| (UserGroupsView::default(), ViewContext::new(user_id, 0)));
 
-                view.items.insert(GroupId(event.aggregate_id));
+                view.items.insert(event.aggregate_id);
                 self.view_repository
                     .update_view(view, context)
                     .await

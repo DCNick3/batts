@@ -213,6 +213,7 @@ pub struct UserServices {
 
 #[async_trait]
 impl Aggregate for User {
+    type Id = UserId;
     type Command = UserCommand;
     type Event = UserEvent;
     type Error = UserError;
@@ -304,7 +305,7 @@ impl GenericView<User> for UserView {
     fn update(&mut self, event: &EventEnvelope<User>) {
         match &event.payload {
             UserEvent::Created { name } => {
-                self.id = UserId(event.aggregate_id);
+                self.id = event.aggregate_id;
                 self.name = name.clone();
             }
             UserEvent::IdentityAdded { profile } => {
@@ -350,9 +351,7 @@ impl<R> Query<User> for IdentityQuery<R>
 where
     R: ViewRepository<IdentityView, User>,
 {
-    async fn dispatch(&self, aggregate_id: Id, events: &[EventEnvelope<User>]) {
-        let user_id = UserId(aggregate_id);
-
+    async fn dispatch(&self, user_id: UserId, events: &[EventEnvelope<User>]) {
         for event in events {
             if let UserEvent::IdentityAdded { profile } = &event.payload {
                 let identity_id = profile.identity().to_string();
@@ -364,7 +363,7 @@ where
                 {
                     Some((mut view, context)) => {
                         warn!("Identity already exists, reassigning to another user");
-                        view.user_id = UserId(event.aggregate_id);
+                        view.user_id = event.aggregate_id;
                         self.view_repository
                             .update_view(view, context)
                             .await

@@ -4,7 +4,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 
 use crate::persist::{PersistenceError, ViewContext, ViewRepository};
-use crate::{Aggregate, EventEnvelope, GenericView, Id, Query};
+use crate::{Aggregate, AnyId, EventEnvelope, GenericView, Query};
 
 /// A simple query and view repository. This is used both to act as a `Query` for processing events
 /// and to return materialized views.
@@ -97,10 +97,10 @@ where
 
     pub(crate) async fn apply_events(
         &self,
-        aggregate_id: Id,
+        aggregate_id: A::Id,
         events: &[EventEnvelope<A>],
     ) -> Result<(), PersistenceError> {
-        let view_id = aggregate_id.to_string();
+        let view_id = aggregate_id.id().to_string();
         let (mut view, view_context) = self.load_mut(view_id).await?;
         for event in events {
             view.update(event);
@@ -123,7 +123,7 @@ where
     V: GenericView<A>,
     A: Aggregate,
 {
-    async fn dispatch(&self, aggregate_id: Id, events: &[EventEnvelope<A>]) {
+    async fn dispatch(&self, aggregate_id: A::Id, events: &[EventEnvelope<A>]) {
         if let Err(err) = self.apply_events(aggregate_id, events).await {
             self.handle_error(err);
         };

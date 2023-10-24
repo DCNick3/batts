@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
-use crate::DomainEvent;
+use crate::{AnyId, DomainEvent};
 
 /// In CQRS (and Domain Driven Design) an `Aggregate` is the fundamental component that
 /// encapsulates the state and application logic (aka business rules) for the application.
@@ -64,6 +64,8 @@ use crate::DomainEvent;
 /// ```
 #[async_trait]
 pub trait Aggregate: Default + Serialize + DeserializeOwned + Sync + Send {
+    /// Specifies the id type of the aggregate
+    type Id: AnyId;
     /// Specifies the inbound command used to make changes in the state of the Aggregate.
     type Command;
     /// Specifies the published events representing some change in state of the Aggregate.

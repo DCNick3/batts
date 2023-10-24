@@ -4,7 +4,7 @@ use std::sync::{Arc, RwLock};
 use async_trait::async_trait;
 
 use crate::event::EventEnvelope;
-use crate::{Aggregate, AggregateContext, AggregateError, EventStore, Id};
+use crate::{Aggregate, AggregateContext, AggregateError, EventStore};
 
 ///  Simple memory store useful for application development and testing purposes.
 ///
@@ -29,7 +29,7 @@ impl<A: Aggregate> Default for MemStore<A> {
     }
 }
 
-type LockedEventEnvelopeMap<A> = RwLock<HashMap<Id, Vec<EventEnvelope<A>>>>;
+type LockedEventEnvelopeMap<A> = RwLock<HashMap<<A as Aggregate>::Id, Vec<EventEnvelope<A>>>>;
 
 impl<A: Aggregate> MemStore<A> {
     /// Get a shared copy of the events stored within the event store.
@@ -58,7 +58,7 @@ impl<A: Aggregate> MemStore<A> {
 
     fn load_commited_events(
         &self,
-        aggregate_id: Id,
+        aggregate_id: A::Id,
     ) -> Result<Vec<EventEnvelope<A>>, AggregateError<A::Error>> {
         // uninteresting unwrap: this will not be used in production, for tests only
         let event_map = self.events.read().unwrap();
@@ -69,7 +69,7 @@ impl<A: Aggregate> MemStore<A> {
         Ok(committed_events)
     }
 
-    fn aggregate_id(&self, events: &[EventEnvelope<A>]) -> Id {
+    fn aggregate_id(&self, events: &[EventEnvelope<A>]) -> A::Id {
         // uninteresting unwrap: this is not a struct for production use
         let &first_event = events.iter().peekable().peek().unwrap();
         first_event.aggregate_id
@@ -82,20 +82,20 @@ impl<A: Aggregate> EventStore<A> for MemStore<A> {
 
     async fn load_events(
         &self,
-        aggregate_id: Id,
+        aggregate_id: A::Id,
     ) -> Result<Vec<EventEnvelope<A>>, AggregateError<A::Error>> {
         let events = self.load_commited_events(aggregate_id)?;
         println!(
-            "loading: {} events for aggregate ID '{}'",
+            "loading: {} events for aggregate ID '{:?}'",
             &events.len(),
-            &aggregate_id
+            aggregate_id
         );
         Ok(events)
     }
 
     async fn load_aggregate(
         &self,
-        aggregate_id: Id,
+        aggregate_id: A::Id,
     ) -> Result<MemStoreAggregateContext<A>, AggregateError<A::Error>> {
         let committed_events = self.load_events(aggregate_id).await?;
         let mut aggregate = A::default();
@@ -131,7 +131,7 @@ impl<A: Aggregate> EventStore<A> for MemStore<A> {
             new_events.push(event.clone());
         }
         println!(
-            "storing: {} new events for aggregate ID '{}'",
+            "storing: {} new events for aggregate ID '{:?}'",
             new_events_qty, &aggregate_id
         );
         // uninteresting unwrap: this is not a struct for production use
@@ -147,7 +147,7 @@ impl<A: Aggregate> MemStore<A> {
     /// Method to wrap a set of events with the additional metadata needed for persistence and publishing
     fn wrap_events(
         &self,
-        aggregate_id: Id,
+        aggregate_id: A::Id,
         current_sequence: usize,
         resultant_events: Vec<A::Event>,
         base_metadata: HashMap<String, String>,
@@ -175,7 +175,7 @@ where
     A: Aggregate,
 {
     /// The aggregate ID of the aggregate instance that has been loaded.
-    pub aggregate_id: Id,
+    pub aggregate_id: A::Id,
     /// The current state of the aggregate instance.
     pub aggregate: A,
     /// The last committed event sequence number for this aggregate instance.
