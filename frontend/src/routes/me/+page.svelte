@@ -6,10 +6,13 @@
   import Avatar from '$lib/components/Avatar.svelte'
   import { Button, Input } from 'flowbite-svelte'
   import { goto } from '$app/navigation'
+	import type { PageData } from './$types'
+  import A from '$lib/components/A.svelte'
 
   const user = getContext<SvelteStore<null | UserView>>('user')
 
   let groupName = ''
+  export let data: PageData
 
   const handleCreateGroup = async () => {
     const api = new Api(fetch)
@@ -61,6 +64,14 @@
 
     <div class="flex flex-col">
       <h1 class="mb-4 font-semibold text-xl">Your groups</h1>
+      {#each data.groups as group}
+        <A href={`/groups/${group.id}`}>
+          {group.title}
+        </A>
+        <div>
+        </div>
+      {/each}
+      <h1 class="mt-6 mb-4 font-semibold text-xl">Create a new group</h1>
       <form on:submit|preventDefault={handleCreateGroup}>
         <Input
           class="mb-2"
@@ -68,7 +79,7 @@
           placeholder="Enter group name"
           required
         />
-        <Button type="submit" class="text-base">Create a new group</Button>
+        <Button type="submit" class="text-base w-full">Create</Button>
       </form>
     </div>
   </div>

@@ -12,9 +12,21 @@
 	import { Api, generateId } from 'backend'
   import { getContext } from 'svelte'
 	import type { TicketDestination, UserView } from 'backend'
+	import { page } from '$app/stores'
+
+	const url = $page.url
 
   const user = getContext<SvelteStore<null | UserView>>('user')
 	let destination: {name: string, id: string}
+
+	const qName = url.searchParams.get('gname')
+	const qId = url.searchParams.get('gid')
+	if (qName && qId) {
+		destination = {
+			name: qName,
+			id: qId
+		}
+	}
 
 	const submit = async (event: SubmitEvent) => {
 		if (!event.target) return

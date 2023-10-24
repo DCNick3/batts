@@ -40,6 +40,9 @@ router.get('/groups/:id', succeed(require('./data/group.json')))
 // router.get('/groups/:id', fail(require(./data/?)))
 router.post('/groups/:id', succeed(require('./data/group.json')))
 
+router.get('/users/:id/groups/', succeed(require('./data/groups.json')))
+// router.get('/groups/:id', fail(require('./data/?')))
+
 const app = express()
 app.use(cors())
 app.use('/api', router)
