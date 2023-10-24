@@ -1,0 +1,19 @@
+on:
+  push:
+    branches: [ master, frontend/mvp-forms ]
+  pull_request:
+    branches: [ master, frontend/mvp-forms ]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+      - uses: borales/actions-yarn@v4
+        with:
+          cmd: install
+      - run: yarn svelte-kit sync
+      - uses: prgm-dev/svelte-check-pr-annotator@main
+      - run: yarn svelte-check --output machine --use-new-transformation true
