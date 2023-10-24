@@ -62,14 +62,14 @@ impl DomainEvent for GroupCreated {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub enum GroupEvent {
+pub enum GroupUpdated {
     MemberAdded { member: UserId },
 }
 
-impl DomainEvent for GroupEvent {
+impl DomainEvent for GroupUpdated {
     fn event_type(&self) -> String {
         match self {
-            GroupEvent::MemberAdded { .. } => "MemberAdded".to_string(),
+            GroupUpdated::MemberAdded { .. } => "MemberAdded".to_string(),
         }
     }
 
@@ -113,7 +113,7 @@ impl LifecycleAggregate for Group {
     type UpdateCommand = Authenticated<GroupCommand>;
     type DeleteCommand = ();
     type CreateEvent = GroupCreated;
-    type UpdateEvent = GroupEvent;
+    type UpdateEvent = GroupUpdated;
     type Error = GroupError;
     type Services = ();
 
@@ -130,7 +130,7 @@ impl LifecycleAggregate for Group {
     ) -> Result<(Self::CreateEvent, Vec<Self::UpdateEvent>), Self::Error> {
         Ok((
             GroupCreated { title },
-            vec![GroupEvent::MemberAdded { member: user_id }],
+            vec![GroupUpdated::MemberAdded { member: user_id }],
         ))
     }
 
@@ -149,7 +149,7 @@ impl LifecycleAggregate for Group {
                 if self.members.contains(&new_member) {
                     return Ok(vec![]);
                 }
-                Ok(vec![GroupEvent::MemberAdded { member: new_member }])
+                Ok(vec![GroupUpdated::MemberAdded { member: new_member }])
             }
         }
     }
@@ -171,7 +171,7 @@ impl LifecycleAggregate for Group {
 
     fn apply(&mut self, event: Self::UpdateEvent) {
         match event {
-            GroupEvent::MemberAdded { member } => {
+            GroupUpdated::MemberAdded { member } => {
                 self.members.insert(member);
             }
         }
@@ -213,7 +213,10 @@ impl View for GroupView {
     type Aggregate = GroupAggregate;
 }
 impl GenericView for GroupView {
-    fn update(&mut self, event: &EventEnvelope<GroupAggregate>) {
+    fn update(
+        &mut self,
+        event: &EventEnvelope<GroupId, LifecycleEvent<GroupCreated, GroupUpdated>>,
+    ) {
         match &event.payload {
             LifecycleEvent::Created(GroupCreated { title }) => {
                 let GroupView::NotCreated = self else {
@@ -225,7 +228,7 @@ impl GenericView for GroupView {
                     members: BTreeSet::new(),
                 })
             }
-            LifecycleEvent::Updated(GroupEvent::MemberAdded { member }) => {
+            LifecycleEvent::Updated(GroupUpdated::MemberAdded { member }) => {
                 let this = self.unwrap_mut();
                 this.members.insert(*member);
             }
@@ -265,9 +268,13 @@ impl<R> Query<GroupAggregate> for UserGroupsQuery<R>
 where
     R: ViewRepository<UserGroupsView>,
 {
-    async fn dispatch(&self, _aggregate_id: GroupId, events: &[EventEnvelope<GroupAggregate>]) {
+    async fn dispatch(
+        &self,
+        _aggregate_id: GroupId,
+        events: &[EventEnvelope<GroupId, LifecycleEvent<GroupCreated, GroupUpdated>>],
+    ) {
         for event in events {
-            if let LifecycleEvent::Updated(GroupEvent::MemberAdded { member }) = &event.payload {
+            if let LifecycleEvent::Updated(GroupUpdated::MemberAdded { member }) = &event.payload {
                 let user_id = member.0.to_string();
 
                 let (mut view, context) = self

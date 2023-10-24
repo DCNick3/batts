@@ -29,7 +29,12 @@ impl<A: Aggregate> Default for MemStore<A> {
     }
 }
 
-type LockedEventEnvelopeMap<A> = RwLock<HashMap<<A as Aggregate>::Id, Vec<EventEnvelope<A>>>>;
+type LockedEventEnvelopeMap<A> = RwLock<
+    HashMap<
+        <A as Aggregate>::Id,
+        Vec<EventEnvelope<<A as Aggregate>::Id, <A as Aggregate>::Event>>,
+    >,
+>;
 
 impl<A: Aggregate> MemStore<A> {
     /// Get a shared copy of the events stored within the event store.
@@ -59,17 +64,17 @@ impl<A: Aggregate> MemStore<A> {
     fn load_commited_events(
         &self,
         aggregate_id: A::Id,
-    ) -> Result<Vec<EventEnvelope<A>>, AggregateError<A::Error>> {
+    ) -> Result<Vec<EventEnvelope<A::Id, A::Event>>, AggregateError<A::Error>> {
         // uninteresting unwrap: this will not be used in production, for tests only
         let event_map = self.events.read().unwrap();
-        let mut committed_events: Vec<EventEnvelope<A>> = Vec::new();
+        let mut committed_events: Vec<EventEnvelope<A::Id, A::Event>> = Vec::new();
         for event in event_map.get(&aggregate_id).into_iter().flatten() {
             committed_events.push(event.clone());
         }
         Ok(committed_events)
     }
 
-    fn aggregate_id(&self, events: &[EventEnvelope<A>]) -> A::Id {
+    fn aggregate_id(&self, events: &[EventEnvelope<A::Id, A::Event>]) -> A::Id {
         // uninteresting unwrap: this is not a struct for production use
         let &first_event = events.iter().peekable().peek().unwrap();
         first_event.aggregate_id
@@ -83,7 +88,7 @@ impl<A: Aggregate> EventStore<A> for MemStore<A> {
     async fn load_events(
         &self,
         aggregate_id: A::Id,
-    ) -> Result<Vec<EventEnvelope<A>>, AggregateError<A::Error>> {
+    ) -> Result<Vec<EventEnvelope<A::Id, A::Event>>, AggregateError<A::Error>> {
         let events = self.load_commited_events(aggregate_id)?;
         println!(
             "loading: {} events for aggregate ID '{:?}'",
@@ -117,7 +122,7 @@ impl<A: Aggregate> EventStore<A> for MemStore<A> {
         events: Vec<A::Event>,
         context: MemStoreAggregateContext<A>,
         metadata: HashMap<String, String>,
-    ) -> Result<Vec<EventEnvelope<A>>, AggregateError<A::Error>> {
+    ) -> Result<Vec<EventEnvelope<A::Id, A::Event>>, AggregateError<A::Error>> {
         let aggregate_id = context.aggregate_id;
         let current_sequence = context.current_sequence;
         let wrapped_events = self.wrap_events(aggregate_id, current_sequence, events, metadata);
@@ -151,7 +156,7 @@ impl<A: Aggregate> MemStore<A> {
         current_sequence: usize,
         resultant_events: Vec<A::Event>,
         base_metadata: HashMap<String, String>,
-    ) -> Vec<EventEnvelope<A>> {
+    ) -> Vec<EventEnvelope<A::Id, A::Event>> {
         let mut sequence = current_sequence;
         resultant_events
             .into_iter()

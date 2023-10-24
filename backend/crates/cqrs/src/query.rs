@@ -17,7 +17,7 @@ use crate::event::EventEnvelope;
 #[async_trait]
 pub trait Query<A: Aggregate>: Send + Sync {
     /// Events will be dispatched here immediately after being committed.
-    async fn dispatch(&self, aggregate_id: A::Id, events: &[EventEnvelope<A>]);
+    async fn dispatch(&self, aggregate_id: A::Id, events: &[EventEnvelope<A::Id, A::Event>]);
 }
 
 /// A `View` represents a materialized view, generally serialized for persistence, that is updated by a query.
@@ -31,5 +31,11 @@ pub trait View: Debug + Default + Serialize + DeserializeOwned + Send + Sync {
 pub trait GenericView: View {
     /// Each implemented view is responsible for updating its state based on events passed via
     /// this method.
-    fn update(&mut self, event: &EventEnvelope<Self::Aggregate>);
+    fn update(
+        &mut self,
+        event: &EventEnvelope<
+            <Self::Aggregate as Aggregate>::Id,
+            <Self::Aggregate as Aggregate>::Event,
+        >,
+    );
 }

@@ -19,11 +19,11 @@ impl ReplayStream {
     /// Receive the next event or error in the stream, if no event is available this will block.
     pub async fn next<A: Aggregate>(
         &mut self,
-    ) -> Option<Result<EventEnvelope<A>, PersistenceError>> {
+    ) -> Option<Result<EventEnvelope<A::Id, A::Event>, PersistenceError>> {
         self.queue
             .recv()
             .await
-            .map(|result| result.and_then(TryInto::try_into))
+            .map(|result| result.and_then(SerializedEvent::into_event_envelope::<A>))
     }
 }
 

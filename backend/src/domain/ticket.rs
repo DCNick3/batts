@@ -409,7 +409,7 @@ impl View for TicketView {
     type Aggregate = Ticket;
 }
 impl GenericView for TicketView {
-    fn update(&mut self, event: &EventEnvelope<Ticket>) {
+    fn update(&mut self, event: &EventEnvelope<TicketId, TicketEvent>) {
         match event.payload {
             TicketEvent::Create {
                 destination,
@@ -530,7 +530,11 @@ impl<R> Query<Ticket> for TicketListingQuery<R>
 where
     R: ViewRepository<TicketListingView>,
 {
-    async fn dispatch(&self, _aggregate_id: TicketId, events: &[EventEnvelope<Ticket>]) {
+    async fn dispatch(
+        &self,
+        _aggregate_id: TicketId,
+        events: &[EventEnvelope<TicketId, TicketEvent>],
+    ) {
         for event in events {
             match (self.kind, &event.payload) {
                 (TicketListingKind::Owned, TicketEvent::Create { owner, .. }) => {

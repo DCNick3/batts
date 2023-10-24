@@ -187,9 +187,9 @@ where
     async fn load_events(
         &self,
         aggregate_id: A::Id,
-    ) -> Result<Vec<EventEnvelope<A>>, AggregateError<A::Error>> {
+    ) -> Result<Vec<EventEnvelope<A::Id, A::Event>>, AggregateError<A::Error>> {
         let serialized_events = self.repo.get_events::<A>(aggregate_id).await?;
-        Ok(deserialize_events(
+        Ok(deserialize_events::<A>(
             serialized_events,
             &self.event_upcasters,
         )?)
@@ -216,7 +216,7 @@ where
                     .repo
                     .get_last_events::<A>(aggregate_id, context.current_sequence)
                     .await?;
-                deserialize_events(serialized_events, &self.event_upcasters)?
+                deserialize_events::<A>(serialized_events, &self.event_upcasters)?
             }
             SourceOfTruth::AggregateStore => {
                 vec![]
@@ -235,7 +235,7 @@ where
         events: Vec<A::Event>,
         context: EventStoreAggregateContext<A>,
         metadata: HashMap<String, String>,
-    ) -> Result<Vec<EventEnvelope<A>>, AggregateError<A::Error>> {
+    ) -> Result<Vec<EventEnvelope<A::Id, A::Event>>, AggregateError<A::Error>> {
         let aggregate_id = context.aggregate_id.clone();
         let last_sequence = context.current_sequence;
 
@@ -251,7 +251,7 @@ where
             }
         };
         let wrapped_events = self.wrap_events(aggregate_id, last_sequence, events, metadata);
-        let serialized_events: Vec<SerializedEvent> = serialize_events(&wrapped_events)?;
+        let serialized_events: Vec<SerializedEvent> = serialize_events::<A>(&wrapped_events)?;
         let snapshot_update = snapshot_update.map(|s| (aggregate_id, s.0, s.1));
         self.repo
             .persist::<A>(&serialized_events, snapshot_update)
@@ -288,9 +288,9 @@ where
         last_sequence: usize,
         resultant_events: Vec<A::Event>,
         base_metadata: HashMap<String, String>,
-    ) -> Vec<EventEnvelope<A>> {
+    ) -> Vec<EventEnvelope<A::Id, A::Event>> {
         let mut sequence = last_sequence;
-        let mut wrapped_events: Vec<EventEnvelope<A>> = Vec::new();
+        let mut wrapped_events: Vec<EventEnvelope<A::Id, A::Event>> = Vec::new();
         for payload in resultant_events {
             sequence += 1;
             let sequence = sequence;

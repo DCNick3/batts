@@ -96,7 +96,10 @@ where
     pub(crate) async fn apply_events(
         &self,
         aggregate_id: <V::Aggregate as Aggregate>::Id,
-        events: &[EventEnvelope<V::Aggregate>],
+        events: &[EventEnvelope<
+            <V::Aggregate as Aggregate>::Id,
+            <V::Aggregate as Aggregate>::Event,
+        >],
     ) -> Result<(), PersistenceError> {
         let view_id = aggregate_id.id().to_string();
         let (mut view, view_context) = self.load_mut(view_id).await?;
@@ -123,7 +126,10 @@ where
     async fn dispatch(
         &self,
         aggregate_id: <V::Aggregate as Aggregate>::Id,
-        events: &[EventEnvelope<V::Aggregate>],
+        events: &[EventEnvelope<
+            <V::Aggregate as Aggregate>::Id,
+            <V::Aggregate as Aggregate>::Event,
+        >],
     ) {
         if let Err(err) = self.apply_events(aggregate_id, events).await {
             self.handle_error(err);

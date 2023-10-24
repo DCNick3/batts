@@ -304,7 +304,7 @@ impl View for UserView {
 }
 
 impl GenericView for UserView {
-    fn update(&mut self, event: &EventEnvelope<User>) {
+    fn update(&mut self, event: &EventEnvelope<UserId, UserEvent>) {
         match &event.payload {
             UserEvent::Created { name } => {
                 self.id = event.aggregate_id;
@@ -355,7 +355,7 @@ impl<R> Query<User> for IdentityQuery<R>
 where
     R: ViewRepository<IdentityView>,
 {
-    async fn dispatch(&self, user_id: UserId, events: &[EventEnvelope<User>]) {
+    async fn dispatch(&self, user_id: UserId, events: &[EventEnvelope<UserId, UserEvent>]) {
         for event in events {
             if let UserEvent::IdentityAdded { profile } = &event.payload {
                 let identity_id = profile.identity().to_string();

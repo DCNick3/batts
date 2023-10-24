@@ -20,7 +20,7 @@ where
     async fn load_events(
         &self,
         aggregate_id: A::Id,
-    ) -> Result<Vec<EventEnvelope<A>>, AggregateError<A::Error>>;
+    ) -> Result<Vec<EventEnvelope<A::Id, A::Event>>, AggregateError<A::Error>>;
     /// Load aggregate at current state
     async fn load_aggregate(
         &self,
@@ -32,7 +32,7 @@ where
         events: Vec<A::Event>,
         context: Self::AC,
         metadata: HashMap<String, String>,
-    ) -> Result<Vec<EventEnvelope<A>>, AggregateError<A::Error>>;
+    ) -> Result<Vec<EventEnvelope<A::Id, A::Event>>, AggregateError<A::Error>>;
 }
 
 /// Returns the aggregate as well as the context around it.

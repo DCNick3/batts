@@ -4,7 +4,7 @@ use std::fmt;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
-use crate::aggregate::Aggregate;
+use crate::AnyId;
 
 /// A `DomainEvent` represents any business change in the state of an `Aggregate`. `DomainEvent`s
 /// are immutable, and when
@@ -58,21 +58,18 @@ pub trait DomainEvent:
 /// Thus an `EventEnvelope` provides a uniqueness value along with an event `payload` and
 /// `metadata`.
 #[derive(Debug)]
-pub struct EventEnvelope<A>
-where
-    A: Aggregate,
-{
+pub struct EventEnvelope<Id: AnyId, Event> {
     /// The id of the aggregate instance.
-    pub aggregate_id: A::Id,
+    pub aggregate_id: Id,
     /// The sequence number for an aggregate instance.
     pub sequence: usize,
     /// The event payload with all business information.
-    pub payload: A::Event,
+    pub payload: Event,
     /// Additional metadata for use in auditing, logging or debugging purposes.
     pub metadata: HashMap<String, String>,
 }
 
-impl<A: Aggregate> Clone for EventEnvelope<A> {
+impl<Id: AnyId, Event: Clone> Clone for EventEnvelope<Id, Event> {
     fn clone(&self) -> Self {
         Self {
             aggregate_id: self.aggregate_id.clone(),
