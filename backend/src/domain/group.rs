@@ -1,13 +1,14 @@
 use crate::auth::Authenticated;
 use crate::domain::user::UserId;
 use crate::error::ApiError;
+use crate::view_repositry_ext::ViewRepositoryExt;
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use cqrs_es::lifecycle::{
     CreateEnvelope, LifecycleAggregate, LifecycleAggregateState, LifecycleEvent, LifecycleView,
     UpdateEnvelope,
 };
-use cqrs_es::persist::{ViewContext, ViewRepository};
+use cqrs_es::persist::ViewRepository;
 use cqrs_es::{AnyId, Id};
 use cqrs_es::{DomainEvent, EventEnvelope, Query, View};
 use serde::{Deserialize, Serialize};
@@ -250,16 +251,10 @@ where
             if let LifecycleEvent::Updated(GroupUpdated::MemberAdded { member }) = &event.payload {
                 let user_id = member.0.to_string();
 
-                let (mut view, context) = self
-                    .view_repository
-                    .load_with_context(&user_id)
-                    .await
-                    .unwrap()
-                    .unwrap_or_else(|| (UserGroupsView::default(), ViewContext::new(user_id, 0)));
-
-                view.items.insert(event.aggregate_id);
                 self.view_repository
-                    .update_view(view, context)
+                    .load_modify_update_default(&user_id, |view| {
+                        view.items.insert(event.aggregate_id);
+                    })
                     .await
                     .unwrap();
             }

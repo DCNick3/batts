@@ -1,8 +1,9 @@
 use crate::error::ApiError;
+use crate::view_repositry_ext::ViewRepositoryExt;
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use chrono::{DateTime, Utc};
-use cqrs_es::persist::{ViewContext, ViewRepository};
+use cqrs_es::persist::ViewRepository;
 use cqrs_es::{Aggregate, DomainEvent, EventEnvelope, GenericView, Query, View};
 use cqrs_es::{AnyId, Id};
 use serde::{Deserialize, Serialize};
@@ -359,29 +360,18 @@ where
         for event in events {
             if let UserEvent::IdentityAdded { profile } = &event.payload {
                 let identity_id = profile.identity().to_string();
-                match self
-                    .view_repository
-                    .load_with_context(&identity_id)
+
+                self.view_repository
+                    .load_modify_update(
+                        &identity_id,
+                        |view| {
+                            warn!("Identity already exists, reassigning to another user");
+                            view.user_id = user_id;
+                        },
+                        || IdentityView { user_id },
+                    )
                     .await
-                    .unwrap()
-                {
-                    Some((mut view, context)) => {
-                        warn!("Identity already exists, reassigning to another user");
-                        view.user_id = event.aggregate_id;
-                        self.view_repository
-                            .update_view(view, context)
-                            .await
-                            .unwrap();
-                    }
-                    None => {
-                        let view = IdentityView { user_id };
-                        let context = ViewContext::new(identity_id, 0);
-                        self.view_repository
-                            .update_view(view, context)
-                            .await
-                            .unwrap();
-                    }
-                }
+                    .unwrap();
             }
         }
     }

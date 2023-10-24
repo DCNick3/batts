@@ -2,11 +2,12 @@ use crate::auth::Authenticated;
 use crate::domain::group::{GroupId, GroupView};
 use crate::domain::user::UserId;
 use crate::error::ApiError;
+use crate::view_repositry_ext::ViewRepositoryExt;
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use chrono::{DateTime, Utc};
 use cqrs_es::lifecycle::LifecycleViewState;
-use cqrs_es::persist::{ViewContext, ViewRepository};
+use cqrs_es::persist::ViewRepository;
 use cqrs_es::{Aggregate, DomainEvent, EventEnvelope, GenericView, Query, View};
 use cqrs_es::{AnyId, Id};
 use serde::{Deserialize, Serialize};
@@ -69,7 +70,7 @@ pub enum TicketCommand {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum TicketEvent {
-    Create {
+    Created {
         destination: TicketDestination,
         owner: UserId,
         title: String,
@@ -79,12 +80,12 @@ pub enum TicketEvent {
         from: UserId,
         text: String,
     },
-    StatusChange {
+    StatusChanged {
         date: DateTime<Utc>,
         old_status: TicketStatus,
         new_status: TicketStatus,
     },
-    AssigneeChange {
+    AssigneeChanged {
         date: DateTime<Utc>,
         old_assignee: Option<UserId>,
         new_assignee: Option<UserId>,
@@ -94,10 +95,10 @@ pub enum TicketEvent {
 impl DomainEvent for TicketEvent {
     fn event_type(&self) -> String {
         match self {
-            TicketEvent::Create { .. } => "Create".to_string(),
+            TicketEvent::Created { .. } => "Created".to_string(),
             TicketEvent::Message { .. } => "Message".to_string(),
-            TicketEvent::StatusChange { .. } => "StatusChange".to_string(),
-            TicketEvent::AssigneeChange { .. } => "AssigneeChange".to_string(),
+            TicketEvent::StatusChanged { .. } => "StatusChanged".to_string(),
+            TicketEvent::AssigneeChanged { .. } => "AssigneeChanged".to_string(),
         }
     }
 
@@ -275,7 +276,7 @@ impl Aggregate for Ticket {
                     return Err(TicketError::AlreadyExists);
                 };
                 let mut result = vec![
-                    TicketEvent::Create {
+                    TicketEvent::Created {
                         destination,
                         owner: command.user_id,
                         title,
@@ -288,7 +289,7 @@ impl Aggregate for Ticket {
                     },
                 ];
                 if let TicketDestination::User(dest) = destination {
-                    result.push(TicketEvent::AssigneeChange {
+                    result.push(TicketEvent::AssigneeChanged {
                         date: Utc::now(),
                         old_assignee: None,
                         new_assignee: Some(dest),
@@ -308,7 +309,7 @@ impl Aggregate for Ticket {
             TicketCommand::ChangeStatus(ChangeStatus { new_status }) => {
                 let this = self.unwrap_ref();
                 this.check_access(command.user_id, service).await?;
-                Ok(vec![TicketEvent::StatusChange {
+                Ok(vec![TicketEvent::StatusChanged {
                     date: Utc::now(),
                     old_status: this.status,
                     new_status,
@@ -317,7 +318,7 @@ impl Aggregate for Ticket {
             TicketCommand::ChangeAssignee(ChangeAssignee { new_assignee }) => {
                 let this = self.unwrap_ref();
                 this.check_access(command.user_id, service).await?;
-                Ok(vec![TicketEvent::AssigneeChange {
+                Ok(vec![TicketEvent::AssigneeChanged {
                     date: Utc::now(),
                     old_assignee: this.assignee,
                     new_assignee,
@@ -328,7 +329,7 @@ impl Aggregate for Ticket {
 
     fn apply(&mut self, event: Self::Event) {
         match event {
-            TicketEvent::Create {
+            TicketEvent::Created {
                 destination,
                 owner,
                 title,
@@ -351,7 +352,7 @@ impl Aggregate for Ticket {
             } => {
                 let _this = self.unwrap_mut();
             }
-            TicketEvent::StatusChange {
+            TicketEvent::StatusChanged {
                 date: _,
                 old_status: _,
                 new_status,
@@ -359,7 +360,7 @@ impl Aggregate for Ticket {
                 let this = self.unwrap_mut();
                 this.status = new_status;
             }
-            TicketEvent::AssigneeChange {
+            TicketEvent::AssigneeChanged {
                 date: _,
                 old_assignee: _,
                 new_assignee,
@@ -412,7 +413,7 @@ impl View for TicketView {
 impl GenericView for TicketView {
     fn update(&mut self, event: &EventEnvelope<TicketId, TicketEvent>) {
         match event.payload {
-            TicketEvent::Create {
+            TicketEvent::Created {
                 destination,
                 owner,
                 ref title,
@@ -445,7 +446,7 @@ impl GenericView for TicketView {
                     },
                 });
             }
-            TicketEvent::StatusChange {
+            TicketEvent::StatusChanged {
                 date,
                 old_status,
                 new_status,
@@ -460,7 +461,7 @@ impl GenericView for TicketView {
                     },
                 });
             }
-            TicketEvent::AssigneeChange {
+            TicketEvent::AssigneeChanged {
                 date,
                 old_assignee,
                 new_assignee,
@@ -538,27 +539,19 @@ where
     ) {
         for event in events {
             match (self.kind, &event.payload) {
-                (TicketListingKind::Owned, TicketEvent::Create { owner, .. }) => {
+                (TicketListingKind::Owned, TicketEvent::Created { owner, .. }) => {
                     let user_id = owner.0.to_string();
 
-                    let (mut view, context) = self
-                        .listing_view_repository
-                        .load_with_context(&user_id)
-                        .await
-                        .unwrap()
-                        .unwrap_or_else(|| {
-                            (TicketListingView::default(), ViewContext::new(user_id, 0))
-                        });
-
-                    view.items.insert(event.aggregate_id);
                     self.listing_view_repository
-                        .update_view(view, context)
+                        .load_modify_update_default(&user_id, |view| {
+                            view.items.insert(event.aggregate_id);
+                        })
                         .await
-                        .unwrap();
+                        .expect("Persistence error");
                 }
                 (
                     TicketListingKind::Assigned,
-                    TicketEvent::AssigneeChange {
+                    TicketEvent::AssigneeChanged {
                         old_assignee,
                         new_assignee,
                         ..
@@ -567,58 +560,34 @@ where
                     if let Some(old_assignee) = old_assignee {
                         let user_id = old_assignee.0.to_string();
 
-                        let (mut view, context) = self
-                            .listing_view_repository
-                            .load_with_context(&user_id)
-                            .await
-                            .unwrap()
-                            .unwrap_or_else(|| {
-                                (TicketListingView::default(), ViewContext::new(user_id, 0))
-                            });
-
-                        view.items.remove(&event.aggregate_id);
                         self.listing_view_repository
-                            .update_view(view, context)
+                            .load_modify_update_default(&user_id, |view| {
+                                view.items.remove(&event.aggregate_id);
+                            })
                             .await
-                            .unwrap();
+                            .expect("Persistence error");
                     }
 
                     if let Some(new_assignee) = new_assignee {
                         let user_id = new_assignee.0.to_string();
 
-                        let (mut view, context) = self
-                            .listing_view_repository
-                            .load_with_context(&user_id)
-                            .await
-                            .unwrap()
-                            .unwrap_or_else(|| {
-                                (TicketListingView::default(), ViewContext::new(user_id, 0))
-                            });
-
-                        view.items.insert(event.aggregate_id);
                         self.listing_view_repository
-                            .update_view(view, context)
+                            .load_modify_update_default(&user_id, |view| {
+                                view.items.insert(event.aggregate_id);
+                            })
                             .await
-                            .unwrap();
+                            .expect("Persistence error");
                     }
                 }
-                (TicketListingKind::Destination, TicketEvent::Create { destination, .. }) => {
+                (TicketListingKind::Destination, TicketEvent::Created { destination, .. }) => {
                     let dest_id = destination.to_string();
 
-                    let (mut view, context) = self
-                        .listing_view_repository
-                        .load_with_context(&dest_id)
-                        .await
-                        .unwrap()
-                        .unwrap_or_else(|| {
-                            (TicketListingView::default(), ViewContext::new(dest_id, 0))
-                        });
-
-                    view.items.insert(event.aggregate_id);
                     self.listing_view_repository
-                        .update_view(view, context)
+                        .load_modify_update_default(&dest_id, |view| {
+                            view.items.insert(event.aggregate_id);
+                        })
                         .await
-                        .unwrap();
+                        .expect("Persistence error");
                 }
                 _ => {}
             }
