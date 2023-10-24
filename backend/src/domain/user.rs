@@ -237,11 +237,12 @@ impl Aggregate for User {
                 if !user.identities.can_add_identity(&profile) {
                     return Err(UserError::IdentityExists);
                 }
-                if let Some(_) = service
+                if service
                     .user_identity_view_repository
                     .load(&profile.identity().to_string())
                     .await
                     .unwrap()
+                    .is_some()
                 {
                     return Err(UserError::IdentityUsed);
                 }
