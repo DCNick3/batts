@@ -96,7 +96,7 @@ impl<'de> Deserialize<'de> for Id {
 }
 
 /// Trait for types that can be converted to id. Used for id newtypes
-pub trait AnyId: Debug + Send + Sync + Clone + Copy + PartialEq + Eq + Hash {
+pub trait AnyId: Debug + Send + Sync + Clone + Copy + PartialEq + Eq + Hash + 'static {
     /// Convert to id.
     fn from_id(id: Id) -> Self;
     /// Convert from id.

@@ -20,6 +20,7 @@ use crate::domain::user::{IdentityView, UserCommand, UserId, UserProfileView, Us
 use crate::error::{Error, GroupSnafu, PersistenceSnafu, TicketSnafu, UserSnafu};
 use crate::extractors::{Json, Path, State, UserContext};
 use crate::state::{new_application_state, ApplicationState};
+use crate::view_repositry_ext::LifecycleViewRepositoryExt;
 use axum::routing::post;
 use axum::{routing::get, Router};
 use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
@@ -213,16 +214,15 @@ async fn ticket_owner_listing_query(
 
 async fn group_query(
     State(state): State<ApplicationState>,
-    Path(id): Path<Id>,
+    Path(id): Path<GroupId>,
 ) -> ApiResult<GroupView> {
     ApiResult::from_async_fn(|| async {
-        let group_view = state
+        state
             .group_view_repository
-            .load(&id.to_string())
+            .load_lifecycle(id)
             .await
             .context(PersistenceSnafu)?
-            .and_then(LifecycleViewState::into_created);
-        group_view.ok_or(Error::NotFound)
+            .ok_or(Error::NotFound)
     })
     .await
 }

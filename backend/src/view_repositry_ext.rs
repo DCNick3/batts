@@ -1,6 +1,7 @@
 use async_trait::async_trait;
+use cqrs_es::lifecycle::{LifecycleAggregate, LifecycleView, LifecycleViewState};
 use cqrs_es::persist::{PersistenceError, ViewContext, ViewRepository};
-use cqrs_es::View;
+use cqrs_es::{AnyId, View};
 
 #[async_trait]
 pub trait ViewRepositoryExt<V>: ViewRepository<V>
@@ -48,5 +49,31 @@ impl<V, T> ViewRepositoryExt<V> for T
 where
     V: View,
     T: ViewRepository<V>,
+{
+}
+
+#[async_trait]
+pub trait LifecycleViewRepositoryExt<V>: ViewRepository<LifecycleViewState<V>>
+where
+    V: LifecycleView,
+{
+    async fn load_lifecycle(
+        &self,
+        id: <V::Aggregate as LifecycleAggregate>::Id,
+    ) -> Result<Option<V>, PersistenceError> {
+        let id_str = id.id().to_string();
+
+        Ok(self
+            .load(&id_str)
+            .await
+            .expect("Failed to load view")
+            .and_then(|v| v.into_created()))
+    }
+}
+
+impl<V, T> LifecycleViewRepositoryExt<V> for T
+where
+    V: LifecycleView,
+    T: ViewRepository<LifecycleViewState<V>>,
 {
 }
