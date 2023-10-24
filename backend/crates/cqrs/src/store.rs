@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::aggregate::Aggregate;
 use crate::event::EventEnvelope;
-use crate::AggregateError;
+use crate::{AggregateError, Id};
 
 /// The abstract central source for loading past events and committing new events.
 #[async_trait]
@@ -19,13 +19,10 @@ where
     /// Load all events for a particular `aggregate_id`
     async fn load_events(
         &self,
-        aggregate_id: &str,
+        aggregate_id: Id,
     ) -> Result<Vec<EventEnvelope<A>>, AggregateError<A::Error>>;
     /// Load aggregate at current state
-    async fn load_aggregate(
-        &self,
-        aggregate_id: &str,
-    ) -> Result<Self::AC, AggregateError<A::Error>>;
+    async fn load_aggregate(&self, aggregate_id: Id) -> Result<Self::AC, AggregateError<A::Error>>;
     /// Commit new events
     async fn commit(
         &self,

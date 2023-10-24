@@ -1,15 +1,14 @@
 use crate::auth::Authenticated;
 use crate::domain::user::UserId;
 use crate::error::ApiError;
-use crate::id::{AnyId, Id};
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use cqrs_es::persist::{ViewContext, ViewRepository};
 use cqrs_es::{Aggregate, DomainEvent, EventEnvelope, GenericView, Query, View};
+use cqrs_es::{AnyId, Id};
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 use std::collections::{BTreeSet, HashSet};
-use std::str::FromStr;
 use std::sync::Arc;
 use ts_rs::TS;
 
@@ -204,7 +203,7 @@ impl GenericView<Group> for GroupView {
                     panic!("Group already created");
                 };
                 *self = GroupView::Created(GroupViewContent {
-                    id: GroupId(Id::from_str(&event.aggregate_id).unwrap()),
+                    id: GroupId(event.aggregate_id),
                     title: name.clone(),
                     members: BTreeSet::new(),
                 })
@@ -246,7 +245,7 @@ impl<R> Query<Group> for UserGroupsQuery<R>
 where
     R: ViewRepository<UserGroupsView, Group>,
 {
-    async fn dispatch(&self, _aggregate_id: &str, events: &[EventEnvelope<Group>]) {
+    async fn dispatch(&self, _aggregate_id: Id, events: &[EventEnvelope<Group>]) {
         for event in events {
             if let GroupEvent::MemberAdded { member } = &event.payload {
                 let user_id = member.0.to_string();
@@ -258,8 +257,7 @@ where
                     .unwrap()
                     .unwrap_or_else(|| (UserGroupsView::default(), ViewContext::new(user_id, 0)));
 
-                view.items
-                    .insert(GroupId(Id::from_str(&event.aggregate_id).unwrap()));
+                view.items.insert(GroupId(event.aggregate_id));
                 self.view_repository
                     .update_view(view, context)
                     .await

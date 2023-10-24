@@ -7,6 +7,7 @@ pub use crate::aggregate::*;
 pub use crate::cqrs::*;
 pub use crate::error::*;
 pub use crate::event::*;
+pub use crate::id::*;
 pub use crate::query::*;
 pub use crate::store::*;
 
@@ -14,6 +15,7 @@ mod aggregate;
 mod cqrs;
 mod error;
 mod event;
+mod id;
 mod query;
 mod store;
 

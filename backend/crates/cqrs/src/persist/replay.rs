@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use crate::persist::{PersistedEventRepository, PersistenceError, QueryErrorHandler};
-use crate::{Aggregate, AggregateError, EventEnvelope, Query};
+use crate::{Aggregate, AggregateError, EventEnvelope, Id, Query};
 
 /// A utility for replaying committed events to a `Query`.
 ///
@@ -58,7 +58,7 @@ where
     }
 
     /// Replay the events of a single aggregate instance.
-    pub async fn replay(&self, aggregate_id: &str) -> Result<(), AggregateError<A::Error>> {
+    pub async fn replay(&self, aggregate_id: Id) -> Result<(), AggregateError<A::Error>> {
         let mut stream = self.repository.stream_events::<A>(aggregate_id).await?;
         while let Some(event) = stream.next().await {
             self.apply(event).await;
@@ -78,8 +78,7 @@ where
     async fn apply(&self, event: Result<EventEnvelope<A>, PersistenceError>) {
         match event {
             Ok(event) => {
-                let aggregate_id = event.aggregate_id.clone();
-                self.query.dispatch(&aggregate_id, &[event]).await;
+                self.query.dispatch(event.aggregate_id, &[event]).await;
             }
             Err(error) => {
                 if let Some(handler) = &self.error_handler {
@@ -96,12 +95,13 @@ mod test {
     use std::sync::{Arc, Mutex};
 
     use async_trait::async_trait;
+    use uuid::Uuid;
 
     use crate::doc::{MyAggregate, MyEvents};
     use crate::persist::event_store::shared_test::MockRepo;
     use crate::persist::replay::QueryReplay;
     use crate::persist::SerializedEvent;
-    use crate::{EventEnvelope, Query};
+    use crate::{EventEnvelope, Id, Query};
 
     #[derive(Debug)]
     struct MockQuery {
@@ -120,7 +120,7 @@ mod test {
 
     #[async_trait]
     impl Query<MyAggregate> for MockQuery {
-        async fn dispatch(&self, _aggregate_id: &str, events: &[EventEnvelope<MyAggregate>]) {
+        async fn dispatch(&self, _aggregate_id: Id, events: &[EventEnvelope<MyAggregate>]) {
             let mut event_list = self.events.lock().unwrap();
             for event in events {
                 event_list.push(event.to_owned());
@@ -128,12 +128,14 @@ mod test {
         }
     }
 
-    const AGGREGATE_ID: &str = "test_aggregate";
+    const AGGREGATE_ID: Id = Id::from_uuid(Uuid::from_bytes([
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+    ]));
 
     #[tokio::test]
     async fn query_replay() {
         let expected_events = vec![EventEnvelope {
-            aggregate_id: AGGREGATE_ID.to_string(),
+            aggregate_id: AGGREGATE_ID,
             sequence: 1,
             payload: MyEvents::SomethingWasDone,
             metadata: HashMap::default(),

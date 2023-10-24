@@ -26,6 +26,7 @@ impl Whatever {
     /// Gets the backtrace from the deepest `Whatever` error. If none
     /// of the underlying errors are `Whatever`, returns the backtrace
     /// from when this instance was created.
+    #[allow(unused)]
     pub fn backtrace(&self) -> Option<&Backtrace> {
         let mut best_backtrace = &self.backtrace;
 

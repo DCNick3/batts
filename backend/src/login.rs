@@ -5,13 +5,13 @@ use crate::domain::user::{
 };
 use crate::error::{ApiError, Error, LoginSnafu, PersistenceSnafu, UserSnafu, WhateverSnafu};
 use crate::extractors::{Json, Path};
-use crate::id::Id;
 use crate::state::ApplicationState;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum_extra::extract::CookieJar;
 use chrono::Utc;
 use cqrs_es::persist::ViewRepository;
+use cqrs_es::Id;
 use hmac::{Hmac, Mac};
 use serde::Deserialize;
 use sha2::Sha256;
@@ -168,14 +168,13 @@ pub async fn telegram_login(
             None => {
                 // register the user
                 let user_id = UserId(Id::generate());
-                let user_id_str = user_id.0.to_string();
 
                 info!("User not registered, creating a new one from the telegram profile: id={} profile={:?}", user_id.0, data.profile);
 
                 state
                     .user_cqrs
                     .execute(
-                        &user_id_str,
+                        user_id,
                         UserCommand::Create {
                             profile: ExternalUserProfile::Telegram(data.profile),
                         },

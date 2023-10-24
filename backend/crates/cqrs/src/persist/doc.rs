@@ -4,7 +4,7 @@ use crate::persist::{
     PersistedEventRepository, PersistenceError, SerializedEvent, SerializedSnapshot, ViewContext,
     ViewRepository,
 };
-use crate::{Aggregate, EventEnvelope, View};
+use crate::{Aggregate, Id, View};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -66,14 +66,14 @@ impl MyEventRepository {
 impl PersistedEventRepository for MyEventRepository {
     async fn get_events<A: Aggregate>(
         &self,
-        _aggregate_id: &str,
+        _aggregate_id: Id,
     ) -> Result<Vec<SerializedEvent>, PersistenceError> {
         todo!()
     }
 
     async fn get_last_events<A: Aggregate>(
         &self,
-        _aggregate_id: &str,
+        _aggregate_id: Id,
         _number_events: usize,
     ) -> Result<Vec<SerializedEvent>, PersistenceError> {
         todo!()
@@ -81,7 +81,7 @@ impl PersistedEventRepository for MyEventRepository {
 
     async fn get_snapshot<A: Aggregate>(
         &self,
-        _aggregate_id: &str,
+        _aggregate_id: Id,
     ) -> Result<Option<SerializedSnapshot>, PersistenceError> {
         todo!()
     }
@@ -89,14 +89,14 @@ impl PersistedEventRepository for MyEventRepository {
     async fn persist<A: Aggregate>(
         &self,
         _events: &[SerializedEvent],
-        _snapshot_update: Option<(String, Value, usize)>,
+        _snapshot_update: Option<(Id, Value, usize)>,
     ) -> Result<(), PersistenceError> {
         todo!()
     }
 
     async fn stream_events<A: Aggregate>(
         &self,
-        _aggregate_id: &str,
+        _aggregate_id: Id,
     ) -> Result<ReplayStream, PersistenceError> {
         todo!()
     }

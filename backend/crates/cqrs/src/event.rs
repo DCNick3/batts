@@ -5,6 +5,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 
 use crate::aggregate::Aggregate;
+use crate::Id;
 
 /// A `DomainEvent` represents any business change in the state of an `Aggregate`. `DomainEvent`s
 /// are immutable, and when
@@ -63,7 +64,7 @@ where
     A: Aggregate,
 {
     /// The id of the aggregate instance.
-    pub aggregate_id: String,
+    pub aggregate_id: Id,
     /// The sequence number for an aggregate instance.
     pub sequence: usize,
     /// The event payload with all business information.

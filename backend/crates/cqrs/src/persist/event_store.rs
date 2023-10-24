@@ -8,7 +8,7 @@ use crate::persist::serialized_event::{deserialize_events, serialize_events};
 use crate::persist::{
     EventStoreAggregateContext, EventUpcaster, PersistedEventRepository, SerializedEvent,
 };
-use crate::{Aggregate, AggregateError, EventEnvelope, EventStore};
+use crate::{Aggregate, AggregateError, EventEnvelope, EventStore, Id};
 
 enum SourceOfTruth {
     EventStore,
@@ -186,7 +186,7 @@ where
 
     async fn load_events(
         &self,
-        aggregate_id: &str,
+        aggregate_id: Id,
     ) -> Result<Vec<EventEnvelope<A>>, AggregateError<A::Error>> {
         let serialized_events = self.repo.get_events::<A>(aggregate_id).await?;
         Ok(deserialize_events(
@@ -197,7 +197,7 @@ where
 
     async fn load_aggregate(
         &self,
-        aggregate_id: &str,
+        aggregate_id: Id,
     ) -> Result<EventStoreAggregateContext<A>, AggregateError<A::Error>> {
         let mut context: EventStoreAggregateContext<A> =
             if let SourceOfTruth::EventStore = self.storage {
@@ -250,7 +250,7 @@ where
                 _ => Self::update_snapshot_with_events(&events, context, commit_snapshot_to_event)?,
             }
         };
-        let wrapped_events = self.wrap_events(&aggregate_id, last_sequence, events, metadata);
+        let wrapped_events = self.wrap_events(aggregate_id, last_sequence, events, metadata);
         let serialized_events: Vec<SerializedEvent> = serialize_events(&wrapped_events)?;
         let snapshot_update = snapshot_update.map(|s| (aggregate_id, s.0, s.1));
         self.repo
@@ -284,7 +284,7 @@ where
     /// Method to wrap a set of events with the additional metadata needed for persistence and publishing
     fn wrap_events(
         &self,
-        aggregate_id: &str,
+        aggregate_id: Id,
         last_sequence: usize,
         resultant_events: Vec<A::Event>,
         base_metadata: HashMap<String, String>,
@@ -293,7 +293,6 @@ where
         let mut wrapped_events: Vec<EventEnvelope<A>> = Vec::new();
         for payload in resultant_events {
             sequence += 1;
-            let aggregate_id: String = aggregate_id.to_string();
             let sequence = sequence;
             let metadata = base_metadata.clone();
             wrapped_events.push(EventEnvelope {
@@ -315,12 +314,13 @@ pub(crate) mod shared_test {
     use async_trait::async_trait;
     use serde::{Deserialize, Serialize};
     use serde_json::Value;
+    use uuid::Uuid;
 
     use crate::persist::event_stream::ReplayStream;
     use crate::persist::{
         PersistedEventRepository, PersistenceError, SerializedEvent, SerializedSnapshot,
     };
-    use crate::{Aggregate, DomainEvent};
+    use crate::{Aggregate, DomainEvent, Id};
 
     #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
     pub(crate) enum TestEvents {
@@ -408,9 +408,8 @@ pub(crate) mod shared_test {
         last_events_result: Mutex<Option<Result<Vec<SerializedEvent>, PersistenceError>>>,
         snapshot_result: Mutex<Option<Result<Option<SerializedSnapshot>, PersistenceError>>>,
         #[allow(clippy::type_complexity)]
-        persist_check: Mutex<
-            Option<Box<dyn FnOnce(&[SerializedEvent], Option<(String, Value, usize)>) + Send>>,
-        >,
+        persist_check:
+            Mutex<Option<Box<dyn FnOnce(&[SerializedEvent], Option<(Id, Value, usize)>) + Send>>>,
     }
 
     impl MockRepo {
@@ -445,9 +444,7 @@ pub(crate) mod shared_test {
         }
         #[allow(clippy::type_complexity)]
         pub(crate) fn with_commit(
-            test_function: Box<
-                dyn FnOnce(&[SerializedEvent], Option<(String, Value, usize)>) + Send,
-            >,
+            test_function: Box<dyn FnOnce(&[SerializedEvent], Option<(Id, Value, usize)>) + Send>,
         ) -> Self {
             Self {
                 events_result: Mutex::new(None),
@@ -462,27 +459,27 @@ pub(crate) mod shared_test {
     impl PersistedEventRepository for MockRepo {
         async fn get_events<A: Aggregate>(
             &self,
-            _aggregate_id: &str,
+            _aggregate_id: Id,
         ) -> Result<Vec<SerializedEvent>, PersistenceError> {
             self.events_result.lock().unwrap().take().unwrap()
         }
         async fn get_last_events<A: Aggregate>(
             &self,
-            _aggregate_id: &str,
+            _aggregate_id: Id,
             _number_events: usize,
         ) -> Result<Vec<SerializedEvent>, PersistenceError> {
             self.last_events_result.lock().unwrap().take().unwrap()
         }
         async fn get_snapshot<A: Aggregate>(
             &self,
-            _aggregate_id: &str,
+            _aggregate_id: Id,
         ) -> Result<Option<SerializedSnapshot>, PersistenceError> {
             self.snapshot_result.lock().unwrap().take().unwrap()
         }
         async fn persist<A: Aggregate>(
             &self,
             events: &[SerializedEvent],
-            snapshot_update: Option<(String, Value, usize)>,
+            snapshot_update: Option<(Id, Value, usize)>,
         ) -> Result<(), PersistenceError> {
             let test = self.persist_check.lock().unwrap().take().unwrap();
             test(events, snapshot_update);
@@ -491,7 +488,7 @@ pub(crate) mod shared_test {
 
         async fn stream_events<A: Aggregate>(
             &self,
-            _aggregate_id: &str,
+            _aggregate_id: Id,
         ) -> Result<ReplayStream, PersistenceError> {
             self.stream_all_events::<A>().await
         }
@@ -511,7 +508,9 @@ pub(crate) mod shared_test {
         }
     }
 
-    pub(crate) const TEST_AGGREGATE_ID: &str = "test-aggregate-C";
+    pub(crate) static TEST_AGGREGATE_ID: Id = Id::from_uuid(Uuid::from_bytes([
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+    ]));
     pub(crate) const EVENT_VERSION: &str = "1.0";
 
     pub(crate) fn test_serialized_event(seq: usize, event: TestEvents) -> SerializedEvent {
@@ -519,7 +518,7 @@ pub(crate) mod shared_test {
         let event_version = event.event_version();
         let payload = serde_json::to_value(event).unwrap();
         SerializedEvent::new(
-            TEST_AGGREGATE_ID.to_string(),
+            TEST_AGGREGATE_ID,
             seq,
             "TestAggregate".to_string(),
             event_type,
@@ -619,7 +618,7 @@ mod event_store_test {
         }));
         let store = PersistedEventStore::new_event_store(repo);
         let context = EventStoreAggregateContext {
-            aggregate_id: TEST_AGGREGATE_ID.to_string(),
+            aggregate_id: TEST_AGGREGATE_ID,
             aggregate: TestAggregate::default(),
             current_sequence: 0,
             current_snapshot: None,
@@ -748,7 +747,7 @@ pub(crate) mod snapshotted_store_test {
         }));
         let store = PersistedEventStore::<MockRepo, TestAggregate>::new_snapshot_store(repo, 2);
         let context = EventStoreAggregateContext {
-            aggregate_id: TEST_AGGREGATE_ID.to_string(),
+            aggregate_id: TEST_AGGREGATE_ID,
             aggregate: TestAggregate::default(),
             current_sequence: 0,
             current_snapshot: Some(0),
@@ -775,7 +774,7 @@ pub(crate) mod snapshotted_store_test {
         }));
         let store = PersistedEventStore::<MockRepo, TestAggregate>::new_snapshot_store(repo, 2);
         let context = EventStoreAggregateContext {
-            aggregate_id: TEST_AGGREGATE_ID.to_string(),
+            aggregate_id: TEST_AGGREGATE_ID,
             aggregate: TestAggregate::default(),
             current_sequence: 2,
             current_snapshot: Some(1),
@@ -806,7 +805,7 @@ pub(crate) mod snapshotted_store_test {
             let aggregate_id = snapshot_update.0;
             let aggregate = snapshot_update.1;
             let snapshot_version = snapshot_update.2;
-            assert_eq!(TEST_AGGREGATE_ID, aggregate_id.as_str());
+            assert_eq!(TEST_AGGREGATE_ID, aggregate_id);
             assert_eq!(1, snapshot_version);
             assert_eq!(
                 json!(TestAggregate {
@@ -817,7 +816,7 @@ pub(crate) mod snapshotted_store_test {
         }));
         let store = PersistedEventStore::<MockRepo, TestAggregate>::new_snapshot_store(repo, 2);
         let context = EventStoreAggregateContext {
-            aggregate_id: TEST_AGGREGATE_ID.to_string(),
+            aggregate_id: TEST_AGGREGATE_ID,
             aggregate: TestAggregate::default(),
             current_sequence: 0,
             current_snapshot: Some(0),
@@ -856,7 +855,7 @@ pub(crate) mod snapshotted_store_test {
             let aggregate_id = snapshot_update.0;
             let aggregate = snapshot_update.1;
             let snapshot_version = snapshot_update.2;
-            assert_eq!(TEST_AGGREGATE_ID, aggregate_id.as_str());
+            assert_eq!(TEST_AGGREGATE_ID, aggregate_id);
             assert_eq!(2, snapshot_version);
             assert_eq!(
                 json!(TestAggregate {
@@ -867,7 +866,7 @@ pub(crate) mod snapshotted_store_test {
         }));
         let store = PersistedEventStore::<MockRepo, TestAggregate>::new_snapshot_store(repo, 2);
         let context = EventStoreAggregateContext {
-            aggregate_id: TEST_AGGREGATE_ID.to_string(),
+            aggregate_id: TEST_AGGREGATE_ID,
             aggregate: TestAggregate::default(),
             current_sequence: 1,
             current_snapshot: Some(1),
@@ -901,7 +900,7 @@ pub(crate) mod snapshotted_store_test {
             let aggregate_id = snapshot_update.0;
             let aggregate = snapshot_update.1;
             let snapshot_version = snapshot_update.2;
-            assert_eq!(TEST_AGGREGATE_ID, aggregate_id.as_str());
+            assert_eq!(TEST_AGGREGATE_ID, aggregate_id);
             assert_eq!(1, snapshot_version);
             assert_eq!(
                 json!(TestAggregate {
@@ -912,7 +911,7 @@ pub(crate) mod snapshotted_store_test {
         }));
         let store = PersistedEventStore::<MockRepo, TestAggregate>::new_snapshot_store(repo, 2);
         let context = EventStoreAggregateContext {
-            aggregate_id: TEST_AGGREGATE_ID.to_string(),
+            aggregate_id: TEST_AGGREGATE_ID,
             aggregate: TestAggregate::default(),
             current_sequence: 0,
             current_snapshot: Some(0),
@@ -1039,7 +1038,7 @@ pub(crate) mod aggregate_store_test {
             let aggregate_id = snapshot_update.0;
             let aggregate = snapshot_update.1;
             let snapshot_version = snapshot_update.2;
-            assert_eq!(TEST_AGGREGATE_ID, aggregate_id.as_str());
+            assert_eq!(TEST_AGGREGATE_ID, aggregate_id);
             assert_eq!(1, snapshot_version);
             assert_eq!(
                 json!(TestAggregate {
@@ -1050,7 +1049,7 @@ pub(crate) mod aggregate_store_test {
         }));
         let store = PersistedEventStore::<MockRepo, TestAggregate>::new_aggregate_store(repo);
         let context = EventStoreAggregateContext {
-            aggregate_id: TEST_AGGREGATE_ID.to_string(),
+            aggregate_id: TEST_AGGREGATE_ID,
             aggregate: TestAggregate::default(),
             current_sequence: 0,
             current_snapshot: Some(0),

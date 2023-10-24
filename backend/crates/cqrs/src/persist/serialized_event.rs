@@ -1,6 +1,6 @@
 use std::convert::TryFrom;
 
-use crate::{Aggregate, DomainEvent, EventEnvelope};
+use crate::{Aggregate, DomainEvent, EventEnvelope, Id};
 use serde_json::Value;
 
 use crate::persist::{EventStoreAggregateContext, EventUpcaster, PersistenceError};
@@ -10,7 +10,7 @@ use crate::persist::{EventStoreAggregateContext, EventUpcaster, PersistenceError
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SerializedEvent {
     /// The id of the aggregate instance.
-    pub aggregate_id: String,
+    pub aggregate_id: Id,
     /// The sequence number of the event for this aggregate instance.
     pub sequence: usize,
     /// The type of aggregate the event applies to.
@@ -28,7 +28,7 @@ pub struct SerializedEvent {
 impl SerializedEvent {
     /// Create a new SerializedEvent with the given values.
     pub fn new(
-        aggregate_id: String,
+        aggregate_id: Id,
         sequence: usize,
         aggregate_type: String,
         event_type: String,
@@ -109,7 +109,7 @@ impl<A: Aggregate> TryFrom<&EventEnvelope<A>> for SerializedEvent {
 #[derive(Debug, PartialEq, Eq)]
 pub struct SerializedSnapshot {
     /// The aggregate ID of the aggregate instance that has been loaded.
-    pub aggregate_id: String,
+    pub aggregate_id: Id,
     /// The current state of the aggregate instance.
     pub aggregate: Value,
     /// The last committed event sequence number for this aggregate instance.

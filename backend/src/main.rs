@@ -4,7 +4,6 @@ mod config;
 mod domain;
 mod error;
 mod extractors;
-mod id;
 mod init_tracing;
 mod login;
 mod memory_view_repository;
@@ -17,16 +16,16 @@ use crate::domain::ticket::{
     TicketCommand, TicketDestination, TicketListingView, TicketListingViewExpandedItem, TicketView,
     TicketViewContent,
 };
-use crate::domain::user::{IdentityView, UserCommand, UserProfileView, UserView};
+use crate::domain::user::{IdentityView, UserCommand, UserId, UserProfileView, UserView};
 use crate::error::{Error, GroupSnafu, PersistenceSnafu, TicketSnafu, UserSnafu};
 use crate::extractors::{Json, Path, State, UserContext};
-use crate::id::Id;
 use crate::state::{new_application_state, ApplicationState};
 use axum::routing::post;
 use axum::{routing::get, Router};
 use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
 use cqrs_es::persist::ViewRepository;
 use cqrs_es::AggregateError;
+use cqrs_es::Id;
 use snafu::{ResultExt, Whatever};
 use tower_http::catch_panic::CatchPanicLayer;
 use tracing::{error, info, warn};
@@ -135,7 +134,7 @@ async fn tickets_command(
     ApiResult::from_result(
         state
             .ticket_cqrs
-            .execute(&id.to_string(), user_context.authenticated(command))
+            .execute(id, user_context.authenticated(command))
             .await
             .context(TicketSnafu),
     )
@@ -231,7 +230,7 @@ async fn group_command(
     ApiResult::from_result(
         state
             .group_cqrs
-            .execute(&id.to_string(), user_context.authenticated(command))
+            .execute(id, user_context.authenticated(command))
             .await
             .context(GroupSnafu),
     )
@@ -240,12 +239,12 @@ async fn group_command(
 async fn group_tickets_query(
     State(state): State<ApplicationState>,
     user_context: UserContext,
-    Path(id): Path<Id>,
+    Path(id): Path<GroupId>,
 ) -> ApiResult<Vec<TicketListingViewExpandedItem>> {
     ApiResult::from_async_fn(|| async {
         let group_view = state
             .group_view_repository
-            .load(&id.to_string())
+            .load(&id.0.to_string())
             .await
             .context(PersistenceSnafu)?
             .map(GroupView::unwrap);
@@ -259,7 +258,7 @@ async fn group_tickets_query(
             return Err(AggregateError::UserError(GroupError::Forbidden)).context(GroupSnafu);
         }
 
-        let destination_id = TicketDestination::Group(GroupId(id));
+        let destination_id = TicketDestination::Group(id);
         let listing = state
             .ticket_destination_listing_view_repository
             .load(&destination_id.to_string())
@@ -289,12 +288,12 @@ async fn me_query(
 
 async fn user_profile_query(
     State(state): State<ApplicationState>,
-    Path(id): Path<Id>,
+    Path(id): Path<UserId>,
 ) -> ApiResult<UserProfileView> {
     ApiResult::from_async_fn(|| async {
         let user_view = state
             .user_view_repository
-            .load(&id.to_string())
+            .load(&id.0.to_string())
             .await
             .context(PersistenceSnafu)?
             .map(UserView::profile);
@@ -305,12 +304,12 @@ async fn user_profile_query(
 
 async fn user_groups_query(
     State(state): State<ApplicationState>,
-    Path(id): Path<Id>,
+    Path(id): Path<UserId>,
 ) -> ApiResult<Vec<GroupViewContent>> {
     ApiResult::from_async_fn(|| async {
         let groups_view = state
             .user_groups_view_repository
-            .load(&id.to_string())
+            .load(&id.0.to_string())
             .await
             .context(PersistenceSnafu)?
             .unwrap_or_default();
@@ -337,12 +336,12 @@ async fn user_groups_query(
 
 async fn user_query(
     State(state): State<ApplicationState>,
-    Path(id): Path<Id>,
+    Path(id): Path<UserId>,
 ) -> ApiResult<UserView> {
     ApiResult::from_async_fn(|| async {
         let user_view = state
             .user_view_repository
-            .load(&id.to_string())
+            .load(&id.0.to_string())
             .await
             .context(PersistenceSnafu)?;
         user_view.ok_or(Error::NotFound)
@@ -352,13 +351,13 @@ async fn user_query(
 
 async fn user_command(
     State(state): State<ApplicationState>,
-    Path(id): Path<Id>,
+    Path(id): Path<UserId>,
     Json(command): Json<UserCommand>,
 ) -> ApiResult {
     ApiResult::from_result(
         state
             .user_cqrs
-            .execute(&id.to_string(), command)
+            .execute(id, command)
             .await
             .context(UserSnafu),
     )

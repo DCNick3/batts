@@ -6,6 +6,7 @@ use serde::Serialize;
 
 use crate::aggregate::Aggregate;
 use crate::event::EventEnvelope;
+use crate::Id;
 
 /// Each CQRS platform should have one or more queries where it will distribute committed
 /// events.
@@ -17,7 +18,7 @@ use crate::event::EventEnvelope;
 #[async_trait]
 pub trait Query<A: Aggregate>: Send + Sync {
     /// Events will be dispatched here immediately after being committed.
-    async fn dispatch(&self, aggregate_id: &str, events: &[EventEnvelope<A>]);
+    async fn dispatch(&self, aggregate_id: Id, events: &[EventEnvelope<A>]);
 }
 
 /// A `View` represents a materialized view, generally serialized for persistence, that is updated by a query.

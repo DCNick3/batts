@@ -1,14 +1,13 @@
 use crate::error::ApiError;
-use crate::id::{AnyId, Id};
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use chrono::{DateTime, Utc};
 use cqrs_es::persist::{ViewContext, ViewRepository};
 use cqrs_es::{Aggregate, DomainEvent, EventEnvelope, GenericView, Query, View};
+use cqrs_es::{AnyId, Id};
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 use std::fmt::Display;
-use std::str::FromStr;
 use std::sync::Arc;
 use tracing::warn;
 use ts_rs::TS;
@@ -305,7 +304,7 @@ impl GenericView<User> for UserView {
     fn update(&mut self, event: &EventEnvelope<User>) {
         match &event.payload {
             UserEvent::Created { name } => {
-                self.id = UserId(Id::from_str(&event.aggregate_id).unwrap());
+                self.id = UserId(event.aggregate_id);
                 self.name = name.clone();
             }
             UserEvent::IdentityAdded { profile } => {
@@ -351,8 +350,8 @@ impl<R> Query<User> for IdentityQuery<R>
 where
     R: ViewRepository<IdentityView, User>,
 {
-    async fn dispatch(&self, aggregate_id: &str, events: &[EventEnvelope<User>]) {
-        let user_id = UserId(Id::from_str(aggregate_id).unwrap());
+    async fn dispatch(&self, aggregate_id: Id, events: &[EventEnvelope<User>]) {
+        let user_id = UserId(aggregate_id);
 
         for event in events {
             if let UserEvent::IdentityAdded { profile } = &event.payload {
@@ -365,7 +364,7 @@ where
                 {
                     Some((mut view, context)) => {
                         warn!("Identity already exists, reassigning to another user");
-                        view.user_id = UserId(Id::from_str(&event.aggregate_id).unwrap());
+                        view.user_id = UserId(event.aggregate_id);
                         self.view_repository
                             .update_view(view, context)
                             .await

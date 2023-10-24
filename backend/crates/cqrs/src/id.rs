@@ -1,16 +1,21 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use snafu::{ResultExt, Snafu};
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use ts_rs::TS;
 use uuid::Uuid;
 
+/// An identified of an aggregate. It is an uuid under the hood.
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Id(Uuid);
 
 impl Id {
+    /// Generate a new random Id.
     pub fn generate() -> Self {
         Id(Uuid::new_v4())
+    }
+    /// Create an Id from a uuid.
+    pub const fn from_uuid(uuid: Uuid) -> Self {
+        Id(uuid)
     }
 }
 
@@ -40,11 +45,14 @@ impl TS for Id {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Snafu)]
+/// Error that can occur when parsing an Id from a string.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum IdError {
     /// Id contains invalid characters. Only base58 characters are allowed.
-    Alphabet { source: bs58::decode::Error },
+    #[error("Id contains invalid characters. Only base58 characters are allowed")]
+    Alphabet(#[from] bs58::decode::Error),
     /// Id length is invalid. It must be 16 bytes/22 characters long.
+    #[error("Id length is invalid. It must be 16 bytes/22 characters long.")]
     Length,
 }
 
@@ -58,7 +66,7 @@ impl FromStr for Id {
     type Err = IdError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let bytes = bs58::decode(s).into_vec().context(AlphabetSnafu)?;
+        let bytes = bs58::decode(s).into_vec().map_err(IdError::Alphabet)?;
         let uuid = Uuid::from_slice(&bytes).map_err(|_| IdError::Length)?;
         Ok(Id(uuid))
     }
@@ -86,7 +94,20 @@ impl<'de> Deserialize<'de> for Id {
     }
 }
 
+/// Trait for types that can be converted to id. Used for id newtypes
 pub trait AnyId {
+    /// Convert to id.
     fn from_id(id: Id) -> Self;
+    /// Convert from id.
     fn id(&self) -> Id;
+}
+
+impl AnyId for Id {
+    fn from_id(id: Id) -> Self {
+        id
+    }
+
+    fn id(&self) -> Id {
+        *self
+    }
 }

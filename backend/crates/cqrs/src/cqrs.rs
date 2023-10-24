@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::query::Query;
 use crate::store::EventStore;
-use crate::Aggregate;
+use crate::{Aggregate, AnyId};
 use crate::{AggregateContext, AggregateError};
 
 /// This is the base framework for applying commands to produce events.
@@ -121,9 +121,9 @@ where
     ///     cqrs.execute("agg-id-F39A0C", command).await
     /// }
     /// ```
-    pub async fn execute(
+    pub async fn execute<I: AnyId>(
         &self,
-        aggregate_id: &str,
+        aggregate_id: I,
         command: A::Command,
     ) -> Result<(), AggregateError<A::Error>> {
         self.execute_with_metadata(aggregate_id, command, HashMap::new())
@@ -163,12 +163,13 @@ where
     ///     cqrs.execute_with_metadata("agg-id-F39A0C", command, metadata).await
     /// }
     /// ```
-    pub async fn execute_with_metadata(
+    pub async fn execute_with_metadata<I: AnyId>(
         &self,
-        aggregate_id: &str,
+        aggregate_id: I,
         command: A::Command,
         metadata: HashMap<String, String>,
     ) -> Result<(), AggregateError<A::Error>> {
+        let aggregate_id = aggregate_id.id();
         let aggregate_context = self.store.load_aggregate(aggregate_id).await?;
         let aggregate = aggregate_context.aggregate();
         let resultant_events = aggregate
