@@ -8,6 +8,7 @@
   import { goto } from '$app/navigation'
 	import type { PageData } from './$types'
   import A from '$lib/components/A.svelte'
+  import { UserProfile } from '$lib/components/UserProfile'
 
   const user = getContext<SvelteStore<null | UserView>>('user')
 
@@ -36,15 +37,14 @@
 {#if $user === null}
   <!-- TODO: throw 404 page? -->
   <div>User Not Found</div>
-{:else}
-  <div class="flex gap-52">
-    <div class="flex flex-col items-center">
-      <Avatar
-        class="w-56 h-56 mb-2"
-        str={$user.id}
-      />
-      <span class="font-medium text-lg mb-6">{$user?.name}</span>
 
+{:else}
+
+  <UserProfile
+    user={$user}
+    groups={data.groups}
+  >
+    <svelte:fragment slot="first-col">
       <h1 class="mb-2 font-semibold text-xl">Connected accounts</h1>
 
       {#if $user?.identities.telegram !== null}
@@ -60,17 +60,9 @@
         <!-- TODO -->
         <div></div>
       {/if}
-    </div>
+    </svelte:fragment>
 
-    <div class="flex flex-col">
-      <h1 class="mb-4 font-semibold text-xl">Your groups</h1>
-      {#each data.groups as group}
-        <A href={`/groups/${group.id}`}>
-          {group.title}
-        </A>
-        <div>
-        </div>
-      {/each}
+    <svelte:fragment slot="second-col">
       <h1 class="mt-6 mb-4 font-semibold text-xl">Create a new group</h1>
       <form on:submit|preventDefault={handleCreateGroup}>
         <Input
@@ -81,7 +73,7 @@
         />
         <Button type="submit" class="text-base w-full">Create</Button>
       </form>
-    </div>
-  </div>
+    </svelte:fragment>
+  </UserProfile>
 
 {/if}
