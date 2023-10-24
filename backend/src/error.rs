@@ -64,7 +64,9 @@ pub enum Error {
     /// Login error
     Login { source: crate::login::LoginError },
     /// Error while manipulating a ticket
-    Ticket { source: AggregateError<TicketError> },
+    Ticket {
+        source: AggregateError<LifecycleError<TicketError>>,
+    },
     /// Error while manipulating a group
     Group {
         source: AggregateError<LifecycleError<GroupError>>,

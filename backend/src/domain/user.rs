@@ -53,7 +53,7 @@ pub struct UserCreated {
 
 impl DomainEvent for UserCreated {
     fn event_type(&self) -> String {
-        "Created".to_string()
+        "".to_string()
     }
 
     fn event_version(&self) -> String {

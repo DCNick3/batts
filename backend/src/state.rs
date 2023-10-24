@@ -1,21 +1,21 @@
 use crate::auth::CookieAuthority;
 use crate::domain::group::{GroupAggregate, GroupView, UserGroupsQuery, UserGroupsView};
 use crate::domain::ticket::{
-    Ticket, TicketListingKind, TicketListingQuery, TicketListingView, TicketServices, TicketView,
+    TicketAggregate, TicketListingKind, TicketListingQuery, TicketListingView, TicketServices,
+    TicketView,
 };
 use crate::domain::user::{IdentityQuery, IdentityView, UserAggregate, UserServices, UserView};
 use crate::login::TelegramSecret;
 use crate::memory_view_repository::MemViewRepository;
 use cqrs_es::lifecycle::{LifecycleQuery, LifecycleViewState};
 use cqrs_es::mem_store::MemStore;
-use cqrs_es::persist::GenericQuery;
 use cqrs_es::CqrsFramework;
 use std::sync::Arc;
 
 type MyCqrsFramework<A> = CqrsFramework<A, MemStore<A>>;
 
 type MyViewRepository<V> = MemViewRepository<V>;
-type MyGenericQuery<V> = GenericQuery<MyViewRepository<V>, V>;
+// type MyGenericQuery<V> = GenericQuery<MyViewRepository<V>, V>;
 
 type MyLifecycleViewRepository<V> = MemViewRepository<LifecycleViewState<V>>;
 type MyLifecycleQuery<V> = LifecycleQuery<MyLifecycleViewRepository<V>, V>;
@@ -29,11 +29,11 @@ pub struct ApplicationState {
     pub user_groups_view_repository: Arc<MyViewRepository<UserGroupsView>>,
     pub group_cqrs: Arc<MyCqrsFramework<GroupAggregate>>,
 
-    pub ticket_view_repository: Arc<MyViewRepository<TicketView>>,
+    pub ticket_view_repository: Arc<MyLifecycleViewRepository<TicketView>>,
     pub ticket_owner_listing_view_repository: Arc<MyViewRepository<TicketListingView>>,
     pub ticket_assignee_listing_view_repository: Arc<MyViewRepository<TicketListingView>>,
     pub ticket_destination_listing_view_repository: Arc<MyViewRepository<TicketListingView>>,
-    pub ticket_cqrs: Arc<MyCqrsFramework<Ticket>>,
+    pub ticket_cqrs: Arc<MyCqrsFramework<TicketAggregate>>,
 
     pub user_view_repository: Arc<MyLifecycleViewRepository<UserView>>,
     pub user_identity_view_repository: Arc<MyViewRepository<IdentityView>>,
@@ -68,8 +68,8 @@ pub async fn new_application_state(config: &crate::config::Config) -> Applicatio
     );
     let group_cqrs = Arc::new(group_cqrs);
 
-    let ticket_view_repository = Arc::new(MyViewRepository::<TicketView>::new());
-    let ticket_view_query = MyGenericQuery::<TicketView>::new(ticket_view_repository.clone());
+    let ticket_view_repository = Arc::new(MyLifecycleViewRepository::new());
+    let ticket_view_query = LifecycleQuery::new(ticket_view_repository.clone());
 
     let ticket_owner_listing_view_repository =
         Arc::new(MyViewRepository::<TicketListingView>::new());
@@ -91,7 +91,7 @@ pub async fn new_application_state(config: &crate::config::Config) -> Applicatio
     );
 
     let ticket_cqrs = CqrsFramework::new(
-        MemStore::<Ticket>::default(),
+        MemStore::<TicketAggregate>::default(),
         vec![
             Box::new(ticket_view_query),
             Box::new(ticket_owner_listing_view_query),

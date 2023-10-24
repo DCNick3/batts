@@ -13,8 +13,8 @@ mod view_repositry_ext;
 use crate::api_result::ApiResult;
 use crate::domain::group::{CreateGroup, GroupError, GroupId, GroupView, UpdateGroup};
 use crate::domain::ticket::{
-    TicketCommand, TicketDestination, TicketId, TicketListingView, TicketListingViewExpandedItem,
-    TicketView, TicketViewContent,
+    CreateTicket, TicketDestination, TicketId, TicketListingView, TicketListingViewExpandedItem,
+    TicketView, UpdateTicket,
 };
 use crate::domain::user::{
     CreateUser, IdentityView, UpdateUser, UserId, UserProfileView, UserView,
@@ -29,7 +29,6 @@ use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer}
 use cqrs_es::lifecycle::{LifecycleCommand, LifecycleError, LifecycleViewState};
 use cqrs_es::persist::ViewRepository;
 use cqrs_es::AggregateError;
-use cqrs_es::Id;
 use snafu::{ResultExt, Whatever};
 use tower_http::catch_panic::CatchPanicLayer;
 use tracing::{error, info, warn};
@@ -64,7 +63,12 @@ async fn main() -> Result<(), Whatever> {
 fn make_api_router(config: &config::Routes) -> Router<ApplicationState> {
     let mut router = Router::new();
     router = router
-        .route("/tickets/:id", get(tickets_query).post(tickets_command))
+        .route(
+            "/tickets/:id",
+            get(tickets_query)
+                .put(tickets_create_command)
+                .post(tickets_update_command),
+        )
         .route("/tickets/assigned", get(ticket_assignee_listing_query))
         .route("/tickets/owned", get(ticket_owner_listing_query));
 
@@ -91,8 +95,8 @@ fn make_api_router(config: &config::Routes) -> Router<ApplicationState> {
             .route(
                 "/users/:id",
                 get(user_query)
-                    .put(create_user_command)
-                    .post(update_user_command),
+                    .put(user_create_command)
+                    .post(user_update_command),
             )
             .route("/user-identities/:id", get(user_identity))
             .route("/fake-login/:id", post(login::fake_login))
@@ -125,30 +129,50 @@ async fn fallback() -> ApiResult<()> {
 
 async fn tickets_query(
     State(state): State<ApplicationState>,
-    Path(id): Path<Id>,
-) -> ApiResult<TicketViewContent> {
+    Path(id): Path<TicketId>,
+) -> ApiResult<TicketView> {
     ApiResult::from_async_fn(|| async {
-        let ticket_view = state
+        state
             .ticket_view_repository
-            .load(&id.to_string())
+            .load_lifecycle(id)
             .await
             .context(PersistenceSnafu)?
-            .map(TicketView::unwrap);
-        ticket_view.ok_or(Error::NotFound)
+            .ok_or(Error::NotFound)
     })
     .await
 }
 
-async fn tickets_command(
+async fn tickets_create_command(
     State(state): State<ApplicationState>,
     user_context: UserContext,
     Path(id): Path<TicketId>,
-    Json(command): Json<TicketCommand>,
+    Json(command): Json<CreateTicket>,
 ) -> ApiResult {
     ApiResult::from_result(
         state
             .ticket_cqrs
-            .execute(id, user_context.authenticated(command))
+            .execute(
+                id,
+                LifecycleCommand::Create(user_context.authenticated(command)),
+            )
+            .await
+            .context(TicketSnafu),
+    )
+}
+
+async fn tickets_update_command(
+    State(state): State<ApplicationState>,
+    user_context: UserContext,
+    Path(id): Path<TicketId>,
+    Json(command): Json<UpdateTicket>,
+) -> ApiResult {
+    ApiResult::from_result(
+        state
+            .ticket_cqrs
+            .execute(
+                id,
+                LifecycleCommand::Update(user_context.authenticated(command)),
+            )
             .await
             .context(TicketSnafu),
     )
@@ -162,7 +186,7 @@ async fn expand_ticket_listing_view(
         ticket_view
             .items
             .iter()
-            .map(|id| async { state.ticket_view_repository.load(&id.0.to_string()).await }),
+            .map(|id| async { state.ticket_view_repository.load_lifecycle(*id).await }),
     )
     .await;
     let results = results
@@ -172,7 +196,7 @@ async fn expand_ticket_listing_view(
     Ok(results
         .into_iter()
         .map(|view| {
-            let view = view.unwrap().unwrap();
+            let view = view.unwrap();
             TicketListingViewExpandedItem {
                 id: view.id,
                 destination: view.destination,
@@ -392,7 +416,7 @@ async fn user_query(
     .await
 }
 
-async fn create_user_command(
+async fn user_create_command(
     State(state): State<ApplicationState>,
     Path(id): Path<UserId>,
     Json(command): Json<CreateUser>,
@@ -406,7 +430,7 @@ async fn create_user_command(
     )
 }
 
-async fn update_user_command(
+async fn user_update_command(
     State(state): State<ApplicationState>,
     Path(id): Path<UserId>,
     Json(command): Json<UpdateUser>,
