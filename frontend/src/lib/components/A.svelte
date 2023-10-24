@@ -3,7 +3,7 @@
 </script>
 
 <a
-  class="visited:text-primary-700 text-primary-600 hover:text-primary-500 transition font-semibold"
+  class="visited:text-primary-700 text-primary-700 hover:text-primary-500 transition font-semibold"
   on:click
   href={href}
 >
