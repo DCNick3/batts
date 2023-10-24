@@ -7,13 +7,36 @@ export const load: PageLoad = async ({ fetch, parent }) => {
   await requireAuth(parent)
 
   const api = new Api(fetch)
-  let tickets: TicketListingViewExpandedItem[] = []
+  let assignedTickets: TicketListingViewExpandedItem[] = []
+  let destinations: string[] = []
 
   try {
     const result = await api.getAssignedTickets()
 
     if (result.status === 'Success') {
-      tickets = result.payload
+      assignedTickets = result.payload
+      destinations = await Promise.all(assignedTickets.map(ticket => {
+        // @ts-ignore
+        if (ticket.destination.Group) {
+          // @ts-ignore
+          return api.getGroup(ticket.destination.Group).then(res => {
+            if (res.status === 'Success') {
+              return res.payload.title
+            } else {
+              return 'No-one'
+            }
+          })
+        } else {
+          // @ts-ignore
+          return api.getUserProfile(ticket.destination.User).then(res => {
+            if (res.status === 'Success') {
+              return res.payload.name
+            } else {
+              return 'No-one'
+            }
+          })
+        }
+      }))
     } else {
       // TODO error-handling
       console.error(result.payload.report)
@@ -23,5 +46,5 @@ export const load: PageLoad = async ({ fetch, parent }) => {
     console.error(error)
   }
 
-  return { tickets }
+  return { tickets: assignedTickets.map((ticket, ind) => [ticket, destinations[ind]] as [TicketListingViewExpandedItem, string]) }
 }
