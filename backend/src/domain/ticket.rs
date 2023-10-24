@@ -1,5 +1,5 @@
 use crate::auth::Authenticated;
-use crate::domain::group::{Group, GroupId, GroupView};
+use crate::domain::group::{GroupAggregate, GroupId, GroupView};
 use crate::domain::user::UserId;
 use crate::error::ApiError;
 use async_trait::async_trait;
@@ -175,7 +175,7 @@ pub struct TicketTimelineItem {
 }
 
 pub struct TicketServices {
-    pub group_view_repository: Arc<dyn ViewRepository<GroupView, Group>>,
+    pub group_view_repository: Arc<dyn ViewRepository<GroupView, GroupAggregate>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

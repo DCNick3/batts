@@ -2,6 +2,7 @@ use crate::domain::group::GroupError;
 use crate::domain::ticket::TicketError;
 use crate::domain::user::UserError;
 use axum::http::StatusCode;
+use cqrs_es::lifecycle::LifecycleError;
 use cqrs_es::AggregateError;
 use snafu::{Backtrace, Snafu};
 use std::error::Error as _;
@@ -65,7 +66,9 @@ pub enum Error {
     /// Error while manipulating a ticket
     Ticket { source: AggregateError<TicketError> },
     /// Error while manipulating a group
-    Group { source: AggregateError<GroupError> },
+    Group {
+        source: AggregateError<LifecycleError<GroupError>>,
+    },
     /// Error while manipulating a user
     User { source: AggregateError<UserError> },
     /// The requested object was not found
@@ -94,7 +97,7 @@ impl ApiError for Error {
     }
 }
 
-impl<T: snafu::Error + ApiError> ApiError for AggregateError<T> {
+impl<E: snafu::Error + ApiError> ApiError for AggregateError<E> {
     fn status_code(&self) -> StatusCode {
         match self {
             AggregateError::UserError(e) => e.status_code(),
@@ -110,6 +113,17 @@ impl<T: snafu::Error + ApiError> ApiError for AggregateError<T> {
             AggregateError::UnexpectedError(_) => {
                 todo!()
             }
+        }
+    }
+}
+
+impl<E: snafu::Error + ApiError> ApiError for LifecycleError<E> {
+    fn status_code(&self) -> StatusCode {
+        match self {
+            LifecycleError::NotCreated => StatusCode::NOT_FOUND,
+            LifecycleError::AlreadyCreated => StatusCode::CONFLICT,
+            LifecycleError::AlreadyDeleted => StatusCode::NOT_FOUND,
+            LifecycleError::AggregateError(e) => e.status_code(),
         }
     }
 }

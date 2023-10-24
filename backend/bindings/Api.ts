@@ -34,6 +34,16 @@ export class Api {
     constructor(private fetch: FetchFn) {
     }
 
+    async #sendCreateCommand(url: string, command: { [key: string]: any; }): Promise<ApiResult<null>> {
+        const res = await this.fetch(url, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(command),
+        });
+        return await res.json();
+    }
     async #sendCommand(url: string, command: { [key: string]: any; }): Promise<ApiResult<null>> {
         const res = await this.fetch(url, {
             method: 'POST',
@@ -79,8 +89,7 @@ export class Api {
     }
 
     async createGroup(id: GroupId, creation: CreateGroup): Promise<ApiResult<null>> {
-        let command: GroupCommand = {type: "Create", ...creation};
-        return await this.#sendCommand(`/api/groups/${id}`, command);
+        return await this.#sendCreateCommand(`/api/groups/${id}`, creation);
     }
 
     async getGroupTickets(id: GroupId): Promise<ApiResult<Array<TicketListingViewExpandedItem>>> {

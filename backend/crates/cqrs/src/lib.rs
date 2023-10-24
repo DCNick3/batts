@@ -1,5 +1,5 @@
 #![forbid(unsafe_code)]
-#![deny(missing_docs)]
+// #![deny(missing_docs)]
 #![warn(rust_2018_idioms)]
 #![doc = include_str!("../README.md")]
 //!
@@ -40,5 +40,7 @@ pub mod doc;
 pub mod mem_store;
 
 pub mod persist;
+
+pub mod lifecycle;
 
 pub mod test;

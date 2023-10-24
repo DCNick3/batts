@@ -11,7 +11,9 @@ mod state;
 mod view_repositry_ext;
 
 use crate::api_result::ApiResult;
-use crate::domain::group::{GroupCommand, GroupError, GroupId, GroupView, GroupViewContent};
+use crate::domain::group::{
+    CreateGroup, GroupCommand, GroupError, GroupId, GroupView, GroupViewContent,
+};
 use crate::domain::ticket::{
     TicketCommand, TicketDestination, TicketId, TicketListingView, TicketListingViewExpandedItem,
     TicketView, TicketViewContent,
@@ -23,6 +25,7 @@ use crate::state::{new_application_state, ApplicationState};
 use axum::routing::post;
 use axum::{routing::get, Router};
 use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
+use cqrs_es::lifecycle::{LifecycleCommand, LifecycleError};
 use cqrs_es::persist::ViewRepository;
 use cqrs_es::AggregateError;
 use cqrs_es::Id;
@@ -65,7 +68,12 @@ fn make_api_router(config: &config::Routes) -> Router<ApplicationState> {
         .route("/tickets/owned", get(ticket_owner_listing_query));
 
     router = router
-        .route("/groups/:id", get(group_query).post(group_command))
+        .route(
+            "/groups/:id",
+            get(group_query)
+                .post(group_create_command)
+                .post(group_update_command),
+        )
         .route("/groups/:id/tickets", get(group_tickets_query));
 
     router = router
@@ -221,7 +229,25 @@ async fn group_query(
     .await
 }
 
-async fn group_command(
+async fn group_create_command(
+    State(state): State<ApplicationState>,
+    user_context: UserContext,
+    Path(id): Path<GroupId>,
+    Json(command): Json<CreateGroup>,
+) -> ApiResult {
+    ApiResult::from_result(
+        state
+            .group_cqrs
+            .execute(
+                id,
+                LifecycleCommand::Create(user_context.authenticated(command)),
+            )
+            .await
+            .context(GroupSnafu),
+    )
+}
+
+async fn group_update_command(
     State(state): State<ApplicationState>,
     user_context: UserContext,
     Path(id): Path<GroupId>,
@@ -230,7 +256,10 @@ async fn group_command(
     ApiResult::from_result(
         state
             .group_cqrs
-            .execute(id, user_context.authenticated(command))
+            .execute(
+                id,
+                LifecycleCommand::Update(user_context.authenticated(command)),
+            )
             .await
             .context(GroupSnafu),
     )
@@ -255,7 +284,10 @@ async fn group_tickets_query(
                 user_context.user_id(),
                 id
             );
-            return Err(AggregateError::UserError(GroupError::Forbidden)).context(GroupSnafu);
+            return Err(AggregateError::UserError(LifecycleError::AggregateError(
+                GroupError::Forbidden,
+            )))
+            .context(GroupSnafu);
         }
 
         let destination_id = TicketDestination::Group(id);

@@ -16,21 +16,22 @@
   },
   "scripts": {
     "test": "vitest",
-    "build": "vite build"
+    "build": "rm -rf dist && vite build"
   },
   "devDependencies": {
     "@types/bs58": "^4.0.2",
     "@types/node": "^20.8.3",
     "@types/uuid": "^9.0.5",
+    "bs58": "^5.0.0",
     "fetch-cookie": "^2.1.0",
     "node-fetch": "^3.3.2",
     "tsm": "^2.3.0",
     "typescript": "^5.2.2",
+    "uuid": "^9.0.1",
     "uvu": "^0.5.6",
     "vite": "^4.4.11",
+    "vite-plugin-checker": "^0.6.2",
     "vite-plugin-dts": "^3.6.0",
-    "vitest": "^0.34.6",
-    "bs58": "^5.0.0",
-    "uuid": "^9.0.1"
+    "vitest": "^0.34.6"
   }
 }

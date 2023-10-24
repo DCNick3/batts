@@ -1,5 +1,5 @@
 use crate::auth::CookieAuthority;
-use crate::domain::group::{Group, GroupView, UserGroupsQuery, UserGroupsView};
+use crate::domain::group::{GroupAggregate, GroupView, UserGroupsQuery, UserGroupsView};
 use crate::domain::ticket::{
     Ticket, TicketListingKind, TicketListingQuery, TicketListingView, TicketServices, TicketView,
 };
@@ -20,9 +20,9 @@ pub struct ApplicationState {
     pub cookie_authority: CookieAuthority,
     pub telegram_login_secret: Option<TelegramSecret>,
 
-    pub group_view_repository: Arc<MyViewRepository<GroupView, Group>>,
-    pub user_groups_view_repository: Arc<MyViewRepository<UserGroupsView, Group>>,
-    pub group_cqrs: Arc<MyCqrsFramework<Group>>,
+    pub group_view_repository: Arc<MyViewRepository<GroupView, GroupAggregate>>,
+    pub user_groups_view_repository: Arc<MyViewRepository<UserGroupsView, GroupAggregate>>,
+    pub group_cqrs: Arc<MyCqrsFramework<GroupAggregate>>,
 
     pub ticket_view_repository: Arc<MyViewRepository<TicketView, Ticket>>,
     pub ticket_owner_listing_view_repository: Arc<MyViewRepository<TicketListingView, Ticket>>,
@@ -51,14 +51,16 @@ pub async fn new_application_state(config: &crate::config::Config) -> Applicatio
         chrono::Duration::from_std(config.auth.token_duration).unwrap(),
     );
 
-    let group_view_repository = Arc::new(MyViewRepository::<GroupView, Group>::new());
-    let group_view_query = MyGenericQuery::<GroupView, Group>::new(group_view_repository.clone());
+    let group_view_repository = Arc::new(MyViewRepository::<GroupView, GroupAggregate>::new());
+    let group_view_query =
+        MyGenericQuery::<GroupView, GroupAggregate>::new(group_view_repository.clone());
 
-    let user_groups_view_repository = Arc::new(MyViewRepository::<UserGroupsView, Group>::new());
+    let user_groups_view_repository =
+        Arc::new(MyViewRepository::<UserGroupsView, GroupAggregate>::new());
     let user_groups_view_query = UserGroupsQuery::new(user_groups_view_repository.clone());
 
     let group_cqrs = CqrsFramework::new(
-        MemStore::<Group>::default(),
+        MemStore::<GroupAggregate>::default(),
         vec![Box::new(group_view_query), Box::new(user_groups_view_query)],
         (),
     );

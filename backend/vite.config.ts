@@ -2,11 +2,16 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import dts from 'vite-plugin-dts';
+import checker from 'vite-plugin-checker'
 
 module.exports = defineConfig({
     plugins: [
         dts({
             insertTypesEntry: true,
+        }),
+        // @ts-expect-error
+        checker({
+            typescript: true,
         }),
     ],
     resolve: {
@@ -15,6 +20,7 @@ module.exports = defineConfig({
         }
     },
     build: {
+        target: "esnext",
         minify: false,
         lib: {
             entry: resolve(__dirname, 'index.ts'),

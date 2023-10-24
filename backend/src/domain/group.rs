@@ -3,9 +3,10 @@ use crate::domain::user::UserId;
 use crate::error::ApiError;
 use async_trait::async_trait;
 use axum::http::StatusCode;
+use cqrs_es::lifecycle::{LifecycleAggregate, LifecycleAggregateState, LifecycleEvent};
 use cqrs_es::persist::{ViewContext, ViewRepository};
-use cqrs_es::{Aggregate, DomainEvent, EventEnvelope, GenericView, Query, View};
 use cqrs_es::{AnyId, Id};
+use cqrs_es::{DomainEvent, EventEnvelope, GenericView, Query, View};
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 use std::collections::{BTreeSet, HashSet};
@@ -42,20 +43,32 @@ pub struct AddGroupMember {
 #[serde(tag = "type")]
 #[ts(export)]
 pub enum GroupCommand {
-    Create(CreateGroup),
     AddMember(AddGroupMember),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct GroupCreated {
+    title: String,
+}
+
+impl DomainEvent for GroupCreated {
+    fn event_type(&self) -> String {
+        "".to_string()
+    }
+
+    fn event_version(&self) -> String {
+        "1.0".to_string()
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum GroupEvent {
-    Created { name: String },
     MemberAdded { member: UserId },
 }
 
 impl DomainEvent for GroupEvent {
     fn event_type(&self) -> String {
         match self {
-            GroupEvent::Created { .. } => "Created".to_string(),
             GroupEvent::MemberAdded { .. } => "MemberAdded".to_string(),
         }
     }
@@ -65,19 +78,13 @@ impl DomainEvent for GroupEvent {
     }
 }
 
-#[allow(clippy::large_enum_variant)]
-#[derive(Default, Debug, Serialize, Deserialize)]
-pub enum Group {
-    #[default]
-    NotCreated,
-    Created(GroupContent),
-}
-
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
-pub struct GroupContent {
+pub struct Group {
     pub title: String,
     pub members: HashSet<UserId>,
 }
+
+pub type GroupAggregate = LifecycleAggregateState<Group>;
 
 #[derive(Snafu, Debug)]
 pub enum GroupError {
@@ -100,10 +107,13 @@ impl ApiError for GroupError {
 }
 
 #[async_trait]
-impl Aggregate for Group {
+impl LifecycleAggregate for Group {
     type Id = GroupId;
-    type Command = Authenticated<GroupCommand>;
-    type Event = GroupEvent;
+    type CreateCommand = Authenticated<CreateGroup>;
+    type UpdateCommand = Authenticated<GroupCommand>;
+    type DeleteCommand = ();
+    type CreateEvent = GroupCreated;
+    type UpdateEvent = GroupEvent;
     type Error = GroupError;
     type Services = ();
 
@@ -111,31 +121,32 @@ impl Aggregate for Group {
         "Group".to_string()
     }
 
+    async fn handle_create(
+        Authenticated {
+            user_id,
+            payload: CreateGroup { title },
+        }: Self::CreateCommand,
+        _service: &Self::Services,
+    ) -> Result<(Self::CreateEvent, Vec<Self::UpdateEvent>), Self::Error> {
+        Ok((
+            GroupCreated { title },
+            vec![GroupEvent::MemberAdded { member: user_id }],
+        ))
+    }
+
     async fn handle(
         &self,
-        command: Self::Command,
+        command: Self::UpdateCommand,
         _service: &Self::Services,
-    ) -> Result<Vec<Self::Event>, Self::Error> {
+    ) -> Result<Vec<Self::UpdateEvent>, Self::Error> {
         let performer = command.user_id;
 
         match command.payload {
-            GroupCommand::Create(CreateGroup { title }) => {
-                let Group::NotCreated = self else {
-                    return Err(GroupError::AlreadyExists);
-                };
-                Ok(vec![
-                    GroupEvent::Created { name: title },
-                    GroupEvent::MemberAdded { member: performer },
-                ])
-            }
             GroupCommand::AddMember(AddGroupMember { new_member }) => {
-                let Group::Created(content) = self else {
-                    return Err(GroupError::DoesNotExist);
-                };
-                if !content.members.contains(&performer) {
+                if !self.members.contains(&performer) {
                     return Err(GroupError::Forbidden);
                 }
-                if content.members.contains(&new_member) {
+                if self.members.contains(&new_member) {
                     return Ok(vec![]);
                 }
                 Ok(vec![GroupEvent::MemberAdded { member: new_member }])
@@ -143,22 +154,25 @@ impl Aggregate for Group {
         }
     }
 
-    fn apply(&mut self, event: Self::Event) {
+    async fn handle_delete(
+        &self,
+        _command: Self::DeleteCommand,
+        _service: &Self::Services,
+    ) -> Result<Vec<Self::UpdateEvent>, Self::Error> {
+        todo!()
+    }
+
+    fn apply_create(GroupCreated { title }: Self::CreateEvent) -> Self {
+        Self {
+            title,
+            members: HashSet::new(),
+        }
+    }
+
+    fn apply(&mut self, event: Self::UpdateEvent) {
         match event {
-            GroupEvent::Created { name } => {
-                let Group::NotCreated = self else {
-                    panic!("User already created");
-                };
-                *self = Group::Created(GroupContent {
-                    title: name,
-                    members: HashSet::new(),
-                })
-            }
             GroupEvent::MemberAdded { member } => {
-                let Group::Created(content) = self else {
-                    panic!("User not created");
-                };
-                content.members.insert(member);
+                self.members.insert(member);
             }
         }
     }
@@ -195,24 +209,25 @@ impl GroupView {
     }
 }
 
-impl View<Group> for GroupView {}
-impl GenericView<Group> for GroupView {
-    fn update(&mut self, event: &EventEnvelope<Group>) {
+impl View<GroupAggregate> for GroupView {}
+impl GenericView<GroupAggregate> for GroupView {
+    fn update(&mut self, event: &EventEnvelope<GroupAggregate>) {
         match &event.payload {
-            GroupEvent::Created { name } => {
+            LifecycleEvent::Created(GroupCreated { title }) => {
                 let GroupView::NotCreated = self else {
                     panic!("Group already created");
                 };
                 *self = GroupView::Created(GroupViewContent {
                     id: event.aggregate_id,
-                    title: name.clone(),
+                    title: title.clone(),
                     members: BTreeSet::new(),
                 })
             }
-            GroupEvent::MemberAdded { member } => {
+            LifecycleEvent::Updated(GroupEvent::MemberAdded { member }) => {
                 let this = self.unwrap_mut();
                 this.members.insert(*member);
             }
+            LifecycleEvent::Deleted => todo!(),
         }
     }
 }
@@ -223,18 +238,18 @@ pub struct UserGroupsView {
     pub items: HashSet<GroupId>,
 }
 
-impl View<Group> for UserGroupsView {}
+impl View<GroupAggregate> for UserGroupsView {}
 
 pub struct UserGroupsQuery<R>
 where
-    R: ViewRepository<UserGroupsView, Group>,
+    R: ViewRepository<UserGroupsView, GroupAggregate>,
 {
     view_repository: Arc<R>,
 }
 
 impl<R> UserGroupsQuery<R>
 where
-    R: ViewRepository<UserGroupsView, Group>,
+    R: ViewRepository<UserGroupsView, GroupAggregate>,
 {
     pub fn new(view_repository: Arc<R>) -> Self {
         Self { view_repository }
@@ -242,13 +257,13 @@ where
 }
 
 #[async_trait]
-impl<R> Query<Group> for UserGroupsQuery<R>
+impl<R> Query<GroupAggregate> for UserGroupsQuery<R>
 where
-    R: ViewRepository<UserGroupsView, Group>,
+    R: ViewRepository<UserGroupsView, GroupAggregate>,
 {
-    async fn dispatch(&self, _aggregate_id: GroupId, events: &[EventEnvelope<Group>]) {
+    async fn dispatch(&self, _aggregate_id: GroupId, events: &[EventEnvelope<GroupAggregate>]) {
         for event in events {
-            if let GroupEvent::MemberAdded { member } = &event.payload {
+            if let LifecycleEvent::Updated(GroupEvent::MemberAdded { member }) = &event.payload {
                 let user_id = member.0.to_string();
 
                 let (mut view, context) = self
