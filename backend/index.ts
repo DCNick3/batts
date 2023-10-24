@@ -18,7 +18,7 @@ export type { UserCommand } from './bindings/UserCommand';
 export type { ExternalUserProfile } from './bindings/ExternalUserProfile';
 
 export type { GroupId } from './bindings/GroupId';
-export type { GroupViewContent } from './bindings/GroupViewContent';
+export type { GroupView } from './bindings/GroupView';
 export type { GroupCommand } from './bindings/GroupCommand';
 export type { CreateGroup } from './bindings/CreateGroup';
 export type { AddGroupMember } from './bindings/AddGroupMember';

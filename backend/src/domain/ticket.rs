@@ -5,6 +5,7 @@ use crate::error::ApiError;
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use chrono::{DateTime, Utc};
+use cqrs_es::lifecycle::LifecycleViewState;
 use cqrs_es::persist::{ViewContext, ViewRepository};
 use cqrs_es::{Aggregate, DomainEvent, EventEnvelope, GenericView, Query, View};
 use cqrs_es::{AnyId, Id};
@@ -175,7 +176,7 @@ pub struct TicketTimelineItem {
 }
 
 pub struct TicketServices {
-    pub group_view_repository: Arc<dyn ViewRepository<GroupView>>,
+    pub group_view_repository: Arc<dyn ViewRepository<LifecycleViewState<GroupView>>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -208,11 +209,11 @@ impl TicketContent {
                     .load(&group.0.to_string())
                     .await
                     .unwrap()
+                    .and_then(|v| v.into_created())
                 else {
                     error!("Group not found");
                     return Err(TicketError::Forbidden);
                 };
-                let group = group.unwrap();
                 if group.members.contains(&user) {
                     Ok(())
                 } else {

@@ -1,8 +1,8 @@
 import type { PageLoad } from './$types'
 import { Api } from 'backend'
-import type { ApiError, GroupViewContent } from 'backend'
+import type { ApiError, GroupView } from 'backend'
 
-export const load: PageLoad<{ groupInfo: GroupViewContent | null }> = async ({ fetch, params }) => {
+export const load: PageLoad<{ groupInfo: GroupView | null }> = async ({ fetch, params }) => {
   const api = new Api(fetch)
 
   try {

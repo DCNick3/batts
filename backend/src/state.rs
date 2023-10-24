@@ -6,21 +6,26 @@ use crate::domain::ticket::{
 use crate::domain::user::{IdentityQuery, IdentityView, User, UserServices, UserView};
 use crate::login::TelegramSecret;
 use crate::memory_view_repository::MemViewRepository;
+use cqrs_es::lifecycle::{LifecycleQuery, LifecycleViewState};
 use cqrs_es::mem_store::MemStore;
 use cqrs_es::persist::GenericQuery;
 use cqrs_es::CqrsFramework;
 use std::sync::Arc;
 
 type MyCqrsFramework<A> = CqrsFramework<A, MemStore<A>>;
+
 type MyViewRepository<V> = MemViewRepository<V>;
 type MyGenericQuery<V> = GenericQuery<MyViewRepository<V>, V>;
+
+type MyLifecycleViewRepository<V> = MemViewRepository<LifecycleViewState<V>>;
+type MyLifecycleQuery<V> = LifecycleQuery<MyLifecycleViewRepository<V>, V>;
 
 #[derive(Clone)]
 pub struct ApplicationState {
     pub cookie_authority: CookieAuthority,
     pub telegram_login_secret: Option<TelegramSecret>,
 
-    pub group_view_repository: Arc<MyViewRepository<GroupView>>,
+    pub group_view_repository: Arc<MyLifecycleViewRepository<GroupView>>,
     pub user_groups_view_repository: Arc<MyViewRepository<UserGroupsView>>,
     pub group_cqrs: Arc<MyCqrsFramework<GroupAggregate>>,
 
@@ -50,8 +55,8 @@ pub async fn new_application_state(config: &crate::config::Config) -> Applicatio
         chrono::Duration::from_std(config.auth.token_duration).unwrap(),
     );
 
-    let group_view_repository = Arc::new(MyViewRepository::<GroupView>::new());
-    let group_view_query = MyGenericQuery::<GroupView>::new(group_view_repository.clone());
+    let group_view_repository = Arc::new(MyLifecycleViewRepository::<GroupView>::new());
+    let group_view_query = MyLifecycleQuery::new(group_view_repository.clone());
 
     let user_groups_view_repository = Arc::new(MyViewRepository::<UserGroupsView>::new());
     let user_groups_view_query = UserGroupsQuery::new(user_groups_view_repository.clone());

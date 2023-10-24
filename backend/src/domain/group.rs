@@ -3,10 +3,13 @@ use crate::domain::user::UserId;
 use crate::error::ApiError;
 use async_trait::async_trait;
 use axum::http::StatusCode;
-use cqrs_es::lifecycle::{LifecycleAggregate, LifecycleAggregateState, LifecycleEvent};
+use cqrs_es::lifecycle::{
+    CreateEnvelope, LifecycleAggregate, LifecycleAggregateState, LifecycleEvent, LifecycleView,
+    UpdateEnvelope,
+};
 use cqrs_es::persist::{ViewContext, ViewRepository};
 use cqrs_es::{AnyId, Id};
-use cqrs_es::{DomainEvent, EventEnvelope, GenericView, Query, View};
+use cqrs_es::{DomainEvent, EventEnvelope, Query, View};
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 use std::collections::{BTreeSet, HashSet};
@@ -180,59 +183,29 @@ impl LifecycleAggregate for Group {
 
 #[derive(Debug, Clone, TS, Serialize, Deserialize)]
 #[ts(export)]
-pub struct GroupViewContent {
+pub struct GroupView {
     pub id: GroupId,
     pub title: String,
     pub members: BTreeSet<UserId>,
 }
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
-pub enum GroupView {
-    #[default]
-    NotCreated,
-    Created(GroupViewContent),
-}
+impl LifecycleView for GroupView {
+    type Aggregate = Group;
 
-impl GroupView {
-    pub fn unwrap(self) -> GroupViewContent {
-        match self {
-            GroupView::NotCreated => panic!("Group not created"),
-            GroupView::Created(content) => content,
+    fn create(event: CreateEnvelope<'_, Self::Aggregate>) -> Self {
+        let GroupCreated { title } = event.payload;
+        Self {
+            id: event.aggregate_id,
+            title: title.clone(),
+            members: BTreeSet::new(),
         }
     }
 
-    pub fn unwrap_mut(&mut self) -> &mut GroupViewContent {
-        match self {
-            GroupView::NotCreated => panic!("Group not created"),
-            GroupView::Created(content) => content,
-        }
-    }
-}
-
-impl View for GroupView {
-    type Aggregate = GroupAggregate;
-}
-impl GenericView for GroupView {
-    fn update(
-        &mut self,
-        event: &EventEnvelope<GroupId, LifecycleEvent<GroupCreated, GroupUpdated>>,
-    ) {
-        match &event.payload {
-            LifecycleEvent::Created(GroupCreated { title }) => {
-                let GroupView::NotCreated = self else {
-                    panic!("Group already created");
-                };
-                *self = GroupView::Created(GroupViewContent {
-                    id: event.aggregate_id,
-                    title: title.clone(),
-                    members: BTreeSet::new(),
-                })
+    fn update(&mut self, event: UpdateEnvelope<'_, Self::Aggregate>) {
+        match *event.payload {
+            GroupUpdated::MemberAdded { member } => {
+                self.members.insert(member);
             }
-            LifecycleEvent::Updated(GroupUpdated::MemberAdded { member }) => {
-                let this = self.unwrap_mut();
-                this.members.insert(*member);
-            }
-            LifecycleEvent::Deleted => todo!(),
         }
     }
 }

@@ -15,7 +15,7 @@ import type {
     TicketStatus,
     TelegramLoginData,
     CreateGroup,
-    GroupViewContent,
+    GroupView,
     GroupId,
     GroupCommand,
 } from "../";
@@ -84,7 +84,7 @@ export class Api {
         return await this.#get(`/api/users/${id}/profile`);
     }
 
-    async getUserGroups(id: UserId): Promise<ApiResult<GroupViewContent[]>> {
+    async getUserGroups(id: UserId): Promise<ApiResult<GroupView[]>> {
         return await this.#get(`/api/users/${id}/groups`);
     }
 
@@ -96,7 +96,7 @@ export class Api {
         return await this.#get(`/api/groups/${id}/tickets`);
     }
 
-    async getGroup(id: GroupId): Promise<ApiResult<GroupViewContent>> {
+    async getGroup(id: GroupId): Promise<ApiResult<GroupView>> {
         return await this.#get(`/api/groups/${id}`);
     }
 

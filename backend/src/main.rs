@@ -11,9 +11,7 @@ mod state;
 mod view_repositry_ext;
 
 use crate::api_result::ApiResult;
-use crate::domain::group::{
-    CreateGroup, GroupCommand, GroupError, GroupId, GroupView, GroupViewContent,
-};
+use crate::domain::group::{CreateGroup, GroupCommand, GroupError, GroupId, GroupView};
 use crate::domain::ticket::{
     TicketCommand, TicketDestination, TicketId, TicketListingView, TicketListingViewExpandedItem,
     TicketView, TicketViewContent,
@@ -25,7 +23,7 @@ use crate::state::{new_application_state, ApplicationState};
 use axum::routing::post;
 use axum::{routing::get, Router};
 use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
-use cqrs_es::lifecycle::{LifecycleCommand, LifecycleError};
+use cqrs_es::lifecycle::{LifecycleCommand, LifecycleError, LifecycleViewState};
 use cqrs_es::persist::ViewRepository;
 use cqrs_es::AggregateError;
 use cqrs_es::Id;
@@ -71,7 +69,7 @@ fn make_api_router(config: &config::Routes) -> Router<ApplicationState> {
         .route(
             "/groups/:id",
             get(group_query)
-                .post(group_create_command)
+                .put(group_create_command)
                 .post(group_update_command),
         )
         .route("/groups/:id/tickets", get(group_tickets_query));
@@ -216,14 +214,14 @@ async fn ticket_owner_listing_query(
 async fn group_query(
     State(state): State<ApplicationState>,
     Path(id): Path<Id>,
-) -> ApiResult<GroupViewContent> {
+) -> ApiResult<GroupView> {
     ApiResult::from_async_fn(|| async {
         let group_view = state
             .group_view_repository
             .load(&id.to_string())
             .await
             .context(PersistenceSnafu)?
-            .map(GroupView::unwrap);
+            .and_then(LifecycleViewState::into_created);
         group_view.ok_or(Error::NotFound)
     })
     .await
@@ -276,7 +274,7 @@ async fn group_tickets_query(
             .load(&id.0.to_string())
             .await
             .context(PersistenceSnafu)?
-            .map(GroupView::unwrap);
+            .and_then(LifecycleViewState::into_created);
         let group_view = group_view.ok_or(Error::NotFound)?;
         if !group_view.members.contains(&user_context.user_id()) {
             error!(
@@ -337,7 +335,7 @@ async fn user_profile_query(
 async fn user_groups_query(
     State(state): State<ApplicationState>,
     Path(id): Path<UserId>,
-) -> ApiResult<Vec<GroupViewContent>> {
+) -> ApiResult<Vec<GroupView>> {
     ApiResult::from_async_fn(|| async {
         let groups_view = state
             .user_groups_view_repository
@@ -360,7 +358,13 @@ async fn user_groups_query(
 
         Ok(results
             .into_iter()
-            .map(|view| view.unwrap().unwrap())
+            .flat_map(|view| {
+                let group = view.unwrap().into_created();
+                if group.is_none() {
+                    error!("Group not found");
+                }
+                group
+            })
             .collect())
     })
     .await
