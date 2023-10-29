@@ -21,6 +21,7 @@
     goto(`/tickets/${ticket.id}`)
   }
   const handleDestinationClick = () => {
+    // @ts-ignore
     if (ticket.destination.Group) {
       goto(`/groups/${destination}`)
     } else {
