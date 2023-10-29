@@ -1,5 +1,5 @@
 import type { PageLoad } from './$types'
-import type { TicketViewContent, ApiError } from 'backend'
+import type { TicketView, ApiError } from 'backend'
 import { Api } from 'backend'
 
 /*
@@ -8,7 +8,7 @@ import { Api } from 'backend'
 */
 type Hack = { status: 'ConnectionError', ticketId: string }
 type Data
-  = { status: 'Success', payload: TicketViewContent, users: Map<string, string>, ticketId: string }
+  = { status: 'Success', payload: TicketView, users: Map<string, string>, ticketId: string }
   | { status: 'Error', payload: ApiError, ticketId: string }
   | Hack
 
@@ -44,10 +44,8 @@ export const load: PageLoad<Data> = async ({ fetch, params }) => {
       const editPermissions = new Set<string>()
       let destinationField: string = ''
       const destination = result.payload.destination
-      // @ts-ignore
-      if (destination.Group) {
-        // @ts-ignore
-        const res = await api.getGroup(destination.Group)
+      if (destination.type === 'Group') {
+        const res = await api.getGroup(destination.id)
         if (res.status === 'Success') {
           res.payload.members.forEach(m => { editPermissions.add(m) })
           destinationField = res.payload.title
@@ -66,10 +64,8 @@ export const load: PageLoad<Data> = async ({ fetch, params }) => {
           console.error(res.payload)
         }
       } else {
-        // @ts-ignore
-        editPermissions.add(destination.User)
-        // @ts-ignore
-        const res = await api.getUserProfile(destination.User)
+        editPermissions.add(destination.id)
+        const res = await api.getUserProfile(destination.id)
         if (res.status === 'Success') {
           destinationField = res.payload.name
         }

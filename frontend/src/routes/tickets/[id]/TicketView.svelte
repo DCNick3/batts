@@ -1,7 +1,7 @@
 <script lang="ts">
   import { twMerge } from 'tailwind-merge'
   import { Api } from 'backend'
-  import type { TicketViewContent, UserView, TicketStatus } from 'backend'
+  import type { TicketView, UserView, TicketStatus } from 'backend'
   import { Timeline } from '$lib/components/Timeline'
   import StatusBadge from '$lib/components/StatusBadge.svelte'
   import Ticket from './Ticket.svelte'
@@ -11,7 +11,7 @@
   import A from '$lib/components/A.svelte'
   import Settings from '$lib/assets/Settings.svelte'
 
-  export let ticketView: TicketViewContent
+  export let ticketView: TicketView
   export let ticketId: string
   export let users: Map<string, string>
   export let editPermissions: Set<string>

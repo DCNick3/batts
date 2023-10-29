@@ -8,21 +8,17 @@
 	export let groups: Map<string, string>
 
   let destination: string
-  // @ts-ignore
-  if (ticket.destination.Group) {
-    // @ts-ignore
-    destination = groups.get(ticket.destination.Group) || 'No-one'
+  if (ticket.destination.type === 'Group') {
+    destination = groups.get(ticket.destination.id) || 'No-one'
   } else {
-    // @ts-ignore
-    destination = users.get(ticket.destination.User) || 'No-one'
+    destination = users.get(ticket.destination.id) || 'No-one'
   }
 
   const handleTicketClick = () => {
     goto(`/tickets/${ticket.id}`)
   }
   const handleDestinationClick = () => {
-    // @ts-ignore
-    if (ticket.destination.Group) {
+    if (ticket.destination.type === 'Group') {
       goto(`/groups/${destination}`)
     } else {
       goto(`/users/${destination}`)

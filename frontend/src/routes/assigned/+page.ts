@@ -16,10 +16,8 @@ export const load: PageLoad = async ({ fetch, parent }) => {
     if (result.status === 'Success') {
       assignedTickets = result.payload
       destinations = await Promise.all(assignedTickets.map(ticket => {
-        // @ts-ignore
-        if (ticket.destination.Group) {
-          // @ts-ignore
-          return api.getGroup(ticket.destination.Group).then(res => {
+        if (ticket.destination.type === 'Group') {
+          return api.getGroup(ticket.destination.id).then(res => {
             if (res.status === 'Success') {
               return res.payload.title
             } else {
@@ -27,8 +25,7 @@ export const load: PageLoad = async ({ fetch, parent }) => {
             }
           })
         } else {
-          // @ts-ignore
-          return api.getUserProfile(ticket.destination.User).then(res => {
+          return api.getUserProfile(ticket.destination.id).then(res => {
             if (res.status === 'Success') {
               return res.payload.name
             } else {

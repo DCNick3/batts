@@ -38,7 +38,7 @@
 
 		const api = new Api(fetch)
 		const newId = generateId()
-		const result = await api.createTicket(newId, { title: topic, body: description, destination: { Group: destination.id }})
+		const result = await api.createTicket(newId, { title: topic, body: description, destination: { type: 'Group', id: destination.id }})
 		// TODO: handle error
 		if (result.status === 'Success') {
 			goto(`/tickets/${newId}`)
