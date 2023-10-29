@@ -13,6 +13,7 @@
   import { getContext } from 'svelte'
 	import type { TicketDestination, UserView } from 'backend'
 	import { page } from '$app/stores'
+	import { TempName } from '$lib/components/TicketList'
 
 	const url = $page.url
 
@@ -42,7 +43,7 @@
 		if (result.status === 'Success') {
 			goto(`/tickets/${newId}`)
 		} else {
-			console.log(result.payload)
+			console.error(result.payload)
 		}
   }
 
@@ -86,7 +87,12 @@
 		<h1 class="mx-auto mt-10 text-xl font-semibold">You have no submitted requests</h1>
 	{:else}
 		<h1 class="mx-auto mt-10 text-xl font-semibold">Submitted requests</h1>
-		<TicketList tickets={data.requests} />
+		<TempName
+			tickets={data.requests.map(([a,_]) => a)}
+			users={new Map()}
+			groups={new Map()}
+		/>
+		<div class="w-1 h-1 mt-10" />
 	{/if}
 {/if}
 
