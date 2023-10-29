@@ -11,7 +11,7 @@
 	import { SidePanel } from '$lib/components/SidePanel'
 
 	import type { LayoutData } from './$types'
-	import type { UserView } from 'backend'
+	import type { UserView, GroupView } from 'backend'
 	import { goto } from '$app/navigation';
 	export let data: LayoutData
 
@@ -19,8 +19,11 @@
 
 	const user = writable<null | UserView>()
 	$: user.set(data.user)
+	const userGroups = writable<GroupView[]>()
+	$: userGroups.set(data.userGroups)
 
 	setContext('user', user)
+	setContext('userGroups', userGroups)
 
 	const goToLogin = () => {
 		goto('/login')

@@ -1,6 +1,5 @@
 <script lang="ts">
   import { Drawer, CloseButton } from 'flowbite-svelte'
-  import NavLink from '$lib/components/NavLink.svelte'
   import { sineIn } from 'svelte/easing'
   import { twMerge } from 'tailwind-merge'
   import Content from './Content.svelte'
