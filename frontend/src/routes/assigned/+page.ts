@@ -2,38 +2,24 @@ import { getAssigneeRequests } from '$lib/mocks/database'
 import type { PageLoad } from './$types'
 import { requireAuth } from '$lib/utils'
 import { Api, type TicketListingViewExpandedItem } from 'backend'
+import { ticketDestToMaps } from '$lib/utils/api'
 
 export const load: PageLoad = async ({ fetch, parent }) => {
   await requireAuth(parent)
 
   const api = new Api(fetch)
   let assignedTickets: TicketListingViewExpandedItem[] = []
-  let destinations: string[] = []
+  let userMap = new Map<string,string>()
+  let groupMap = new Map<string,string>()
 
   try {
     const result = await api.getAssignedTickets()
 
     if (result.status === 'Success') {
       assignedTickets = result.payload
-      destinations = await Promise.all(assignedTickets.map(ticket => {
-        if (ticket.destination.type === 'Group') {
-          return api.getGroup(ticket.destination.id).then(res => {
-            if (res.status === 'Success') {
-              return res.payload.title
-            } else {
-              return 'No-one'
-            }
-          })
-        } else {
-          return api.getUserProfile(ticket.destination.id).then(res => {
-            if (res.status === 'Success') {
-              return res.payload.name
-            } else {
-              return 'No-one'
-            }
-          })
-        }
-      }))
+      const [users, groups] = await ticketDestToMaps(fetch, assignedTickets.map(t => t.destination))
+      userMap = users
+      groupMap = groups
     } else {
       // TODO error-handling
       console.error(result.payload.report)
@@ -43,5 +29,9 @@ export const load: PageLoad = async ({ fetch, parent }) => {
     console.error(error)
   }
 
-  return { tickets: assignedTickets.map((ticket, ind) => [ticket, destinations[ind]] as [TicketListingViewExpandedItem, string]) }
+  return {
+    tickets: assignedTickets,
+    userMap,
+    groupMap,
+  }
 }

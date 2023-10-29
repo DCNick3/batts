@@ -6,14 +6,13 @@
 		Textarea,
 	} from 'flowbite-svelte'
 	import AutoComplete from '$lib/components/AutoComplete.svelte'
-	import TicketList from '$lib/components/TicketList.svelte'
   import { goto } from '$app/navigation'
 	import type { PageData } from './$types'
 	import { Api, generateId } from 'backend'
   import { getContext } from 'svelte'
 	import type { TicketDestination, UserView } from 'backend'
 	import { page } from '$app/stores'
-	import { TempName } from '$lib/components/TicketList'
+	import { TicketList } from '$lib/components/TicketList'
 
 	const url = $page.url
 
@@ -83,16 +82,15 @@
 		<Button type="submit">Submit</Button>
 	</form>
 
-	{#if data.requests.length === 0}
+	{#if data.ownedTickets.length === 0}
 		<h1 class="mx-auto mt-10 text-xl font-semibold">You have no submitted requests</h1>
 	{:else}
 		<h1 class="mx-auto mt-10 text-xl font-semibold">Submitted requests</h1>
-		<TempName
-			tickets={data.requests.map(([a,_]) => a)}
-			users={new Map()}
-			groups={new Map()}
+		<TicketList
+			tickets={data.ownedTickets}
+			users={data.userMap}
+			groups={data.groupMap}
 		/>
 		<div class="w-1 h-1 mt-10" />
 	{/if}
 {/if}
-

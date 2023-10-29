@@ -1,1 +1,1 @@
-export { default as TempName } from './TicketList.svelte'
+export { default as TicketList } from './TicketList.svelte'
