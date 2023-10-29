@@ -50,6 +50,10 @@
 
 </script>
 
+<svelte:head>
+	<title>Main</title>
+</svelte:head>
+
 {#if $user !== null}
 	<form
 		on:submit|preventDefault={submit}

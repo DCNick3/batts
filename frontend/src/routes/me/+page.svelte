@@ -34,6 +34,10 @@
   }
 </script>
 
+<svelte:head>
+  <title>{$user === null ? 'User Profile' : $user.name}</title>
+</svelte:head>
+
 {#if $user === null}
   <!-- TODO: throw 404 page? -->
   <div>User Not Found</div>

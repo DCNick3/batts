@@ -6,6 +6,10 @@
 
 </script>
 
+<svelte:head>
+	<title>Assigned tickets</title>
+</svelte:head>
+
 {#if data.tickets.length === 0}
 	<h1 class="mx-auto mt-10 text-xl font-semibold">There are no tickets yet</h1>
 {:else}	

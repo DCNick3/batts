@@ -6,6 +6,12 @@
   export let data: PageData
 </script>
 
+<svelte:head>
+  {#if data.status === 'Success'}
+    <title>{data.payload.title}</title>
+  {/if}
+</svelte:head>
+
 {#if data.status === "Success"}
   <TicketView
     ticketView={data.payload}

@@ -5,6 +5,10 @@
   export let data: PageData
 </script>
 
+<svelte:head>
+  <title>{data.userProfile === null ? 'User Profile' : data.userProfile.name}</title>
+</svelte:head>
+
 {#if data.userProfile === null}
   <!-- TODO: throw 404 page? -->
   <div>User Not Found</div>
