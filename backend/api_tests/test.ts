@@ -125,7 +125,7 @@ test("create_ticket", async () => {
     const ticketId = generateId();
 
     unwrap(await api.createTicket(ticketId, {
-        destination: { Group: itDepartment },
+        destination: { type: "Group", id: itDepartment },
         title: "Everything is broken",
         body: "I can't do anything",
     }));
@@ -146,10 +146,8 @@ test("create_ticket", async () => {
     expect(myTickets[0].id).toBe(ticketId);
     expect(myTickets[0].title).toBe("Everything is broken");
     expect(myTickets[0].status).toBe("Pending");
-    expect(myTickets[0].destination.hasOwnProperty("Group")).toBe(true);
-    if ("Group" in myTickets[0].destination) {
-        expect(myTickets[0].destination.Group).toBe(itDepartment);
-    }
+    expect(myTickets[0].destination.type).toBe("Group");
+    expect(myTickets[0].destination.id).toBe(itDepartment);
     expect(myTickets[0].owner).toBe(userId);
     expect(myTickets[0].assignee).toBe(null);
 })
@@ -161,7 +159,7 @@ test("assign_ticket", async () => {
 
     unwrap(await api.createTicket(ticketId, {
         // send ticket to self
-        destination: { User: userId },
+        destination: { type: "User", id: userId },
         title: "Everything is broken",
         body: "I can't do anything",
     }));
@@ -201,7 +199,7 @@ test("group_ticket_list", async() => {
     unwrap(await api.createGroup(groupId, {title: "Test group"}));
 
     unwrap(await api.createTicket(ticketId, {
-        destination: { Group: groupId },
+        destination: { type: "Group", id: groupId },
         title: "Everything is broken",
         body: "I can't do anything",
     }));
@@ -278,7 +276,7 @@ test("make_mock_tickets", async () => {
     await api2.internalFakeLogin(userId2);
 
     if ((await api1.createTicket(ticket1, {
-        destination: { Group: dormManager },
+        destination: { type: "Group", id: dormManager },
         title: "Broken chair",
         body: "Hello,\n\nI'm writing to you because the chair in the room 123 is broken. Please fix it.",
     })).status == "Success") {
@@ -291,22 +289,22 @@ test("make_mock_tickets", async () => {
     }
 
     await api1.createTicket(ticket2, {
-        destination: { Group: dormManager },
+        destination: { type: "Group", id: dormManager },
         title: "No internet",
         body: "Hello,\n\nI'm writing to you because there is no internet in the room 123. Please fix it.",
     });
     await api1.createTicket(ticket3, {
-        destination: { Group: dormManager },
+        destination: { type: "Group", id: dormManager },
         title: "Doorknob",
         body: "Hello,\n\nI'm writing to you because the doorknob in the room 123 is broken. Please fix it.",
     });
     await api1.createTicket(ticket4, {
-        destination: { Group: itDepartment },
+        destination: { type: "Group", id: itDepartment },
         title: "Broken bulb",
         body: "Hello,\n\nI'm writing to you because the light bulb in the room 123 is broken. Please fix it.",
     });
     await api1.createTicket(ticket5, {
-        destination: { Group: itDepartment },
+        destination: { type: "Group", id: itDepartment },
         title: "Dashboard broken",
         body: "Hello,\n\nI'm writing to you because the dashboard is broken. Please fix it.",
     });

@@ -271,8 +271,8 @@
       return await res.json();
     }
     async internalCreateUser(id, profile) {
-      let command = { type: "Create", profile };
-      return await this.#sendCommand(`/api/users/${id}`, command);
+      let command = { profile };
+      return await this.#sendCreateCommand(`/api/users/${id}`, command);
     }
     async internalFakeLogin(userId) {
       const res = await this.fetch(`/api/fake-login/${userId}`, {
@@ -306,8 +306,7 @@
       return await this.#sendCommand(`/api/groups/${id}`, command);
     }
     async createTicket(id, creation) {
-      let command = { type: "Create", ...creation };
-      return await this.#sendCommand(`/api/tickets/${id}`, command);
+      return await this.#sendCreateCommand(`/api/tickets/${id}`, creation);
     }
     async getTicket(id) {
       return await this.#get(`/api/tickets/${id}`);

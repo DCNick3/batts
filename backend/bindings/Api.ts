@@ -2,22 +2,21 @@ import type {
     ApiResult,
     FetchFn,
     UserId,
-    UserCommand,
+    CreateUser,
     UserView,
     UserProfileView,
     ExternalUserProfile,
     TicketId,
     CreateTicket,
     SendTicketMessage,
-    TicketCommand,
-    TicketViewContent,
+    TicketView,
     TicketListingViewExpandedItem,
     TicketStatus,
     TelegramLoginData,
     CreateGroup,
+    UpdateGroup,
     GroupView,
-    GroupId,
-    GroupCommand,
+    GroupId, UpdateTicket,
 } from "../";
 
 // import { toDates, toDatesByArray } from 'ts-transformer-dates';
@@ -61,8 +60,8 @@ export class Api {
     }
 
     async internalCreateUser(id: UserId, profile: ExternalUserProfile): Promise<ApiResult<null>> {
-        let command: UserCommand = {type: "Create", profile};
-        return await this.#sendCommand(`/api/users/${id}`, command);
+        let command: CreateUser = {profile};
+        return await this.#sendCreateCommand(`/api/users/${id}`, command);
     }
 
     async internalFakeLogin(userId: UserId): Promise<ApiResult<null>> {
@@ -101,16 +100,15 @@ export class Api {
     }
 
     async addGroupMember(id: GroupId, new_member: UserId): Promise<ApiResult<null>> {
-        let command: GroupCommand = {type: "AddMember", new_member};
+        let command: UpdateGroup = {type: "AddMember", new_member};
         return await this.#sendCommand(`/api/groups/${id}`, command);
     }
 
     async createTicket(id: TicketId, creation: CreateTicket): Promise<ApiResult<null>> {
-        let command: TicketCommand = {type: "Create", ...creation};
-        return await this.#sendCommand(`/api/tickets/${id}`, command);
+        return await this.#sendCreateCommand(`/api/tickets/${id}`, creation);
     }
 
-    async getTicket(id: TicketId): Promise<ApiResult<TicketViewContent>> {
+    async getTicket(id: TicketId): Promise<ApiResult<TicketView>> {
         return await this.#get(`/api/tickets/${id}`);
     }
 
@@ -123,17 +121,17 @@ export class Api {
     }
 
     async sendTicketMessage(id: TicketId, message: SendTicketMessage): Promise<ApiResult<null>> {
-        let command: TicketCommand = {type: "SendTicketMessage", ...message};
+        let command: UpdateTicket = {type: "SendTicketMessage", ...message};
         return await this.#sendCommand(`/api/tickets/${id}`, command);
     }
 
     async changeTicketStatus(id: TicketId, new_status: TicketStatus): Promise<ApiResult<null>> {
-        let command: TicketCommand = {type: "ChangeStatus", new_status};
+        let command: UpdateTicket = {type: "ChangeStatus", new_status};
         return await this.#sendCommand(`/api/tickets/${id}`, command);
     }
 
     async changeTicketAssignee(id: TicketId, new_assignee: UserId | null): Promise<ApiResult<null>> {
-        let command: TicketCommand = {type: "ChangeAssignee", new_assignee};
+        let command: UpdateTicket = {type: "ChangeAssignee", new_assignee};
         return await this.#sendCommand(`/api/tickets/${id}`, command);
     }
 }

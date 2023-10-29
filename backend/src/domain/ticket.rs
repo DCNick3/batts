@@ -148,6 +148,7 @@ pub enum TicketStatus {
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, TS, Serialize, Deserialize)]
+#[serde(tag = "type", content = "id")]
 #[ts(export)]
 pub enum TicketDestination {
     User(UserId),
