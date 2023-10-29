@@ -62,7 +62,7 @@ pub enum Error {
     /// Auth error
     Auth { source: crate::auth::AuthError },
     /// Login error
-    Login { source: crate::login::LoginError },
+    Login { source: crate::routes::LoginError },
     /// Error while manipulating a ticket
     Ticket {
         source: AggregateError<LifecycleError<TicketError>>,

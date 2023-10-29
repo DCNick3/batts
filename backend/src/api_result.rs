@@ -15,6 +15,7 @@ use tracing_opentelemetry_instrumentation_sdk as otel;
 pub struct ApiResult<T = ()>(pub Result<T, crate::error::Error>);
 
 impl<T> ApiResult<T> {
+    #[allow(unused)]
     pub fn ok(value: T) -> Self {
         Self(Ok(value))
     }
@@ -24,13 +25,9 @@ impl<T> ApiResult<T> {
     pub fn from_result(result: Result<T, crate::error::Error>) -> Self {
         Self(result)
     }
+    #[allow(unused)]
     pub fn from_fn(f: impl FnOnce() -> Result<T, crate::error::Error>) -> Self {
         Self::from_result(f())
-    }
-    pub async fn from_future(
-        f: impl std::future::Future<Output = Result<T, crate::error::Error>>,
-    ) -> Self {
-        Self::from_result(f.await)
     }
     pub async fn from_async_fn<Fn, Fut>(f: Fn) -> Self
     where

@@ -1,5 +1,6 @@
 use crate::api_result::ApiResult;
 use crate::auth::UserClaims;
+use crate::config::TelegramSecret;
 use crate::domain::user::{
     CreateUser, ExternalUserIdentity, ExternalUserProfile, TelegramLoginData, UserId,
 };
@@ -15,7 +16,6 @@ use cqrs_es::lifecycle::LifecycleCommand;
 use cqrs_es::persist::ViewRepository;
 use cqrs_es::Id;
 use hmac::{Hmac, Mac};
-use serde::Deserialize;
 use sha2::Sha256;
 use snafu::{ResultExt, Snafu};
 use std::cell::Cell;
@@ -39,7 +39,7 @@ impl ApiError for LoginError {
     }
 }
 
-pub async fn fake_login(
+pub async fn internal_fake_login(
     jar: CookieJar,
     State(state): State<ApplicationState>,
     Path(id): Path<UserId>,
@@ -72,17 +72,6 @@ pub async fn fake_login(
     .await;
 
     (jar.into_inner(), result)
-}
-
-/// Stores the sha256 of bot token. Used to verify the login data from telegram (see https://core.telegram.org/widgets/login).
-#[derive(Clone, Deserialize)]
-#[serde(transparent)]
-pub struct TelegramSecret(#[serde(with = "hex_serde")] pub [u8; 32]);
-
-impl Debug for TelegramSecret {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[REDACTED]")
-    }
 }
 
 fn validate_telegram_login(data: &TelegramLoginData, secret: &TelegramSecret) -> bool {

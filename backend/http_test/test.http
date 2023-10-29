@@ -20,11 +20,10 @@ GET {{url}}/
 POST {{url}}/
 
 ### Create a new user
-POST {{url}}/api/users/FDUeanyKADQEpyrydYn7XB
+PUT {{url}}/api/users/FDUeanyKADQEpyrydYn7XB
 Content-Type: application/json
 
 {
-  "type": "Create",
   "profile": {
     "type": "Telegram",
     "id": 123456,
@@ -50,11 +49,10 @@ Cookie: session=eyJhbGciOiJFZERTQSJ9.eyJleHAiOjE2OTY3MTA1NTcsImlhdCI6MTY5NjY5OTc
 GET {{url}}/api/users/FDUeanyKADQEpyrydYn7XB/profile
 
 ### Create a group
-POST {{url}}/api/groups/F2VaZtXgAKgxJncCbMbX9V
+PUT {{url}}/api/groups/F2VaZtXgAKgxJncCbMbX9V
 Content-Type: application/json
 
 {
-  "type": "Create",
   "title": "IT Department"
 }
 
@@ -62,14 +60,14 @@ Content-Type: application/json
 GET {{url}}/api/groups/F2VaZtXgAKgxJncCbMbX9V
 
 ### Create a ticket
-POST {{url}}/api/tickets/F2VaZtXgAKgxJncCbMbX9V
+PUT {{url}}/api/tickets/F2VaZtXgAKgxJncCbMbX9V
 Cookie: session=eyJhbGciOiJFZERTQSJ9.eyJleHAiOjE2OTY3MTA1NTcsImlhdCI6MTY5NjY5OTc1NywidXNlcl9pZCI6IkZEVWVhbnlLQURRRXB5cnlkWW43WEIiLCJuYW1lIjoiRWR3YXJkIFNub3dkZW4ifQ.wodYZRyBZMBwxeKqDrPJX2S6mKQwMBNH7Skb5GZeIBU53R3I08EOoTiytMXisqSV1bjPly4OqaCT2ZxkYGmCCw
 Content-Type: application/json
 
 {
-  "type": "Create",
   "destination": {
-    "Group": "F2VaZtXgAKgxJncCbMbX9V"
+    "type": "Group",
+    "id": "F2VaZtXgAKgxJncCbMbX9V"
   },
   "title": "Everything is broken",
   "body": "I can't log in to my account. Please help!"

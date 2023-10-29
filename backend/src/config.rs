@@ -1,6 +1,6 @@
-use crate::login::TelegramSecret;
 use serde::Deserialize;
 use snafu::{ResultExt, Whatever};
+use std::fmt::Debug;
 use std::net::SocketAddr;
 use std::time::Duration;
 
@@ -45,6 +45,17 @@ impl Config {
         config
             .try_deserialize()
             .whatever_context("Deserializing config structure failed")
+    }
+}
+
+/// Stores the sha256 of bot token. Used to verify the login data from telegram (see https://core.telegram.org/widgets/login).
+#[derive(Clone, Deserialize)]
+#[serde(transparent)]
+pub struct TelegramSecret(#[serde(with = "hex_serde")] pub [u8; 32]);
+
+impl Debug for TelegramSecret {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[REDACTED]")
     }
 }
 

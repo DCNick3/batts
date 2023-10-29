@@ -94,6 +94,8 @@ pub struct UserIdentities {
 }
 
 impl UserIdentities {
+    #[allow(unused)]
+    // maybe it will get used later, idk
     pub fn get_identities(&self) -> Vec<ExternalUserIdentity> {
         let mut identities = Vec::new();
         if let Some(telegram) = &self.telegram {
