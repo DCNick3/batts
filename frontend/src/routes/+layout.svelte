@@ -32,10 +32,12 @@
 	fluid
 >
 	<div class="flex gap-3">
-		<NavHamburger
-			class="sm:hidden"
-			on:click={() => { isHidden = !isHidden; console.log("ABOBA") }}
-		/>
+		{#if $user !== null}
+			<NavHamburger
+				class="sm:hidden"
+				on:click={() => { isHidden = !isHidden }}
+			/>
+		{/if}
 		<NavBrand
 			class="font-semibold"
 			href="/"
