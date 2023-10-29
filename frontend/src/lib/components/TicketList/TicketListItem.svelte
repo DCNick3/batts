@@ -50,7 +50,7 @@
 </div>
 
 <div
-  class="max-sm:hidden flex py-4 items-center border-x hover:bg-gray-50 last:rounded-b-md"
+  class="max-sm:hidden flex py-4 items-center border-x hover:bg-gray-50 last:rounded-b-md last:border-b"
   on:click={handleTicketClick}
 >
   <div class="w-20 px-3 mr-4">
