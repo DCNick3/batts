@@ -1,7 +1,10 @@
 [
   {
     "id": "SvjVbyfzzMmoMLUCf3HwSQ",
-    "destination": "ItDepartment",
+    "destination": {
+      "type": "Group",
+      "id": "ItDepartment"
+    },
     "owner": "K1HvQxt9kNw5CijEvP2s4d",
     "assignee": null,
     "title": "Dash",
@@ -9,7 +12,10 @@
   },
   {
     "id": "WE2w9CqNMki4kPmS1DPehA",
-    "destination": "DormManager",
+    "destination": {
+      "type": "Group",
+      "id": "DormManager"
+    },
     "owner": "K1HvQxt9kNw5CijEvP2s4d",
     "assignee": null,
     "title": "Aboba",

@@ -1,7 +1,8 @@
 {
   "id": "SvjVbyfzzMmoMLUCf3HwSQ",
   "destination": {
-    "Group": "ItDepartment"
+    "type": "Group",
+    "id": "ItDepartment"
   },
   "owner": "K1HvQxt9kNw5CijEvP2s4d",
   "assignee": null,
