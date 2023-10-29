@@ -6,10 +6,12 @@
   import StatusBadge from '$lib/components/StatusBadge.svelte'
   import Ticket from './Ticket.svelte'
   import { Button, Textarea } from 'flowbite-svelte'
+  import { Dropdown, DropdownItem } from 'flowbite-svelte'
   import { invalidateAll } from '$app/navigation'
   import { getContext } from 'svelte'
   import A from '$lib/components/A.svelte'
   import Settings from '$lib/assets/Settings.svelte'
+  import StatusOption from './StatusOption.svelte'
 
   export let ticketView: TicketView
   export let ticketId: string
@@ -110,35 +112,28 @@
   <!-- Status column -->
   <div class="max-sm:hidden flex flex-col gap-2 sm:gap-6 basis-1/4 sm:order-4">
     <div>
-      {#if canEdit}
-        <details>
-          <summary class="list-none flex items-center gap-6 text-zinc-600 hover:text-primary-700 transition hover:cursor-pointer">
-            <div class="font-semibold">Assigned To</div>
-            <Settings />
-          </summary>
-          <div class="absolute z-50 bg-white p-2 font-semibold text-sm border rounded-sm">
-            Set assignee
-            <div class="flex flex-col gap-1 font-normal text-sm mt-1 items-start">
-              {#each groupMembers as [id, name]}
-                <button
-                  on:click={() => handleSetAssignee(id)}
-                  class="hover:cursor-pointer hover:text-primary-600 transition"
-                >
-                  {name}
-                </button>
-              {/each}
-              <button
-                on:click={() => handleSetAssignee(null)}
-                class="hover:cursor-pointer hover:text-primary-600 transition"
-              >
-                Remove assignee
-              </button>
-            </div>
-          </div>
-        </details>
-      {:else}
-        <div class="font-semibold text-zinc-600">Assigned To</div>
-      {/if}
+      <StatusOption
+        canEdit={canEdit}
+        title="Assigned To"
+        header="Set assignee"
+      >
+        {#each groupMembers as [id, name]}
+          <DropdownItem>
+            <button
+              on:click={() => handleSetAssignee(id)}
+            >
+              {name}
+            </button>
+          </DropdownItem>
+        {/each}
+        <DropdownItem>
+          <button
+            on:click={() => handleSetAssignee(null)}
+          >
+            Remove Assignee
+          </button>
+        </DropdownItem>
+      </StatusOption>
       <div class="font-normal text-sm">{ticketView.assignee ? users.get(ticketView.assignee) : 'No-one'}</div>  
     </div>
 
@@ -153,28 +148,24 @@
     </div>
 
     <div>
-      {#if canEdit}
-        <details>
-          <summary class="list-none flex items-center gap-6 text-zinc-600 hover:text-primary-700 transition hover:cursor-pointer">
-            <div class="font-semibold">Status</div>
-            <Settings />
-          </summary>
-          <div class="absolute z-50 bg-white p-2 font-semibold text-sm border rounded-sm">
-            Set status to
-            <div class="flex flex-col gap-1 font-normal text-sm mt-1">
-              {#each ticketStatuses as [text, status]}
-                {#if status !== ticketView.status}
-                  <button on:click={() => handleStatusChange(status)}>
-                    <StatusBadge status={text} class="hover:cursor-pointer w-full" />
-                  </button>
-                {/if}
-              {/each}
-            </div>
-          </div>
-        </details>
-      {:else}
-        <div class="font-semibold text-zinc-600">Status</div>
-      {/if}
+      <StatusOption
+        canEdit={canEdit}
+        title="Status"
+        header="Set status to"
+      >
+        {#each ticketStatuses as [text, status]}
+          {#if status !== ticketView.status}
+            <DropdownItem>
+              <button
+                class="w-full"
+                on:click={() => handleStatusChange(status)}
+              >
+                <StatusBadge status={text} class="hover:cursor-pointer w-full" />
+              </button>
+            </DropdownItem>
+          {/if}
+        {/each}
+      </StatusOption>
       <StatusBadge status={ticketView.status} />
     </div>
   </div>
