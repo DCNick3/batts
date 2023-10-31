@@ -72,6 +72,7 @@ pub enum UpdateTicket {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct TicketCreated {
+    date: DateTime<Utc>,
     destination: TicketDestination,
     owner: UserId,
     title: String,
@@ -270,6 +271,8 @@ impl LifecycleAggregate for Ticket {
         _service: &Self::Services,
     ) -> Result<(Self::CreateEvent, Vec<Self::UpdateEvent>), Self::Error> {
         let created = TicketCreated {
+            // TODO: make this external maybe? Unit testing is hard otherwise...
+            date: Utc::now(),
             destination,
             owner: user_id,
             title,
@@ -337,6 +340,7 @@ impl LifecycleAggregate for Ticket {
 
     fn apply_create(
         TicketCreated {
+            date: _,
             title,
             destination,
             owner,
@@ -386,12 +390,15 @@ pub struct TicketView {
     pub title: String,
     pub status: TicketStatus,
     pub timeline: Vec<TicketTimelineItem>,
+    #[ts(type = "string")]
+    pub latest_update: DateTime<Utc>,
 }
 
 impl LifecycleView for TicketView {
     type Aggregate = Ticket;
     fn create(event: CreateEnvelope<'_, Self::Aggregate>) -> Self {
         let TicketCreated {
+            date,
             destination,
             owner,
             ref title,
@@ -405,6 +412,7 @@ impl LifecycleView for TicketView {
             title: title.clone(),
             status: TicketStatus::Pending,
             timeline: vec![],
+            latest_update: date,
         }
     }
 
@@ -422,6 +430,7 @@ impl LifecycleView for TicketView {
                         text: text.clone(),
                     },
                 });
+                self.latest_update = date;
             }
             TicketUpdated::StatusChanged {
                 date,
@@ -436,6 +445,7 @@ impl LifecycleView for TicketView {
                         new: new_status,
                     },
                 });
+                self.latest_update = date;
             }
             TicketUpdated::AssigneeChanged {
                 date,
@@ -450,6 +460,7 @@ impl LifecycleView for TicketView {
                         new: new_assignee,
                     },
                 });
+                self.latest_update = date;
             }
         }
     }
@@ -464,6 +475,8 @@ pub struct TicketListingViewExpandedItem {
     pub assignee: Option<UserId>,
     pub title: String,
     pub status: TicketStatus,
+    #[ts(type = "string")]
+    pub latest_update: DateTime<Utc>,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]

@@ -10,6 +10,7 @@ use crate::view_repositry_ext::LifecycleViewRepositoryExt;
 use axum::extract::State;
 use cqrs_es::lifecycle::LifecycleCommand;
 use cqrs_es::persist::ViewRepository;
+use itertools::Itertools;
 use snafu::ResultExt;
 
 pub async fn query(
@@ -89,8 +90,11 @@ pub async fn expand_ticket_listing_view(
                 assignee: view.assignee,
                 title: view.title,
                 status: view.status,
+                latest_update: view.latest_update,
             }
         })
+        .sorted_by_key(|v| v.latest_update)
+        .rev()
         .collect())
 }
 
