@@ -39,7 +39,7 @@
   let state: State = 'Ok'
   let messageField: string = ''
   let errorMessage: string = ''
-  const ticketStatuses: [string, TicketStatus][] = [['Pending', 'Pending'], ['In Progress', 'InProgress'], ['Fixed', 'Fixed'], ['Declined', 'Declined']]
+  const ticketStatuses: TicketStatus[] = ['Pending', 'InProgress', 'Fixed', 'Declined']
 
   const user = getContext<SvelteStore<null | UserView>>('user')
 
@@ -170,14 +170,14 @@
         title="Status"
         header="Set status to"
       >
-        {#each ticketStatuses as [text, status]}
+        {#each ticketStatuses as status}
           {#if status !== ticketView.status}
             <DropdownItem>
               <button
                 class="w-full"
                 on:click={() => handleStatusChange(status)}
               >
-                <StatusBadge status={text} class="hover:cursor-pointer w-full" />
+                <StatusBadge status={status} class="hover:cursor-pointer w-full" />
               </button>
             </DropdownItem>
           {/if}

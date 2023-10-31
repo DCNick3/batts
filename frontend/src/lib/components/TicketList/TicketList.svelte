@@ -11,7 +11,7 @@
 
 <div class="flex flex-col gap-2 sm:gap-0">
 	<div class="max-sm:hidden flex whitespace-nowrap text-xs uppercase text-gray-700 bg-gray-50 font-semibold rounded-t-md border-x border-t">
-		<div class="w-24 px-6 py-3">Status</div>
+		<div class="w-32 px-6 py-3">Status</div>
 		<div class="w-60 px-6 py-3">Submitted To</div>
 		<div class="w-fit py-3">Topic</div>
 	</div>

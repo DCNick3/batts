@@ -61,7 +61,7 @@
   class="max-sm:hidden flex py-4 items-center border-x hover:bg-gray-50 last:rounded-b-md last:border-b"
   on:click={handleTicketClick}
 >
-  <div class="w-20 px-3 mr-4">
+  <div class="w-28 px-3 mr-4">
     <StatusBadge status={ticket.status}/>
   </div>
   <div
