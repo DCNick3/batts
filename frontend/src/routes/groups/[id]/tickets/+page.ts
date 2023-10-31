@@ -1,4 +1,5 @@
-import { Api, type GroupView } from 'backend'
+import { Api } from 'backend'
+import type { GroupView, TicketListingViewExpandedItem, WithGroupsAndUsers } from 'backend'
 import type { PageLoad } from './$types'
 import { redirect } from '@sveltejs/kit'
 
@@ -13,6 +14,7 @@ export const load: PageLoad = async ({ fetch, params, parent }) => {
   }
 
   let group: null | GroupView = null
+  let groupTickets: WithGroupsAndUsers<TicketListingViewExpandedItem[]> = { users: {}, groups: {}, payload: [] }
 
   try {
     const result = await api.getGroup(params.id)
@@ -20,6 +22,10 @@ export const load: PageLoad = async ({ fetch, params, parent }) => {
     if (result.status === 'Success') {
       // NOTE: we actually have a list of users here, we just don't use it yet
       group = result.payload.payload
+      const response = await api.getGroupTickets(group.id)
+      if (response.status === 'Success') {
+        groupTickets = response.payload
+      }
     } else {
       // TODO: error handling
       console.error(result.payload)
@@ -29,5 +35,5 @@ export const load: PageLoad = async ({ fetch, params, parent }) => {
     console.error(error)
   }
 
-  return { group }
+  return { group, groupTickets }
 }
