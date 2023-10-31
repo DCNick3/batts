@@ -63,6 +63,8 @@ pub enum Error {
     Auth { source: crate::auth::AuthError },
     /// Login error
     Login { source: crate::routes::LoginError },
+    /// Upload error
+    Upload { source: crate::routes::UploadError },
     /// Error while manipulating a ticket
     Ticket {
         source: AggregateError<LifecycleError<TicketError>>,
@@ -91,6 +93,7 @@ impl ApiError for Error {
             Error::Persistence { .. } => StatusCode::INTERNAL_SERVER_ERROR,
             Error::Auth { source } => source.status_code(),
             Error::Login { source } => source.status_code(),
+            Error::Upload { source } => source.status_code(),
             Error::Ticket { source } => source.status_code(),
             Error::Group { source } => source.status_code(),
             Error::User { source } => source.status_code(),

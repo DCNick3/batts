@@ -17,7 +17,9 @@ futures-core = "0.3.28"
 futures-util = "0.3.28"
 pin-project-lite = "0.2.13"
 
-rust-s3 = "0.33.0"
+# RC for presigned post support
+rust-s3 = "0.34.0-rc1"
+camino = "1.1.6"
 
 snafu = "0.7.5"
 

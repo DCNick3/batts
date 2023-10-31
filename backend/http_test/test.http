@@ -97,3 +97,26 @@ Content-Type: application/json
     "auth_date": 1697473082,
     "hash": "922e211defd4965842f14a93c93c36ec03c6310cc6cc633f8036390e94e6935a"
 }
+
+### Initiate a file upload
+POST {{url}}/api/upload/initiate
+Content-Type: application/json
+
+{
+    "filename": "test.txt",
+    "content_type": "text/plain",
+    "size": 85
+}
+
+> {%
+    const rq = response.body.payload;
+
+    let command = `curl -v -X POST ${rq.url} \\\n`;
+    for (field in rq.fields) {
+        command += `    -F "${field}=${rq.fields[field]}" \\\n`;
+    }
+
+    command += `    -F file=@test.txt`;
+
+    client.log(command);
+%}

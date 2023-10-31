@@ -1,6 +1,7 @@
 mod group;
 mod login;
 mod ticket;
+mod upload;
 mod user;
 
 use crate::state::ApplicationState;
@@ -10,7 +11,9 @@ use tracing::warn;
 
 use crate::api_result::ApiResult;
 use crate::error::Error;
+
 pub use login::LoginError;
+pub use upload::{UploadError, UploadPolicy, UploadState};
 
 pub fn make_api_router(config: &crate::config::Routes) -> Router<ApplicationState> {
     let mut router = Router::new();
@@ -39,6 +42,8 @@ pub fn make_api_router(config: &crate::config::Routes) -> Router<ApplicationStat
         .route("/users/:id/groups", get(user::groups_query));
 
     router = router.route("/login/telegram", post(login::telegram_login));
+
+    router = router.route("/upload/initiate", post(upload::initiate));
 
     if config.expose_internal {
         warn!("Running with internal routes exposed. DO NOT USE IN PRODUCTION!");

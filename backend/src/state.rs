@@ -7,6 +7,7 @@ use crate::domain::ticket::{
 };
 use crate::domain::user::{IdentityQuery, IdentityView, UserAggregate, UserServices, UserView};
 use crate::memory_view_repository::MemViewRepository;
+use crate::routes::UploadState;
 use cqrs_es::lifecycle::{LifecycleQuery, LifecycleViewState};
 use cqrs_es::mem_store::MemStore;
 use cqrs_es::CqrsFramework;
@@ -26,7 +27,7 @@ pub struct ApplicationState {
     pub cookie_authority: CookieAuthority,
     pub telegram_login_secret: Option<TelegramSecret>,
 
-    pub user_content_s3: Option<s3::Bucket>,
+    pub upload: Option<UploadState>,
 
     pub group_view_repository: Arc<MyLifecycleViewRepository<GroupView>>,
     pub user_groups_view_repository: Arc<MyViewRepository<UserGroupsView>>,
@@ -58,7 +59,9 @@ pub async fn new_application_state(config: &crate::config::Config) -> Applicatio
         chrono::Duration::from_std(config.auth.token_duration).unwrap(),
     );
 
-    let user_content_s3 = config.s3.as_ref().map(|s3| {
+    let upload = config.upload.as_ref().map(|upload| {
+        let s3 = &upload.s3;
+
         let region = s3::Region::Custom {
             region: "us-east1".to_owned(),
             endpoint: s3.endpoint.clone(),
@@ -70,7 +73,14 @@ pub async fn new_application_state(config: &crate::config::Config) -> Applicatio
             session_token: None,
             expiration: None,
         };
-        s3::Bucket::new(&s3.bucket, region, credentials).expect("Failed to create S3 bucket")
+        let bucket = s3::Bucket::new(&s3.bucket, region, credentials)
+            .expect("Failed to create S3 bucket")
+            .with_path_style();
+
+        UploadState {
+            bucket,
+            policy: upload.policy.clone(),
+        }
     });
 
     let group_view_repository = Arc::new(MyLifecycleViewRepository::<GroupView>::new());
@@ -143,7 +153,7 @@ pub async fn new_application_state(config: &crate::config::Config) -> Applicatio
     ApplicationState {
         cookie_authority: authority,
         telegram_login_secret: config.auth.telegram_secret.clone(),
-        user_content_s3,
+        upload,
 
         ticket_view_repository,
         ticket_owner_listing_view_repository,

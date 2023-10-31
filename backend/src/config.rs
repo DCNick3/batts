@@ -1,3 +1,4 @@
+use crate::routes::UploadPolicy;
 use serde::Deserialize;
 use snafu::{ResultExt, Whatever};
 use std::fmt::Debug;
@@ -9,7 +10,7 @@ pub struct Config {
     pub server: Server,
     pub routes: Routes,
     pub auth: Auth,
-    pub s3: Option<S3Config>,
+    pub upload: Option<Upload>,
 }
 
 impl Config {
@@ -74,6 +75,12 @@ pub struct Routes {
 #[derive(Deserialize, Clone, Debug)]
 pub struct Server {
     pub endpoint: SocketAddr,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct Upload {
+    pub policy: UploadPolicy,
+    pub s3: S3Config,
 }
 
 #[derive(Deserialize, Clone, Debug)]
