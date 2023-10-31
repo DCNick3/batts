@@ -17,17 +17,15 @@
     ticketView={data.ticket}
     ticketId={data.ticketId}
     users={data.users}
+    groups={data.groups}
     editPermissions={data.editPermissions}
-    destination={data.destinationField}
-    groupMembers={data.groupMembers}
   />
 {:else if data.status === "Error"}
   <!-- Inform user on error -->
   <h1 class="text-2xl font-semibold text-center">Could not load ticket</h1>
-  <p>{data.payload.report}. <A on:click={() => window.history.back()} href="/">Go back</A></p>
+  <p>{data.payload.report}. <A href="/">Go to main</A></p>
 {:else}
   <!-- Inform user on error -->
   <h1 class="text-2xl font-semibold text-center">Could not load ticket</h1>
-  <p>Could not connect to the server. <A on:click={() => window.history.back()} href="/">Go back</A></p>
+  <p>Could not connect to the server. <A href="/">Go to main</A></p>
 {/if}
-

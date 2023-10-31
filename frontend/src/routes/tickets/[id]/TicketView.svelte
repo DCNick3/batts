@@ -1,7 +1,7 @@
 <script lang="ts">
   import { twMerge } from 'tailwind-merge'
   import { Api } from 'backend'
-  import type { TicketView, UserView, TicketStatus } from 'backend'
+  import type { TicketView, UserView, TicketStatus, UserId, UserProfileView, GroupId, GroupProfileView } from 'backend'
   import { Timeline } from '$lib/components/Timeline'
   import StatusBadge from '$lib/components/StatusBadge.svelte'
   import Ticket from './Ticket.svelte'
@@ -14,10 +14,26 @@
 
   export let ticketView: TicketView
   export let ticketId: string
-  export let users: Map<string, string>
+  export let users: Record<UserId, UserProfileView>
+  export let groups: Record<GroupId, GroupProfileView>
   export let editPermissions: Set<string>
-  export let destination: string
-  export let groupMembers: Map<string, string>
+
+  $: getUsr = (id: UserId) => {
+    const usr = users[id]
+    if (usr) {
+      return usr.name
+    } else {
+      return null
+    }
+  }
+  $: getGrp = (id: GroupId) => {
+    const grp = groups[id]
+    if (grp) {
+      return grp.title
+    } else {
+      return null
+    }
+  }
 
   type State = 'Sending' | 'Ok' | 'Error'
   let state: State = 'Ok'
@@ -100,7 +116,7 @@
       <div class="font-normal text-sm">{ticketView.destination}</div>  
 
       <div class="font-semibold text-zinc-600">Requested By</div>
-      <div class="font-normal text-sm">{users.get(ticketView.owner) || "Unknown User"}</div>
+      <div class="font-normal text-sm">{getUsr(ticketView.owner) || "Unknown User"}</div>
 
       <div class="font-semibold text-zinc-600">Status</div>
       <div>
@@ -116,12 +132,12 @@
         title="Assigned To"
         header="Set assignee"
       >
-        {#each groupMembers as [id, name]}
+        {#each Object.entries(groups) as [id, { title }]}
           <DropdownItem>
             <button
               on:click={() => handleSetAssignee(id)}
             >
-              {name}
+              {title}
             </button>
           </DropdownItem>
         {/each}
@@ -133,17 +149,19 @@
           </button>
         </DropdownItem>
       </StatusOption>
-      <div class="font-normal text-sm">{ticketView.assignee ? users.get(ticketView.assignee) : 'No-one'}</div>  
+      <div class="font-normal text-sm">{getUsr(ticketView.assignee || '') || 'No-one'}</div>  
     </div>
 
     <div>
       <div class="font-semibold text-zinc-600">Submitted To</div>
-      <div class="font-normal text-sm">{destination}</div>  
+      <div class="font-normal text-sm">
+        {ticketView.destination.type === 'User' ? getUsr(ticketView.destination.id) : getGrp(ticketView.destination.id)}
+      </div>
     </div>
 
     <div>
       <div class="font-semibold text-zinc-600">Requested By</div>
-      <div class="font-normal text-sm">{users.get(ticketView.owner) || "Unknown User"}</div>
+      <div class="font-normal text-sm">{getUsr(ticketView.owner) || "Unknown User"}</div>
     </div>
 
     <div>

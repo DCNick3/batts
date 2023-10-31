@@ -1,5 +1,5 @@
 import { redirect } from '@sveltejs/kit'
-import { Api } from 'backend'
+import { Api, type GroupView } from 'backend'
 import type { PageLoad } from './$types'
 
 export const load: PageLoad = async ({ fetch, params, parent }) => {
@@ -15,19 +15,19 @@ export const load: PageLoad = async ({ fetch, params, parent }) => {
     if (response.status === 'Success') {
       return {
         userProfile: result.payload,
-        userGroups: response.payload
+        userGroups: response.payload.payload
       }
     } else {
       // TODO: error handling
       console.error(response.payload)
       return {
         userProfile: result.payload,
-        userGroups: []
+        userGroups: [] as GroupView[]
       }
     }
   } else {
     // TODO: error handling
     console.error(result.payload)
-    return { userProfile: null, userGroups: [] }
+    return { userProfile: null, userGroups: [] as GroupView[] }
   }
 }

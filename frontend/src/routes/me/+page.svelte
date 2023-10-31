@@ -46,7 +46,7 @@
 
   <UserProfile
     user={$user}
-    groups={data.groups}
+    groups={data.userGroups}
   >
     <svelte:fragment slot="first-col">
       <h1 class="mb-2 font-semibold text-xl">Connected accounts</h1>
