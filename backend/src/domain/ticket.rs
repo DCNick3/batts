@@ -1,6 +1,7 @@
 use crate::auth::Authenticated;
 use crate::domain::group::{GroupId, GroupView};
 use crate::domain::user::UserId;
+use crate::domain::CollectIds;
 use crate::error::ApiError;
 use crate::view_repositry_ext::ViewRepositoryExt;
 use async_trait::async_trait;
@@ -165,6 +166,24 @@ impl Display for TicketDestination {
     }
 }
 
+impl CollectIds<UserId> for TicketDestination {
+    fn collect_ids(&self, user_ids: &mut HashSet<UserId>) {
+        let TicketDestination::User(user) = *self else {
+            return;
+        };
+        user_ids.insert(user);
+    }
+}
+
+impl CollectIds<GroupId> for TicketDestination {
+    fn collect_ids(&self, group_ids: &mut HashSet<GroupId>) {
+        let TicketDestination::Group(group) = *self else {
+            return;
+        };
+        group_ids.insert(group);
+    }
+}
+
 #[derive(Debug, Clone, Eq, PartialEq, TS, Serialize, Deserialize)]
 #[ts(export)]
 #[serde(tag = "type")]
@@ -183,12 +202,53 @@ pub enum TicketTimelineItemContent {
     },
 }
 
+impl CollectIds<UserId> for TicketTimelineItemContent {
+    fn collect_ids(&self, user_ids: &mut HashSet<UserId>) {
+        match self {
+            TicketTimelineItemContent::Message { from, .. } => {
+                user_ids.insert(*from);
+            }
+            TicketTimelineItemContent::StatusChange { .. } => {}
+            TicketTimelineItemContent::AssigneeChange { old, new } => {
+                if let Some(old) = old {
+                    user_ids.insert(*old);
+                }
+                if let Some(new) = new {
+                    user_ids.insert(*new);
+                }
+            }
+        }
+    }
+}
+
+impl CollectIds<GroupId> for TicketTimelineItemContent {
+    fn collect_ids(&self, _group_ids: &mut HashSet<GroupId>) {
+        match self {
+            TicketTimelineItemContent::Message { .. } => {}
+            TicketTimelineItemContent::StatusChange { .. } => {}
+            TicketTimelineItemContent::AssigneeChange { .. } => {}
+        }
+    }
+}
+
 #[derive(Debug, Clone, Eq, PartialEq, TS, Serialize, Deserialize)]
 #[ts(export)]
 pub struct TicketTimelineItem {
     #[ts(type = "string")]
     date: DateTime<Utc>,
     content: TicketTimelineItemContent,
+}
+
+impl CollectIds<UserId> for TicketTimelineItem {
+    fn collect_ids(&self, user_ids: &mut HashSet<UserId>) {
+        self.content.collect_ids(user_ids);
+    }
+}
+
+impl CollectIds<GroupId> for TicketTimelineItem {
+    fn collect_ids(&self, group_ids: &mut HashSet<GroupId>) {
+        self.content.collect_ids(group_ids);
+    }
 }
 
 pub struct TicketServices {
@@ -466,6 +526,28 @@ impl LifecycleView for TicketView {
     }
 }
 
+impl CollectIds<UserId> for TicketView {
+    fn collect_ids(&self, user_ids: &mut HashSet<UserId>) {
+        self.destination.collect_ids(user_ids);
+        user_ids.insert(self.owner);
+        if let Some(assignee) = self.assignee {
+            user_ids.insert(assignee);
+        }
+        for item in &self.timeline {
+            item.collect_ids(user_ids);
+        }
+    }
+}
+
+impl CollectIds<GroupId> for TicketView {
+    fn collect_ids(&self, group_ids: &mut HashSet<GroupId>) {
+        self.destination.collect_ids(group_ids);
+        for item in &self.timeline {
+            item.collect_ids(group_ids);
+        }
+    }
+}
+
 #[derive(Debug, Clone, TS, Serialize, Deserialize)]
 #[ts(export)]
 pub struct TicketListingViewExpandedItem {
@@ -477,6 +559,22 @@ pub struct TicketListingViewExpandedItem {
     pub status: TicketStatus,
     #[ts(type = "string")]
     pub latest_update: DateTime<Utc>,
+}
+
+impl CollectIds<UserId> for TicketListingViewExpandedItem {
+    fn collect_ids(&self, user_ids: &mut HashSet<UserId>) {
+        self.destination.collect_ids(user_ids);
+        user_ids.insert(self.owner);
+        if let Some(assignee) = self.assignee {
+            user_ids.insert(assignee);
+        }
+    }
+}
+
+impl CollectIds<GroupId> for TicketListingViewExpandedItem {
+    fn collect_ids(&self, group_ids: &mut HashSet<GroupId>) {
+        self.destination.collect_ids(group_ids);
+    }
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]

@@ -18,7 +18,8 @@ export const load: PageLoad = async ({ fetch, params, parent }) => {
     const result = await api.getGroup(params.id)
 
     if (result.status === 'Success') {
-      group = result.payload
+      // NOTE: we actually have a list of users here, we just don't use it yet
+      group = result.payload.payload
     } else {
       // TODO: error handling
       console.error(result.payload)

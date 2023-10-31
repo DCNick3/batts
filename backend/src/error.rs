@@ -79,6 +79,8 @@ pub enum Error {
     },
     /// The requested object was not found
     NotFound,
+    /// Inconsistency in the database: a related item was not found
+    RelatedItemNotFound,
     /// Could not find a route for the request
     RouteNotFound,
     /// Internal error
@@ -98,6 +100,7 @@ impl ApiError for Error {
             Error::Group { source } => source.status_code(),
             Error::User { source } => source.status_code(),
             Error::NotFound => StatusCode::NOT_FOUND,
+            Error::RelatedItemNotFound => StatusCode::INTERNAL_SERVER_ERROR,
             Error::RouteNotFound => StatusCode::NOT_FOUND,
             Error::Whatever { .. } => StatusCode::INTERNAL_SERVER_ERROR,
         }

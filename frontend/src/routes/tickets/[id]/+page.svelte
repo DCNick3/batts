@@ -8,13 +8,13 @@
 
 <svelte:head>
   {#if data.status === 'Success'}
-    <title>{data.payload.title}</title>
+    <title>{data.ticket.title}</title>
   {/if}
 </svelte:head>
 
 {#if data.status === "Success"}
   <TicketView
-    ticketView={data.payload}
+    ticketView={data.ticket}
     ticketId={data.ticketId}
     users={data.users}
     editPermissions={data.editPermissions}

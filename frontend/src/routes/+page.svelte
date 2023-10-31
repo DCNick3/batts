@@ -10,7 +10,7 @@
 	import type { PageData } from './$types'
 	import { Api, generateId } from 'backend'
   import { getContext } from 'svelte'
-	import type { TicketDestination, UserView } from 'backend'
+	import type { UserView } from 'backend'
 	import { page } from '$app/stores'
 	import { TicketList } from '$lib/components/TicketList'
 

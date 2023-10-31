@@ -8,6 +8,10 @@ export type { ApiError, ApiResult } from './bindings/ApiResult';
 
 export type { TelegramLoginData } from './bindings/TelegramLoginData';
 
+export type { WithGroups } from './bindings/WithGroups';
+export type { WithUsers } from './bindings/WithUsers';
+export type { WithGroupsAndUsers } from './bindings/WithGroupsAndUsers';
+
 export type { UserId } from './bindings/UserId';
 export type { UserIdentities } from './bindings/UserIdentities';
 export type { UserProfile } from './bindings/UserProfile';
@@ -20,6 +24,7 @@ export type { ExternalUserProfile } from './bindings/ExternalUserProfile';
 
 export type { GroupId } from './bindings/GroupId';
 export type { GroupView } from './bindings/GroupView';
+export type { GroupProfileView } from './bindings/GroupProfileView';
 export type { UpdateGroup } from './bindings/UpdateGroup';
 export type { CreateGroup } from './bindings/CreateGroup';
 export type { AddGroupMember } from './bindings/AddGroupMember';
@@ -36,3 +41,8 @@ export type { UpdateTicket } from './bindings/UpdateTicket';
 export type { SendTicketMessage } from './bindings/SendTicketMessage';
 export type { ChangeStatus } from './bindings/ChangeStatus';
 export type { ChangeAssignee } from './bindings/ChangeAssignee';
+
+export type { UploadId } from './bindings/UploadId';
+export type { UploadPolicy } from './bindings/UploadPolicy';
+export type { InitiateUpload } from './bindings/InitiateUpload';
+export type { InitiatedUpload } from './bindings/InitiatedUpload';

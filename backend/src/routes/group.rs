@@ -1,5 +1,6 @@
 use crate::api_result::ApiResult;
 use crate::domain::group::{CreateGroup, GroupError, GroupId, GroupView, UpdateGroup};
+use crate::domain::related_data::{WithGroupsAndUsers, WithUsers};
 use crate::domain::ticket::{TicketDestination, TicketListingViewExpandedItem};
 use crate::error::{Error, GroupSnafu, PersistenceSnafu};
 use crate::extractors::{Json, Path, UserContext};
@@ -16,14 +17,16 @@ use tracing::error;
 pub async fn query(
     State(state): State<ApplicationState>,
     Path(id): Path<GroupId>,
-) -> ApiResult<GroupView> {
+) -> ApiResult<WithUsers<GroupView>> {
     ApiResult::from_async_fn(|| async {
-        state
+        let view = state
             .group_view_repository
             .load_lifecycle(id)
             .await
             .context(PersistenceSnafu)?
-            .ok_or(Error::NotFound)
+            .ok_or(Error::NotFound)?;
+
+        WithUsers::new(state.user_view_repository.as_ref(), view).await
     })
     .await
 }
@@ -68,7 +71,7 @@ pub async fn tickets_query(
     State(state): State<ApplicationState>,
     user_context: UserContext,
     Path(id): Path<GroupId>,
-) -> ApiResult<Vec<TicketListingViewExpandedItem>> {
+) -> ApiResult<WithGroupsAndUsers<Vec<TicketListingViewExpandedItem>>> {
     ApiResult::from_async_fn(|| async {
         let group_view = state
             .group_view_repository

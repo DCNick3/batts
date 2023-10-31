@@ -1,5 +1,6 @@
 use crate::auth::Authenticated;
 use crate::domain::user::UserId;
+use crate::domain::CollectIds;
 use crate::error::ApiError;
 use crate::view_repositry_ext::ViewRepositoryExt;
 use async_trait::async_trait;
@@ -190,6 +191,15 @@ pub struct GroupView {
     pub members: BTreeSet<UserId>,
 }
 
+impl GroupView {
+    pub fn profile(&self) -> GroupProfileView {
+        GroupProfileView {
+            id: self.id,
+            title: self.title.clone(),
+        }
+    }
+}
+
 impl LifecycleView for GroupView {
     type Aggregate = Group;
 
@@ -211,10 +221,29 @@ impl LifecycleView for GroupView {
     }
 }
 
+impl CollectIds<UserId> for GroupView {
+    fn collect_ids(&self, user_ids: &mut HashSet<UserId>) {
+        user_ids.extend(self.members.iter().cloned());
+    }
+}
+
+#[derive(Debug, Clone, TS, Serialize, Deserialize)]
+#[ts(export)]
+pub struct GroupProfileView {
+    pub id: GroupId,
+    pub title: String,
+}
+
 #[derive(Default, Debug, Clone, TS, Serialize, Deserialize)]
 #[ts(export)]
 pub struct UserGroupsView {
     pub items: HashSet<GroupId>,
+}
+
+impl CollectIds<GroupId> for GroupView {
+    fn collect_ids(&self, group_ids: &mut HashSet<GroupId>) {
+        group_ids.insert(self.id);
+    }
 }
 
 impl View for UserGroupsView {

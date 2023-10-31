@@ -1,27 +1,38 @@
 <script lang="ts">
-	import type { TicketListingViewExpandedItem } from 'backend'
+  import type { TicketListingViewExpandedItem } from 'backend'
   import StatusBadge from '$lib/components/StatusBadge.svelte'
-	import { goto } from '$app/navigation'
+  import { goto } from '$app/navigation'
+  import type {GroupProfileView, UserProfileView} from "backend";
 
   export let ticket: TicketListingViewExpandedItem
-  export let users: Map<string, string>
-	export let groups: Map<string, string>
+  export let users: Record<string, UserProfileView> // i hate ts i hate ts i hate ts
+  export let groups: Record<string, GroupProfileView>
 
-  let destination: string
+  let destination: { type: "Group" | "User"; id: string; title: string }
   if (ticket.destination.type === 'Group') {
-    destination = groups.get(ticket.destination.id) || 'No-one'
+    const g = groups[ticket.destination.id];
+    destination = {
+      type: 'Group',
+      id: ticket.destination.id,
+      title: g?.title ?? ticket.destination.id
+    }
   } else {
-    destination = users.get(ticket.destination.id) || 'No-one'
+    const u = users[ticket.destination.id];
+    destination = {
+      type: 'User',
+      id: ticket.destination.id,
+      title: u?.name ?? ticket.destination.id
+    }
   }
 
   const handleTicketClick = () => {
     goto(`/tickets/${ticket.id}`)
   }
   const handleDestinationClick = () => {
-    if (ticket.destination.type === 'Group') {
-      goto(`/groups/${destination}`)
+    if (destination.type === 'Group') {
+      goto(`/groups/${destination.id}`)
     } else {
-      goto(`/users/${destination}`)
+      goto(`/users/${destination.id}`)
     }
   }
 </script>
@@ -57,9 +68,9 @@
     class="w-60 px-6 text-sm text-slate-500 hover:cursor-pointer"
     on:click|stopPropagation={handleDestinationClick}
   >
-    {destination}
+    {destination.title}
   </div>
-  <div class="text-base break">
+  <div class="text-base break hover:cursor-pointer">
     {ticket.title}
   </div>
 </div>

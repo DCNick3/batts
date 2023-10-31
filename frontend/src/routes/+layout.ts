@@ -16,7 +16,7 @@ export const load: LayoutLoad<{ user: UserView | null }> = async ({ fetch }) => 
 
       const response = await api.getUserGroups(user.id)
       if (response.status === 'Success') {
-        userGroups = response.payload
+        userGroups = response.payload.payload
       } else {
         // TODO: error handling
         console.error(response.payload)

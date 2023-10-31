@@ -6,11 +6,10 @@
   import StatusBadge from '$lib/components/StatusBadge.svelte'
   import Ticket from './Ticket.svelte'
   import { Button, Textarea } from 'flowbite-svelte'
-  import { Dropdown, DropdownItem } from 'flowbite-svelte'
+  import { DropdownItem } from 'flowbite-svelte'
   import { invalidateAll } from '$app/navigation'
   import { getContext } from 'svelte'
   import A from '$lib/components/A.svelte'
-  import Settings from '$lib/assets/Settings.svelte'
   import StatusOption from './StatusOption.svelte'
 
   export let ticketView: TicketView

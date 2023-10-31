@@ -1,4 +1,4 @@
-import type { ApiResult, FetchFn, UserId, UserView, UserProfileView, ExternalUserProfile, TicketId, CreateTicket, SendTicketMessage, TicketView, TicketListingViewExpandedItem, TicketStatus, TelegramLoginData, CreateGroup, GroupView, GroupId } from "../";
+import type { ApiResult, FetchFn, UserId, UserView, UserProfileView, ExternalUserProfile, TicketId, CreateTicket, SendTicketMessage, TicketView, TicketListingViewExpandedItem, TicketStatus, TelegramLoginData, CreateGroup, GroupView, GroupId, WithUsers, WithGroupsAndUsers } from "../";
 export declare function generateId(): string;
 export declare class Api {
     #private;
@@ -9,15 +9,15 @@ export declare class Api {
     telegramLogin(data: TelegramLoginData): Promise<ApiResult<null>>;
     getMe(): Promise<ApiResult<UserView>>;
     getUserProfile(id: UserId): Promise<ApiResult<UserProfileView>>;
-    getUserGroups(id: UserId): Promise<ApiResult<GroupView[]>>;
+    getUserGroups(id: UserId): Promise<ApiResult<WithUsers<GroupView[]>>>;
     createGroup(id: GroupId, creation: CreateGroup): Promise<ApiResult<null>>;
-    getGroupTickets(id: GroupId): Promise<ApiResult<Array<TicketListingViewExpandedItem>>>;
-    getGroup(id: GroupId): Promise<ApiResult<GroupView>>;
+    getGroupTickets(id: GroupId): Promise<ApiResult<WithGroupsAndUsers<TicketListingViewExpandedItem[]>>>;
+    getGroup(id: GroupId): Promise<ApiResult<WithUsers<GroupView>>>;
     addGroupMember(id: GroupId, new_member: UserId): Promise<ApiResult<null>>;
     createTicket(id: TicketId, creation: CreateTicket): Promise<ApiResult<null>>;
-    getTicket(id: TicketId): Promise<ApiResult<TicketView>>;
-    getOwnedTickets(): Promise<ApiResult<Array<TicketListingViewExpandedItem>>>;
-    getAssignedTickets(): Promise<ApiResult<Array<TicketListingViewExpandedItem>>>;
+    getTicket(id: TicketId): Promise<ApiResult<WithGroupsAndUsers<TicketView>>>;
+    getOwnedTickets(): Promise<ApiResult<WithGroupsAndUsers<TicketListingViewExpandedItem[]>>>;
+    getAssignedTickets(): Promise<ApiResult<WithGroupsAndUsers<TicketListingViewExpandedItem[]>>>;
     sendTicketMessage(id: TicketId, message: SendTicketMessage): Promise<ApiResult<null>>;
     changeTicketStatus(id: TicketId, new_status: TicketStatus): Promise<ApiResult<null>>;
     changeTicketAssignee(id: TicketId, new_assignee: UserId | null): Promise<ApiResult<null>>;

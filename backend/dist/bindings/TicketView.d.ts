@@ -11,4 +11,5 @@ export interface TicketView {
     title: string;
     status: TicketStatus;
     timeline: Array<TicketTimelineItem>;
+    latest_update: string;
 }

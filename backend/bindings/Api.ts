@@ -16,7 +16,9 @@ import type {
     CreateGroup,
     UpdateGroup,
     GroupView,
-    GroupId, UpdateTicket,
+    GroupId,
+    UpdateTicket,
+    WithUsers, WithGroupsAndUsers,
 } from "../";
 
 // import { toDates, toDatesByArray } from 'ts-transformer-dates';
@@ -83,7 +85,7 @@ export class Api {
         return await this.#get(`/api/users/${id}/profile`);
     }
 
-    async getUserGroups(id: UserId): Promise<ApiResult<GroupView[]>> {
+    async getUserGroups(id: UserId): Promise<ApiResult<WithUsers<GroupView[]>>> {
         return await this.#get(`/api/users/${id}/groups`);
     }
 
@@ -91,11 +93,11 @@ export class Api {
         return await this.#sendCreateCommand(`/api/groups/${id}`, creation);
     }
 
-    async getGroupTickets(id: GroupId): Promise<ApiResult<Array<TicketListingViewExpandedItem>>> {
+    async getGroupTickets(id: GroupId): Promise<ApiResult<WithGroupsAndUsers<TicketListingViewExpandedItem[]>>> {
         return await this.#get(`/api/groups/${id}/tickets`);
     }
 
-    async getGroup(id: GroupId): Promise<ApiResult<GroupView>> {
+    async getGroup(id: GroupId): Promise<ApiResult<WithUsers<GroupView>>> {
         return await this.#get(`/api/groups/${id}`);
     }
 
@@ -108,15 +110,15 @@ export class Api {
         return await this.#sendCreateCommand(`/api/tickets/${id}`, creation);
     }
 
-    async getTicket(id: TicketId): Promise<ApiResult<TicketView>> {
+    async getTicket(id: TicketId): Promise<ApiResult<WithGroupsAndUsers<TicketView>>> {
         return await this.#get(`/api/tickets/${id}`);
     }
 
-    async getOwnedTickets(): Promise<ApiResult<Array<TicketListingViewExpandedItem>>> {
+    async getOwnedTickets(): Promise<ApiResult<WithGroupsAndUsers<TicketListingViewExpandedItem[]>>> {
         return await this.#get(`/api/tickets/owned`);
     }
 
-    async getAssignedTickets(): Promise<ApiResult<Array<TicketListingViewExpandedItem>>> {
+    async getAssignedTickets(): Promise<ApiResult<WithGroupsAndUsers<TicketListingViewExpandedItem[]>>> {
         return await this.#get(`/api/tickets/assigned`);
     }
 

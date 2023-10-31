@@ -1,9 +1,8 @@
-import { getReceivers, getRequests } from '$lib/mocks/database'
+import { getReceivers } from '$lib/mocks/database'
 import { requireAuth } from '$lib/utils'
-import { ticketDestToMaps } from '$lib/utils/api'
 import type { PageLoad } from './$types'
 import { Api } from 'backend'
-import type { TicketListingViewExpandedItem } from 'backend'
+import type { TicketListingViewExpandedItem, GroupProfileView, UserProfileView } from 'backend'
 
 export const load: PageLoad = async ({ fetch, parent }) => {
   await requireAuth(parent)
@@ -11,14 +10,14 @@ export const load: PageLoad = async ({ fetch, parent }) => {
   const api = new Api(fetch)
 
   let ownedTickets: TicketListingViewExpandedItem[] = []
-  let userMap = new Map<string,string>()
-  let groupMap = new Map<string,string>()
+  let userMap: Record<string, UserProfileView> = {}
+  let groupMap: Record<string, GroupProfileView> = {}
 
   try {
     const result = await api.getOwnedTickets()
     if (result.status === 'Success') {
-      ownedTickets = result.payload
-      const [users, groups] = await ticketDestToMaps(fetch, ownedTickets.map(t => t.destination))
+      const { users, groups, payload } = result.payload
+      ownedTickets = payload
       userMap = users
       groupMap = groups
     } else {

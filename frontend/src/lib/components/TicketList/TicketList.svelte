@@ -1,11 +1,11 @@
 <script lang="ts">
 	import StatusBadge from '$lib/components/StatusBadge.svelte'
-	import type { TicketListingViewExpandedItem, UserProfileView } from 'backend'
+	import type {GroupProfileView, TicketListingViewExpandedItem, UserProfileView} from 'backend'
 	import TicketListItem from './TicketListItem.svelte'
 
 	export let tickets: TicketListingViewExpandedItem[]
-	export let users: Map<string, string>
-	export let groups: Map<string, string>
+	export let users: Record<string, UserProfileView>
+	export let groups: Record<string, GroupProfileView>
 
 </script>
 

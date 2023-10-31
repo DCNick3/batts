@@ -11,7 +11,8 @@
     "target": "ES2021",
     "esModuleInterop": true,
     "moduleResolution": "Node",
-    "importsNotUsedAsValues": "error"
+    "importsNotUsedAsValues": "error",
+    "noUncheckedIndexedAccess": true
   },
   "include": [
     "index.ts",

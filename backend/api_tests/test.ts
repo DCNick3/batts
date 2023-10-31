@@ -130,26 +130,40 @@ test("create_ticket", async () => {
         body: "I can't do anything",
     }));
 
-    const ticket = unwrap(await api.getTicket(ticketId));
-    expect(ticket.id).toBe(ticketId);
-    expect(ticket.title).toBe("Everything is broken");
-    expect(ticket.timeline.length).toBe(1);
-    const timelineItem = ticket.timeline[0];
-    expect(timelineItem.content.type, "Message");
-    if (timelineItem.content.type === "Message") {
-        expect(timelineItem.content.text).toBe("I can't do anything");
-        expect(timelineItem.content.from).toBe(userId);
+    {
+        const {users, groups, payload: ticket} = unwrap(await api.getTicket(ticketId));
+        expect(ticket.id).toBe(ticketId);
+        expect(ticket.title).toBe("Everything is broken");
+        expect(ticket.timeline.length).toBe(1);
+        expect(ticket.owner).toBe(userId);
+        expect(ticket.assignee).toBe(null);
+        expect(ticket.destination.type).toBe("Group");
+        expect(ticket.destination.id).toBe(itDepartment);
+        expect(ticket.status).toBe("Pending");
+
+        const owner = users[userId];
+        expect(owner.id).toBe(userId);
+        expect(owner.name).toBe("Edward Snowden");
+
+        const timelineItem = ticket.timeline[0];
+        expect(timelineItem.content.type, "Message");
+        if (timelineItem.content.type === "Message") {
+            expect(timelineItem.content.text).toBe("I can't do anything");
+            expect(timelineItem.content.from).toBe(userId);
+        }
     }
 
-    const myTickets = unwrap(await api.getOwnedTickets());
-    expect(myTickets.length).toBe(1);
-    expect(myTickets[0].id).toBe(ticketId);
-    expect(myTickets[0].title).toBe("Everything is broken");
-    expect(myTickets[0].status).toBe("Pending");
-    expect(myTickets[0].destination.type).toBe("Group");
-    expect(myTickets[0].destination.id).toBe(itDepartment);
-    expect(myTickets[0].owner).toBe(userId);
-    expect(myTickets[0].assignee).toBe(null);
+    {
+        const {users, groups, payload: myTickets} = unwrap(await api.getOwnedTickets());
+        expect(myTickets.length).toBe(1);
+        expect(myTickets[0].id).toBe(ticketId);
+        expect(myTickets[0].title).toBe("Everything is broken");
+        expect(myTickets[0].status).toBe("Pending");
+        expect(myTickets[0].destination.type).toBe("Group");
+        expect(myTickets[0].destination.id).toBe(itDepartment);
+        expect(myTickets[0].owner).toBe(userId);
+        expect(myTickets[0].assignee).toBe(null);
+    }
 })
 
 test("assign_ticket", async () => {
@@ -165,27 +179,27 @@ test("assign_ticket", async () => {
     }));
 
     // ticket sent to a user is automatically assigned to them
-    const ticket = unwrap(await api.getTicket(ticketId));
+    const ticket = unwrap(await api.getTicket(ticketId)).payload;
     expect(ticket.assignee).toBe(userId);
 
-    const assignedTickets = unwrap(await api.getAssignedTickets());
+    const assignedTickets = unwrap(await api.getAssignedTickets()).payload;
     expect(assignedTickets.length).toBe(1);
     expect(assignedTickets[0].id).toBe(ticketId);
 
     unwrap(await api.changeTicketAssignee(ticketId, null));
 
-    const ticket2 = unwrap(await api.getTicket(ticketId));
+    const ticket2 = unwrap(await api.getTicket(ticketId)).payload;
     expect(ticket2.assignee).toBe(null);
 
-    const assignedTickets2 = unwrap(await api.getAssignedTickets());
+    const assignedTickets2 = unwrap(await api.getAssignedTickets()).payload;
     expect(assignedTickets2.length).toBe(0);
 
     unwrap(await api.changeTicketAssignee(ticketId, userId));
 
-    const ticket3 = unwrap(await api.getTicket(ticketId));
+    const ticket3 = unwrap(await api.getTicket(ticketId)).payload;
     expect(ticket3.assignee).toBe(userId);
 
-    const assignedTickets3 = unwrap(await api.getAssignedTickets());
+    const assignedTickets3 = unwrap(await api.getAssignedTickets()).payload;
     expect(assignedTickets3.length).toBe(1);
     expect(assignedTickets3[0].id).toBe(ticketId);
 })
@@ -204,7 +218,7 @@ test("group_ticket_list", async() => {
         body: "I can't do anything",
     }));
 
-    const tickets = unwrap(await api.getGroupTickets(groupId));
+    const tickets = unwrap(await api.getGroupTickets(groupId)).payload;
     expect(tickets.length).toBe(1);
     expect(tickets[0].id).toBe(ticketId);
 })
@@ -215,19 +229,19 @@ test("user_groups", async() => {
     const groupId1 = generateId();
     const groupId2 = generateId();
 
-    const groups = unwrap(await api.getUserGroups(userId));
+    const groups = unwrap(await api.getUserGroups(userId)).payload;
     expect(groups.length).toBe(0);
 
     unwrap(await api.createGroup(groupId1, {title: "Test group 1"}));
 
-    const groups2 = unwrap(await api.getUserGroups(userId));
+    const groups2 = unwrap(await api.getUserGroups(userId)).payload;
     expect(groups2.length).toBe(1);
     expect(groups2[0].id).toBe(groupId1);
     expect(groups2[0].title).toBe("Test group 1");
 
     unwrap(await api.createGroup(groupId2, {title: "Test group 2"}));
 
-    const groups3 = unwrap(await api.getUserGroups(userId));
+    const groups3 = unwrap(await api.getUserGroups(userId)).payload;
     expect(groups3.length).toBe(2);
     // ordering is not stable
 })

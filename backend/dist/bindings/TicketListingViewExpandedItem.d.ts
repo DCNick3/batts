@@ -9,4 +9,5 @@ export interface TicketListingViewExpandedItem {
     assignee: UserId | null;
     title: string;
     status: TicketStatus;
+    latest_update: string;
 }

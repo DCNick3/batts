@@ -1,4 +1,5 @@
 use crate::api_result::ApiResult;
+use crate::domain::related_data::WithGroupsAndUsers;
 use crate::domain::ticket::{
     CreateTicket, TicketId, TicketListingView, TicketListingViewExpandedItem, TicketView,
     UpdateTicket,
@@ -16,14 +17,21 @@ use snafu::ResultExt;
 pub async fn query(
     State(state): State<ApplicationState>,
     Path(id): Path<TicketId>,
-) -> ApiResult<TicketView> {
+) -> ApiResult<WithGroupsAndUsers<TicketView>> {
     ApiResult::from_async_fn(|| async {
-        state
+        let view = state
             .ticket_view_repository
             .load_lifecycle(id)
             .await
             .context(PersistenceSnafu)?
-            .ok_or(Error::NotFound)
+            .ok_or(Error::NotFound)?;
+
+        WithGroupsAndUsers::new(
+            state.user_view_repository.as_ref(),
+            state.group_view_repository.as_ref(),
+            view,
+        )
+        .await
     })
     .await
 }
@@ -67,7 +75,7 @@ pub async fn update_command(
 pub async fn expand_ticket_listing_view(
     state: ApplicationState,
     ticket_view: TicketListingView,
-) -> Result<Vec<TicketListingViewExpandedItem>, Error> {
+) -> Result<WithGroupsAndUsers<Vec<TicketListingViewExpandedItem>>, Error> {
     let results = futures_util::future::join_all(
         ticket_view
             .items
@@ -79,7 +87,8 @@ pub async fn expand_ticket_listing_view(
         .into_iter()
         .collect::<Result<Vec<_>, _>>()
         .context(PersistenceSnafu)?;
-    Ok(results
+
+    let results = results
         .into_iter()
         .map(|view| {
             let view = view.unwrap();
@@ -95,13 +104,20 @@ pub async fn expand_ticket_listing_view(
         })
         .sorted_by_key(|v| v.latest_update)
         .rev()
-        .collect())
+        .collect();
+
+    WithGroupsAndUsers::new(
+        state.user_view_repository.as_ref(),
+        state.group_view_repository.as_ref(),
+        results,
+    )
+    .await
 }
 
 pub async fn assignee_listing_query(
     State(state): State<ApplicationState>,
     user_context: UserContext,
-) -> ApiResult<Vec<TicketListingViewExpandedItem>> {
+) -> ApiResult<WithGroupsAndUsers<Vec<TicketListingViewExpandedItem>>> {
     ApiResult::from_async_fn(|| async {
         let view = state
             .ticket_assignee_listing_view_repository
@@ -118,7 +134,7 @@ pub async fn assignee_listing_query(
 pub async fn owned_listing_query(
     State(state): State<ApplicationState>,
     user_context: UserContext,
-) -> ApiResult<Vec<TicketListingViewExpandedItem>> {
+) -> ApiResult<WithGroupsAndUsers<Vec<TicketListingViewExpandedItem>>> {
     ApiResult::from_async_fn(|| async {
         let view = state
             .ticket_owner_listing_view_repository

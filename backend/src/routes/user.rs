@@ -1,5 +1,6 @@
 use crate::api_result::ApiResult;
 use crate::domain::group::GroupView;
+use crate::domain::related_data::WithUsers;
 use crate::domain::user::{
     CreateUser, IdentityView, UpdateUser, UserId, UserProfileView, UserView,
 };
@@ -47,7 +48,7 @@ pub async fn profile_query(
 pub async fn groups_query(
     State(state): State<ApplicationState>,
     Path(id): Path<UserId>,
-) -> ApiResult<Vec<GroupView>> {
+) -> ApiResult<WithUsers<Vec<GroupView>>> {
     ApiResult::from_async_fn(|| async {
         let groups_view = state
             .user_groups_view_repository
@@ -68,7 +69,7 @@ pub async fn groups_query(
             .collect::<Result<Vec<_>, _>>()
             .context(PersistenceSnafu)?;
 
-        Ok(results
+        let results = results
             .into_iter()
             .flat_map(|view| {
                 let group = view.unwrap().into_created();
@@ -77,7 +78,9 @@ pub async fn groups_query(
                 }
                 group
             })
-            .collect())
+            .collect();
+
+        WithUsers::new(state.user_view_repository.as_ref(), results).await
     })
     .await
 }
