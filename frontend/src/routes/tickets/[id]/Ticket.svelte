@@ -4,6 +4,7 @@
   import type { TicketTimelineItem, UserId, UserProfileView } from 'backend'
   import Time from '$lib/components/Time.svelte'
   import Avatar from '$lib/components/Avatar.svelte'
+  import StatusBadge from '$lib/components/StatusBadge.svelte'
 
   export let users: Record<UserId, UserProfileView>
   export let item: TicketTimelineItem
@@ -21,9 +22,15 @@
 {#if (content.type === 'StatusChange')}
 
 <TimelineItem
-  title={`Status changed from ${content.old} to ${content.new}.`}
   date={item.date}
 >
+  <h3 class="ml-4 text-lg font-semibold text-gray-900 dark:text-white">
+    Status changed from
+    <StatusBadge status={content.old} />
+    to
+    <StatusBadge status={content.new} />
+    .
+  </h3>
 </TimelineItem>
 
 {:else if (content.type === 'Message')}
