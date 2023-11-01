@@ -133,7 +133,7 @@
         header="Set assignee"
       >
         {#each editPermissions as id}
-          {#if getUsr(id) !== null}
+          {#if getUsr(id) !== null && ticketView.assignee !== id}
             <DropdownItem>
               <button
                 on:click={() => handleSetAssignee(id)}
