@@ -1,14 +1,19 @@
 <script lang="ts">
   import type { PageData } from './$types'
   import A from '$lib/components/A.svelte'
-  import { Button } from 'flowbite-svelte'
-	import { goto } from '$app/navigation';
+  import { Button, Dropdown, Input } from 'flowbite-svelte'
+	import { goto } from '$app/navigation'
 
   export let data: PageData
   $: groupInfo = data.groupInfo
 
   const handleOpenTicket = () => {
     goto(`/?gname=${groupInfo?.title}&gid=${groupInfo?.id}`)
+  }
+
+  let addUsersOpen = false
+  const handleAddUser = () => {
+    addUsersOpen = true
   }
 </script>
 
@@ -33,6 +38,14 @@
       <Button on:click={handleOpenTicket}>
         Open a ticket
       </Button>
+      {#if groupInfo.members.includes(data.user?.id || '')}
+        <Button on:click={handleAddUser}>
+          Add User
+        </Button>
+        <Dropdown bind:open={addUsersOpen} class="p-2">
+          <Input placeholder="Search users" required />
+        </Dropdown>
+      {/if}
     </div>
   </div>
 {/if}

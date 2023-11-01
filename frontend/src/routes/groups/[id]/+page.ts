@@ -8,8 +8,7 @@ export const load: PageLoad<{ groupInfo: GroupView | null, users: Record<UserId,
   try {
     const result = await api.getGroup(params.id)
     if (result.status === 'Success') {
-
-      const { users, payload: groupInfo } = result.payload;
+      const { users, payload: groupInfo } = result.payload
 
       return { groupInfo, users }
     } else {
