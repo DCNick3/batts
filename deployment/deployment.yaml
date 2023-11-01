@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: batts-backend
-          image: ghcr.io/dcnick3/batts:backend-7826dd4b147cc393e4b2ea7bbcdef9f2244b9359
+          image: ghcr.io/dcnick3/batts:backend-1e3bc56fc0693677e74cf87bed7e1422d7455e1c
           env:
             - name: CONFIG_SERVER__ENDPOINT
               value: "127.0.0.1:3001"
@@ -28,7 +28,7 @@ spec:
                   name: batts-secrets
                   key: telegram_secret
         - name: batts-frontend
-          image: ghcr.io/dcnick3/batts:frontend-7826dd4b147cc393e4b2ea7bbcdef9f2244b9359
+          image: ghcr.io/dcnick3/batts:frontend-1e3bc56fc0693677e74cf87bed7e1422d7455e1c
           env:
             - name: BACKEND_URL
               value: "http://127.0.0.1:3001"
