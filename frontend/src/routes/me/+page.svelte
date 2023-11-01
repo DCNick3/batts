@@ -5,7 +5,7 @@
 	import type { UserView } from 'backend'
   import Avatar from '$lib/components/Avatar.svelte'
   import { Button, Input } from 'flowbite-svelte'
-  import { goto } from '$app/navigation'
+  import { goto, invalidateAll } from '$app/navigation'
 	import type { PageData } from './$types'
   import A from '$lib/components/A.svelte'
   import { UserProfile } from '$lib/components/UserProfile'
@@ -23,6 +23,8 @@
       const result = await api.createGroup(id, { title: groupName })
       if (result.status === 'Success') {
         goto(`/groups/${id}`)
+        groupName = ''
+        invalidateAll()
       } else {
         // TODO: error handling
         console.error(result.payload)
