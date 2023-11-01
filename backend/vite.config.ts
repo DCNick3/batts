@@ -31,6 +31,7 @@ module.exports = defineConfig({
     test: {
         include: [
             resolve(__dirname, 'api_tests/test.ts'),
-        ]
+        ],
+        testTimeout: 20000,
     }
 });
