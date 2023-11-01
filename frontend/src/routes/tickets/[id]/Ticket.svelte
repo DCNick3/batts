@@ -29,7 +29,6 @@
     <StatusBadge status={content.old} />
     to
     <StatusBadge status={content.new} />
-    .
   </h3>
 </TimelineItem>
 
@@ -60,7 +59,7 @@
 
 {:else}
   <TimelineItem
-  title={`Assignee changed from ${content.old ? getUsr(content.old) : 'no-one'} to ${content.new ? getUsr(content.new) : 'no-one'}.`}
+  title={`Assignee changed from ${content.old ? getUsr(content.old) : 'no-one'} to ${content.new ? getUsr(content.new) : 'no-one'}`}
   date={item.date}
   >
   </TimelineItem>
