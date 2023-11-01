@@ -47,7 +47,7 @@
     <div>
       <h1 class="text-lg font-semibold mb-4">{groupInfo.title}</h1>
       <h2 class="text-base font-semibold text-gray-700 mb-1">Members:</h2>
-      <div>
+      <div class="flex flex-col">
         {#if data.users !== null}
           {#each Object.entries(data.users) as [uid, profile]}
             <A href={`/users/${uid}`}>{profile.name}</A>
