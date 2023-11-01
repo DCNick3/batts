@@ -45,7 +45,16 @@
   <div class="px-5 py-2 sm:ml-4 border rounded-lg">
     <div class="flex justify-between items-center mb-1">
       <span class="text-lg font-semibold text-gray-900 mb-1">
-        {getUsr(content.from) || "Unknown user"}
+        {#if getUsr(content.from) !== null}
+          <A
+            class="visited:text-gray-900 text-gray-900"
+            href={`/users/${content.from}`}
+          >
+            {getUsr(content.from)}
+          </A>
+        {:else}
+          Unknown user
+        {/if}
       </span>
       <Time
         time={item.date}
