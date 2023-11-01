@@ -7,7 +7,7 @@
   let liCls = twMerge(liClass, $$props.classLi);
   let divCls = twMerge(divClass, $$props.classDiv);
   let timeCls = twMerge(timeClass, $$props.classTime);
-  const h3Cls = twMerge('ml-4 text-lg font-semibold text-gray-900 dark:text-white', $$props.classH3);
+  const h3Cls = twMerge('ml-4 text-base font-semibold text-gray-900 dark:text-white', $$props.classH3);
   import Time from '$lib/components/Time.svelte';
   </script>
   

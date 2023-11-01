@@ -5,6 +5,7 @@
   import Time from '$lib/components/Time.svelte'
   import Avatar from '$lib/components/Avatar.svelte'
   import StatusBadge from '$lib/components/StatusBadge.svelte'
+  import A from '$lib/components/A.svelte'
 
   export let users: Record<UserId, UserProfileView>
   export let item: TicketTimelineItem
@@ -24,7 +25,7 @@
 <TimelineItem
   date={item.date}
 >
-  <h3 class="ml-4 text-lg font-semibold text-gray-900 dark:text-white">
+  <h3 class="ml-4 text-sm font-medium text-gray-700 dark:text-white">
     Status changed from
     <StatusBadge status={content.old} />
     to
@@ -59,9 +60,32 @@
 
 {:else}
   <TimelineItem
-  title={`Assignee changed from ${content.old ? getUsr(content.old) : 'no-one'} to ${content.new ? getUsr(content.new) : 'no-one'}`}
   date={item.date}
   >
+    <h3 class="ml-4 text-sm font-medium text-gray-700 dark:text-white">
+      Assignee changed from
+      {#if content.old !== null && getUsr(content.old) !== null}
+        <A
+          class="visited:text-gray-900 text-gray-900"
+          href={`/users/${content.old}`}
+        >
+          {getUsr(content.old)}
+        </A>
+      {:else}
+        <span class="underline">no-one</span>
+      {/if}
+      to
+      {#if content.new !== null && getUsr(content.new) !== null}
+        <A
+          class="visited:text-gray-900 text-gray-900"
+          href={`/users/${content.new}`}
+        >
+          {getUsr(content.new)}
+        </A>
+      {:else}
+        <span class="underline">no-one</span>
+      {/if}
+    </h3>
   </TimelineItem>
 
 {/if}
