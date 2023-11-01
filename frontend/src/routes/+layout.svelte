@@ -61,7 +61,7 @@
 	{/if}
 </Navbar>
 
-<div class="flex flex-col sm:flex-row grow shrink basis-full h-screen">
+<div class="flex flex-col sm:flex-row grow shrink basis-full">
 	{#if $user !== null}
 			<SidePanel bind:hidden={isHidden} />
 	{/if}
