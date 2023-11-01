@@ -15,7 +15,10 @@
       class="w-56 h-56 mb-2"
       str={user.id}
     />
-    <span class="font-medium text-lg mb-6">{user?.name}</span>
+    <div class="flex flex-col items-center mb-6">
+      <div class="font-medium text-lg">{user.name}</div>
+      <div class="font-medium text-sm">id: {user.id}</div>  
+    </div>
 
     <slot name="first-col"></slot>
   </div>
