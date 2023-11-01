@@ -132,22 +132,24 @@
         title="Assigned To"
         header="Set assignee"
       >
-        {#each Object.entries(groups) as [id, { title }]}
+        {#each editPermissions as id}
           <DropdownItem>
             <button
               on:click={() => handleSetAssignee(id)}
             >
-              {title}
+              {getUsr(id)}
             </button>
           </DropdownItem>
         {/each}
-        <DropdownItem>
-          <button
-            on:click={() => handleSetAssignee(null)}
-          >
-            Remove Assignee
-          </button>
-        </DropdownItem>
+        {#if ticketView.assignee !== null}
+          <DropdownItem>
+            <button
+              on:click={() => handleSetAssignee(null)}
+            >
+              Remove Assignee
+            </button>
+          </DropdownItem>
+        {/if}
       </StatusOption>
       <div class="font-normal text-sm">{getUsr(ticketView.assignee || '') || 'No-one'}</div>  
     </div>
