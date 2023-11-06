@@ -5,6 +5,7 @@
   import A from '../A.svelte'
   import { Button, Input } from 'flowbite-svelte'
 
+  export let isMe: boolean = false
   export let user: UserProfileView
   export let groups: GroupView[]
 </script>
@@ -24,14 +25,18 @@
   </div>
 
   <div class="flex flex-col">
-    <h1 class="mb-4 font-semibold text-xl">Groups</h1>
-    {#each groups as group}
-      <A href={`/groups/${group.id}`}>
-        {group.title}
-      </A>
-      <div>
-      </div>
-    {/each}
+    {#if groups.length === 0}
+      <h1 class="mb-4 font-semibold text-xl">{isMe ? 'You have no groups' : 'User has no groups'}</h1>
+    {:else}
+      <h1 class="mb-2 font-semibold text-xl">Groups</h1>
+      {#each groups as group}
+        <A href={`/groups/${group.id}`}>
+          {group.title}
+        </A>
+        <div>
+        </div>
+      {/each}
+    {/if}
     <slot name="second-col"></slot>
   </div>
 </div>

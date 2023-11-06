@@ -47,6 +47,7 @@
 {:else}
 
   <UserProfile
+    isMe
     user={$user}
     groups={data.userGroups}
   >
@@ -69,7 +70,7 @@
     </svelte:fragment>
 
     <svelte:fragment slot="second-col">
-      <h1 class="mt-6 mb-4 font-semibold text-xl">Create a new group</h1>
+      <h1 class="mt-4 mb-4 font-semibold text-xl">Create a new group</h1>
       <form on:submit|preventDefault={handleCreateGroup}>
         <Input
           class="mb-2"
