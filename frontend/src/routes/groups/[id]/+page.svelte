@@ -9,7 +9,6 @@
   import Icon from '@iconify/svelte'
 
   export let data: PageData
-  $: groupInfo = data.groupInfo
 
   beforeNavigate(({ cancel }) => {
     const titleChanged = groupTitleField !== data.groupInfo?.title
@@ -23,18 +22,29 @@
   })
 
   const handleOpenTicket = () => {
-    goto(`/?gname=${groupInfo?.title}&gid=${groupInfo?.id}`)
+    goto(`/?gname=${data.groupInfo?.title}&gid=${data.groupInfo?.id}`)
   }
 
-  let groupTitleField: string = ''
+  $: getUsr = (id: string) => {
+    const usr = data.groupUsers ? data.groupUsers[id] : undefined
+    if (usr) {
+      return usr.name
+    } else {
+      return null
+    }
+  }
+
+  // During editting, will be updated to show user how
+  // their updates affect the view
+  $: groupTitle = data.groupInfo?.title
+  $: groupMembers = data.groupInfo?.members || []
+
+  let groupTitleField: string = data.groupInfo?.title || ''
   let isEditMode: boolean = false
   let updates: { members: Update[] } = { members: [] }
   let addUsersOpen = false
   let userIdField: string = ''
-
-  if (data.groupInfo !== null) {
-    groupTitleField = data.groupInfo.title
-  }
+  const isGroupMember: boolean = data.groupInfo?.members.includes(data.user?.id || '') || false
 
   const handleEditClick = () => {
     isEditMode = true
@@ -48,44 +58,36 @@
   }
 
   const handleAddUser = () => {
-    if (groupInfo === null) return
-
-    // const api = new Api(fetch)
-    // try {
-    //   const result = await api.addGroupMember(groupInfo.id, userIdField)
-    //   if (result.status === 'Success') {
-    //     invalidateAll()
-    //     addUsersOpen = false
-    //     userIdField = ''
-    //   } else {
-    //     // TODO: error handling
-    //     console.error(result.payload)
-    //   }
-    // } catch (error) {
-    //   // TODO: error handling
-    //   console.error(error)
-    // }
-    updates.members.push({ type: 'AddUser', id: userIdField})
+    const uid = userIdField
+    // Keep update before save
+    updates.members.push({ type: 'AddUser', id: uid})
     addUsersOpen = false
     userIdField = ''
+
+    // Update user view
+    groupMembers.push(uid)
   }
   const handleDeleteUser = (id: string) => {
-    if (groupInfo === null) return
-
+    // Keep update before save
     updates.members.push({ type: 'DeleteUser', id })
+
+    // Update user view
+    const index = groupMembers.indexOf(id)
+    if (index > -1) { // only splice array when item is found
+      groupMembers.splice(index, 1); // 2nd parameter means remove one item only
+    }
+    groupMembers = [...groupMembers]
   }
 
   const handleUpdates = async () => {
-    if (groupInfo === null) return
-
-    const titleChanged = groupTitleField !== groupInfo.title
+    const titleChanged = groupTitleField !== groupTitle
     const changesPresent = titleChanged || updates.members.length > 0
 
     const api = new Api(fetch)
     try {
       const promises = updates.members.map(up => {
         if (up.type === 'AddUser') {
-          return api.addGroupMember((groupInfo as GroupView).id, up.id)
+          return api.addGroupMember(data.groupId, up.id)
         } else {
           // TODO: remove user
           return Promise.resolve()
@@ -110,10 +112,11 @@
     }
 
     isEditMode = false
+    invalidateAll()
   }
 </script>
 
-{#if groupInfo === null}
+{#if data.groupInfo === null}
   <!-- TODO: throw 404 page? -->
   <div>Group Not Found</div>
 {:else}
@@ -123,9 +126,9 @@
         {#if isEditMode}
           <Input bind:value={groupTitleField} />
         {:else}
-          {groupInfo.title}
+          {groupTitle}
         {/if}
-        {#if groupInfo.members.includes(data.user?.id || '')}
+        {#if isGroupMember}
           {#if !isEditMode}
             <button class="ml-2" on:click={() => handleEditClick()}>
               <Settings />
@@ -137,12 +140,13 @@
       </h1>
       <h2 class="text-base font-semibold text-gray-700 mb-1">Members:</h2>
       <div class="flex flex-col">
-        {#if data.users !== null}
-          {#each Object.entries(data.users) as [uid, profile]}
+        {#if groupMembers}
+          <!-- {#each Object.entries(data.groupUsers) as [uid, profile]} -->
+          {#each groupMembers as grpMemberId}
             <div class="flex items-center gap-2">
-              <A href={`/users/${uid}`}>{profile.name}</A>
+              <A href={`/users/${grpMemberId}`}>{getUsr(grpMemberId) || 'Unknown user'}</A>
               {#if isEditMode}
-                <button on:click={() => handleDeleteUser(uid)}>
+                <button on:click={() => handleDeleteUser(grpMemberId)}>
                   <Icon icon="fa:remove" style="color: red" />
                 </button>                
               {/if}
@@ -157,7 +161,7 @@
         Open a ticket
       </Button>
       {#if isEditMode}
-        {#if groupInfo.members.includes(data.user?.id || '')}
+        {#if isGroupMember}
           <Button on:click={handleOpenAddUser}>
             Add User
           </Button>
