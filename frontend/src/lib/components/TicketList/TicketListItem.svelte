@@ -46,7 +46,7 @@
     class="px-3 py-2 text-sm text-slate-500"
     on:click|stopPropagation={handleDestinationClick}
   >
-    {destination}
+    {destination.title}
     <StatusBadge status={ticket.status}/>
   </div>
 

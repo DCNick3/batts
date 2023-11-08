@@ -1,24 +1,57 @@
-[
-  {
-    "id": "SvjVbyfzzMmoMLUCf3HwSQ",
-    "destination": {
-      "type": "Group",
-      "id": "ItDepartment"
+{
+  "payload": [
+    {
+      "id": "SvjVbyfzzMmoMLUCf3HwSQ",
+      "destination": {
+        "type": "Group",
+        "id": "ItDepartment"
+      },
+      "owner": "K1HvQxt9kNw5CijEvP2s4d",
+      "assignee": null,
+      "title": "Dash",
+      "status": "Pending"
     },
-    "owner": "K1HvQxt9kNw5CijEvP2s4d",
-    "assignee": null,
-    "title": "Dash",
-    "status": "Pending"
+    {
+      "id": "WE2w9CqNMki4kPmS1DPehA",
+      "destination": {
+        "type": "Group",
+        "id": "DormManager"
+      },
+      "owner": "K1HvQxt9kNw5CijEvP2s4d",
+      "assignee": null,
+      "title": "Aboba",
+      "status": "Pending"
+    },
+    {
+      "id": "bbbbbbbbbbbbbbbbbbbbbb",
+      "destination": {
+        "type": "User",
+        "id": "aaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "owner": "K1HvQxt9kNw5CijEvP2s4d",
+      "assignee": null,
+      "title": "Help me",
+      "status": "Fixed"
+    }
+  ],
+  "users": {
+    "K1HvQxt9kNw5CijEvP2s4d": {
+      "id": "K1HvQxt9kNw5CijEvP2s4d",
+      "name": "Tester Mockovish"
+    },
+    "aaaaaaaaaaaaaaaaaaaaaa": {
+      "id": "aaaaaaaaaaaaaaaaaaaaaa",
+      "name": "Eleonora Maksimovna"
+    }
   },
-  {
-    "id": "WE2w9CqNMki4kPmS1DPehA",
-    "destination": {
-      "type": "Group",
-      "id": "DormManager"
+  "groups": {
+    "ItDepartment": {
+      "id": "ItDepartment",
+      "title": "IT Department"
     },
-    "owner": "K1HvQxt9kNw5CijEvP2s4d",
-    "assignee": null,
-    "title": "Aboba",
-    "status": "Pending"
+    "DormManager": {
+      "id": "DormManager",
+      "title": "Dorm Manager"
+    }
   }
-]
+}
