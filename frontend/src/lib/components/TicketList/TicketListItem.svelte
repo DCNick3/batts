@@ -8,22 +8,25 @@
   export let users: Record<string, UserProfileView> // i hate ts i hate ts i hate ts
   export let groups: Record<string, GroupProfileView>
 
+  export let displaySubmitter: boolean = false
+
   let destination: { type: "Group" | "User"; id: string; title: string }
   if (ticket.destination.type === 'Group') {
-    const g = groups[ticket.destination.id];
+    const g = groups[ticket.destination.id]
     destination = {
       type: 'Group',
       id: ticket.destination.id,
       title: g?.title ?? ticket.destination.id
     }
   } else {
-    const u = users[ticket.destination.id];
+    const u = users[ticket.destination.id]
     destination = {
       type: 'User',
       id: ticket.destination.id,
       title: u?.name ?? ticket.destination.id
     }
   }
+  const ticketOwner: string = users[ticket.owner]?.name || 'Unknown user'
 
   const handleTicketClick = () => {
     goto(`/tickets/${ticket.id}`)
@@ -35,45 +38,68 @@
       goto(`/users/${destination.id}`)
     }
   }
+  const handleOwnerClick = () => {
+    goto(`/users/${ticket.owner}`)
+  }
 </script>
 
-<div
-  class="grid grid-cols-[1fr_2fr] border rounded-md relative hover:bg-gray-50 sm:hidden"
-  on:click={handleTicketClick}
->
-  <div class="whitespace-nowrap text-xs uppercase text-gray-700 bg-gray-50 font-semibold p-2.5 rounded-tl-md">Submitted To</div>
+<button on:click={handleTicketClick} class="hover:bg-gray-50 focus:bg-gray-50 text-left sm:hidden">
   <div
-    class="px-3 py-2 text-sm text-slate-500"
-    on:click|stopPropagation={handleDestinationClick}
+    class="grid grid-cols-[1fr_2fr] border rounded-md relative"
   >
-    {destination.title}
-    <StatusBadge status={ticket.status}/>
-  </div>
+    <div class="whitespace-nowrap text-xs uppercase text-gray-700 bg-gray-50 font-semibold p-2.5 rounded-tl-md">Submitted To</div>
+    <button
+      class="px-3 py-2 text-sm text-slate-500 text-left"
+      on:click|stopPropagation={handleDestinationClick}
+    >
+      {destination.title}
+      <StatusBadge status={ticket.status}/>
+    </button>
 
-  <div class="text-xs uppercase text-gray-700 bg-gray-50 font-semibold p-2.5 rounded-bl-md">Topic</div>
-  <div class="text-base px-3 py-2 break">
-    {ticket.title}
-  </div>
+    {#if displaySubmitter}
+      <div class="whitespace-nowrap text-xs uppercase text-gray-700 bg-gray-50 font-semibold p-2.5 rounded-tl-md">Requested By</div>
+      <button
+        class="px-3 py-2 text-sm text-slate-500 text-left"
+        on:click|stopPropagation={handleOwnerClick}
+      >
+        {ticketOwner}
+      </button>
+    {/if}
 
-</div>
-
-<div
-  class="max-sm:hidden flex py-4 items-center border-x hover:bg-gray-50 last:rounded-b-md last:border-b"
-  on:click={handleTicketClick}
->
-  <div class="w-28 px-3 mr-4">
-    <StatusBadge status={ticket.status}/>
+    <div class="text-xs uppercase text-gray-700 bg-gray-50 font-semibold p-2.5 rounded-bl-md">Topic</div>
+    <div class="text-base px-3 py-2 break">
+      {ticket.title}
+    </div>
   </div>
+</button>
+
+<button on:click={handleTicketClick} class="max-sm:hidden hover:bg-gray-50 focus:bg-gray-50 border-x last:border-b last:rounded-b-md text-left">
   <div
-    class="w-60 px-6 text-sm text-slate-500 hover:cursor-pointer"
-    on:click|stopPropagation={handleDestinationClick}
+    class="flex py-4 items-center rounded-b-md"
   >
-    {destination.title}
+    <div class="w-28 px-3 mr-4">
+      <StatusBadge status={ticket.status}/>
+    </div>
+    <button
+      class="w-48 text-sm text-slate-500 text-left break"
+      on:click|stopPropagation={handleDestinationClick}
+    >
+      {destination.title}
+    </button>
+    {#if displaySubmitter}
+      <button
+        class="w-48 text-sm text-slate-500 text-left break"
+        on:click|stopPropagation={handleOwnerClick}
+      >
+        {ticketOwner}
+      </button>
+    {/if}
+    <div class="text-base break hover:cursor-pointer">
+      {ticket.title}
+    </div>
   </div>
-  <div class="text-base break hover:cursor-pointer">
-    {ticket.title}
-  </div>
-</div>
+</button>
+
 
 <style>
   /* Unfortunately, tailwind does not have this */

@@ -17,5 +17,6 @@
 		tickets={data.tickets}
 		users={data.userMap}
 		groups={data.groupMap}
+		displaySubmitter
 	/>
 {/if}
