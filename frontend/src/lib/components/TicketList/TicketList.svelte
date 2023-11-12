@@ -5,6 +5,7 @@
 	import { AutoComplete } from '$lib'
 	import StatusBadge from '../StatusBadge.svelte';
 	import Icon from '@iconify/svelte';
+	import UserProfile from '../UserProfile/UserProfile.svelte';
 
 	export let tickets: TicketListingViewExpandedItem[]
 	export let users: Record<string, UserProfileView>
@@ -14,18 +15,18 @@
 
 	type Filters = {
 		statuses: TicketStatus[]
-		owners: string[] | null
+		owners: UserProfileView[]
 	}
 
-	$: filters = { statuses: [], owners: null } as Filters
+	$: filters = { statuses: [], owners: [] } as Filters
 	$: filteredTickets = tickets.filter(ticket => {
 		if (filters.statuses.length > 0) {
 			if (!filters.statuses.includes(ticket.status)) {
 				return false
 			}
 		}
-		if (filters.owners) {
-			if (!filters.owners.includes(ticket.owner)) {
+		if (filters.owners.length > 0) {
+			if (!filters.owners.some(ow => ow.id === ticket.owner)) {
 				return false
 			}
 		}
@@ -33,26 +34,44 @@
 	})
 
 	const resetFilters = () => {
-		filters = { statuses: [], owners: null }
+		filters = { statuses: [], owners: [] }
 	}
 
 	const statuses: TicketStatus[] = ['Pending', 'InProgress', 'Declined', 'Fixed']
 	$: selectedStatus = undefined as TicketStatus | undefined
 	$: notSelectedStatuses = statuses.filter(st => !filters.statuses.includes(st))
+	// get list of unique owner ids, attach user names and filter out any missing users
+	const owners = [...new Set(tickets.map(t => t.owner))].map(ow => users[ow]).filter(ow => !!ow) as UserProfileView[]
+	$: selectedOwner = undefined as UserProfileView | undefined
+	$: notSelectedOwners = owners.filter(ow => !filters.owners.some(fow => fow.id === ow.id))
 
 	const onStatusSelectChange = () => {
 		if (!selectedStatus) return
 
 		filters.statuses = [...filters.statuses, selectedStatus]
 		selectedStatus = undefined
-		const autocompleteClearButton = document.querySelector('span.autocomplete-clear-button');
-      if (autocompleteClearButton) {
+		const autocompleteClearButtons = document.querySelectorAll('span.autocomplete-clear-button');
+      if (autocompleteClearButtons[0]) {
 				// @ts-ignore
-        autocompleteClearButton.click();
+        autocompleteClearButtons[0].click();
 			}
 	}
 	const onSelectedStatusRemove = (status: TicketStatus) => {
-		filters.statuses = filters.statuses.filter(st => st != status)
+		filters.statuses = filters.statuses.filter(st => st !== status)
+	}
+	const onOwnerSelectChange = () => {
+		if (!selectedOwner) return
+		
+		filters.owners = [...filters.owners, selectedOwner]
+		selectedOwner = undefined
+		const autocompleteClearButtons = document.querySelectorAll('span.autocomplete-clear-button');
+      if (autocompleteClearButtons[1]) {
+				// @ts-ignore
+        autocompleteClearButtons[1].click();
+			}
+	}
+	const onSelectedOwnerRemove = (id: string) => {
+		filters.owners = filters.owners.filter(st => st.id !== id)
 	}
 </script>
 
@@ -84,21 +103,52 @@
 							showClear
 						/>
 					</Label>
-					<div class="mt-5 flex gap-1">
-						{#each filters.statuses as status}
-							<StatusBadge
-								class="flex items-center"
-								{status}
-							>
-								<button
-									class="flex items-center w-2 h-2 ml-2"
-									on:click={() => onSelectedStatusRemove(status)}
+					{#if filters.statuses.length > 0}
+						<div class="mt-3 flex gap-1">
+							{#each filters.statuses as status}
+								<StatusBadge
+									class="flex items-center"
+									{status}
 								>
-									<Icon icon="fa:remove" style="color: black" />
-								</button>
-							</StatusBadge>
-						{/each}
-					</div>
+									<button
+										class="flex items-center w-2 h-2 ml-2"
+										on:click={() => onSelectedStatusRemove(status)}
+									>
+										<Icon icon="fa:remove" style="color: black" />
+									</button>
+								</StatusBadge>
+							{/each}
+						</div>
+					{/if}
+
+					{#if displaySubmitter}
+						<Label class="flex flex-col mt-4">
+							Owner
+							<AutoComplete
+								class="my-1"
+								inputClass="w-full items-center"
+								items={notSelectedOwners}
+								labelFieldName="name"
+								bind:selectedItem={selectedOwner}
+								onChange={onOwnerSelectChange}
+								showClear
+							/>
+						</Label>
+						<div class="mt-3 flex flex-col gap-1">
+							{#each filters.owners as { id, name }}
+								<div class="flex items-center border border-gray-500 text-gray-700 rounded-full p-1 px-2 w-fit">
+									{name}
+									<button
+										class="flex items-center w-2 h-2 ml-2"
+										on:click={() => onSelectedOwnerRemove(id)}
+									>
+										<Icon icon="fa:remove" style="color: black" />
+									</button>
+								</div>
+							{/each}
+						</div>
+					{/if}
+
 				</div>
 			</Popover>
 		</div>

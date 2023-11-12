@@ -28,7 +28,7 @@
         "type": "User",
         "id": "aaaaaaaaaaaaaaaaaaaaaa"
       },
-      "owner": "K1HvQxt9kNw5CijEvP2s4d",
+      "owner": "A1HvQxt9kNw5CijEvP2s4d",
       "assignee": null,
       "title": "Help me",
       "status": "Fixed"
@@ -42,6 +42,10 @@
     "aaaaaaaaaaaaaaaaaaaaaa": {
       "id": "aaaaaaaaaaaaaaaaaaaaaa",
       "name": "Eleonora Maksimovna"
+    },
+    "A1HvQxt9kNw5CijEvP2s4d": {
+      "id": "A1HvQxt9kNw5CijEvP2s4d",
+      "name": "Dasha Boardina"
     }
   },
   "groups": {

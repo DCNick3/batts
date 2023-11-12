@@ -10,23 +10,10 @@
 
   export let displaySubmitter: boolean = false
 
-  let destination: { type: "Group" | "User"; id: string; title: string }
-  if (ticket.destination.type === 'Group') {
-    const g = groups[ticket.destination.id]
-    destination = {
-      type: 'Group',
-      id: ticket.destination.id,
-      title: g?.title ?? ticket.destination.id
-    }
-  } else {
-    const u = users[ticket.destination.id]
-    destination = {
-      type: 'User',
-      id: ticket.destination.id,
-      title: u?.name ?? ticket.destination.id
-    }
-  }
-  const ticketOwner: string = users[ticket.owner]?.name || 'Unknown user'
+  $: destination = ticket.destination.type === 'Group'
+    ? { type: 'Group', id: ticket.destination.id, title: groups[ticket.destination.id]?.title ?? ticket.destination.id}
+    : { type: 'User', id: ticket.destination.id, title: users[ticket.destination.id]?.name ?? ticket.destination.id}
+  $: ticketOwner = users[ticket.owner]?.name || 'Unknown user'
 
   const handleTicketClick = () => {
     goto(`/tickets/${ticket.id}`)

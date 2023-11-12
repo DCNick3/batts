@@ -7,13 +7,13 @@
 	$: autocompleteClass = twMerge(defaultClass, $$props.class);
 
   // @ts-ignore
-  export let items: T[]
+  export let items: NonNullable<T>[]
   export let required = false
   export let placeholder = 'Choose option...'
 	export let inputClass = ''
 	export let multiple: boolean = false
-  export let labelFieldName: keyof T | undefined = undefined
-  export let valueFieldName: keyof T | undefined = undefined
+  export let labelFieldName: keyof NonNullable<T> | undefined = undefined
+  export let valueFieldName: keyof NonNullable<T> | undefined = undefined
 	export let onChange: any = undefined
 	export let showClear = false
 	export let readOnly = false
