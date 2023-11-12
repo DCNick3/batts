@@ -29,4 +29,5 @@
 	on:click
 >
   {text}
+	<slot />
 </Badge>

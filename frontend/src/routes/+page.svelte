@@ -63,7 +63,8 @@
 			Submit To:
 			<AutoComplete
 				bind:selectedItem={destination}
-				class="w-full"
+				class="my-1"
+				inputClass="w-full"
 				items={data.receivers}
 				labelFieldName="name"
 				valueFieldName="id"

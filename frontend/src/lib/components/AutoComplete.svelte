@@ -9,21 +9,30 @@
   // @ts-ignore
   export let items: T[]
   export let required = false
-  export let placeholder="Choose option..."
-  export let labelFieldName: string
-  export let valueFieldName: string
+  export let placeholder = 'Choose option...'
+	export let inputClass = ''
+	export let multiple: boolean = false
+  export let labelFieldName: keyof T | undefined = undefined
+  export let valueFieldName: keyof T | undefined = undefined
+	export let onChange: any = undefined
+	export let showClear = false
+	export let readOnly = false
 
 	export let selectedItem: T
 </script>
 
 <AutoComplete
-	className="block w-full my-1"
-	class={autocompleteClass}
-	items={items}
+	className={twMerge("block w-full", $$props.class)}
+	class={twMerge(defaultClass, inputClass)}
+	{items}
 	bind:selectedItem
-	labelFieldName={labelFieldName}
-	valueFieldName={valueFieldName}
-	placeholder={placeholder}
+	{labelFieldName}
+	{valueFieldName}
+	{placeholder}
 	hideArrow
-	required={required}
+	{readOnly}
+	{showClear}
+	{multiple}
+	{required}
+	{onChange}
 />
