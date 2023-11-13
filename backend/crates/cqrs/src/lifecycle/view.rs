@@ -39,6 +39,7 @@ pub trait LifecycleView: Debug + Serialize + DeserializeOwned + Send + Sync {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(bound(deserialize = ""))]
+#[serde(tag = "lifecycle_state")]
 pub enum LifecycleViewState<V: LifecycleView> {
     NotCreated,
     Created(V),
@@ -99,7 +100,7 @@ where
             .unwrap_or_else(|| {
                 (
                     LifecycleViewState::default(),
-                    ViewContext::new(aggregate_id_str, 0),
+                    ViewContext::new(aggregate_id_str),
                 )
             });
 

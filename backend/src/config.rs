@@ -1,7 +1,8 @@
 use crate::routes::UploadPolicy;
+use custom_debug::Debug;
+use elasticsearch::http::Url;
 use serde::Deserialize;
 use snafu::{ResultExt, Whatever};
-use std::fmt::Debug;
 use std::net::SocketAddr;
 use std::time::Duration;
 
@@ -11,6 +12,7 @@ pub struct Config {
     pub routes: Routes,
     pub auth: Auth,
     pub upload: Option<Upload>,
+    pub storage: Storage,
 }
 
 impl Config {
@@ -54,7 +56,7 @@ impl Config {
 #[serde(transparent)]
 pub struct TelegramSecret(#[serde(with = "hex_serde")] pub [u8; 32]);
 
-impl Debug for TelegramSecret {
+impl std::fmt::Debug for TelegramSecret {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "[REDACTED]")
     }
@@ -85,8 +87,25 @@ pub struct Upload {
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct S3Config {
-    pub endpoint: String,
+    #[debug(format = "{}")]
+    pub endpoint: Url,
     pub bucket: String,
     pub access_key: String,
     pub secret_key: String,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct Storage {
+    // elasticsearch is used as view repository
+    // and to make searches (wow)
+    pub elasticsearch: Elasticsearch,
+    // TODO: specify postgres creds when event store will be persistent
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct Elasticsearch {
+    #[debug(format = "{}")]
+    pub endpoint: Url,
+    pub user: String,
+    pub password: String,
 }

@@ -23,6 +23,7 @@ rust-s3 = "0.34.0-rc1"
 camino = "1.1.6"
 
 snafu = "0.7.5"
+custom_debug = "0.5.1"
 
 uuid = { version = "1.4.1", features = ["v4"] }
 bs58 = "0.5.0"
@@ -55,6 +56,11 @@ config = "0.13.3"
 humantime-serde = "1.1.1"
 secrecy = "0.8.0"
 hex = "0.4.3"
+url = { version = "2.4.1", features = ["serde"] }
+
+elasticsearch = "8.5.0-alpha.1"
+elasticsearch-dsl = "0.4.19"
+http = "0.2.9"
 
 [profile.ship]
 inherits = "release"

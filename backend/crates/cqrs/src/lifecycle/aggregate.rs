@@ -94,6 +94,7 @@ pub enum LifecycleError<E> {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(bound(deserialize = ""))]
+#[serde(tag = "lifecycle_state")]
 pub enum LifecycleAggregateState<A: LifecycleAggregate> {
     NotCreated,
     Created(A),

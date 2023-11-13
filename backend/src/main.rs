@@ -2,6 +2,7 @@ mod api_result;
 mod auth;
 mod config;
 mod domain;
+mod elasticsearch_view_repository;
 mod error;
 mod extractors;
 mod init_tracing;

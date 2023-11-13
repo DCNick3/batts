@@ -34,7 +34,7 @@ impl<V: View + Clone> ViewRepository<V> for MemViewRepository<V> {
         Ok(self.views.read().await.get(view_id).map(|(view, context)| {
             (
                 view.clone(),
-                ViewContext::new(context.view_instance_id.clone(), context.version),
+                ViewContext::new(context.view_instance_id.clone()),
             )
         }))
     }

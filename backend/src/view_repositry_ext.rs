@@ -22,7 +22,7 @@ where
             .load_with_context(view_id)
             .await
             .unwrap()
-            .unwrap_or_else(|| (default(), ViewContext::new(view_id.to_string(), 0)));
+            .unwrap_or_else(|| (default(), ViewContext::new(view_id.to_string())));
 
         update(&mut view);
 
