@@ -1,17 +1,16 @@
 <script lang="ts" generics="T">
-  	// @ts-ignore
-	import AutoComplete from "simple-svelte-autocomplete"
+  // @ts-ignore
+	import AutoComplete from 'simple-svelte-autocomplete'
 
   import { twMerge } from 'tailwind-merge'
 	let defaultClass = 'text-sm p-2.5 text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500';
 	$: autocompleteClass = twMerge(defaultClass, $$props.class);
 
-  // @ts-ignore
-  export let items: NonNullable<T>[]
+  export let items: NonNullable<T>[] = []
+  export let searchFunction: ((keyword: string) => Promise<T[]>) | undefined = undefined
   export let required = false
   export let placeholder = 'Choose option...'
 	export let inputClass = ''
-	export let multiple: boolean = false
   export let labelFieldName: keyof NonNullable<T> | undefined = undefined
   export let valueFieldName: keyof NonNullable<T> | undefined = undefined
 	export let onChange: any = undefined
@@ -25,6 +24,7 @@
 	className={twMerge("block w-full", $$props.class)}
 	class={twMerge(defaultClass, inputClass)}
 	{items}
+  {searchFunction}
 	bind:selectedItem
 	{labelFieldName}
 	{valueFieldName}
@@ -32,7 +32,6 @@
 	hideArrow
 	{readOnly}
 	{showClear}
-	{multiple}
 	{required}
 	{onChange}
 />

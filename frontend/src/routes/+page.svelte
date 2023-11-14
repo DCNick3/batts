@@ -5,7 +5,6 @@
 		Label,
 		Textarea,
 	} from 'flowbite-svelte'
-	import AutoComplete from '$lib/components/AutoComplete.svelte'
   import { goto } from '$app/navigation'
 	import type { PageData } from './$types'
 	import { Api, generateId } from 'backend'
@@ -13,6 +12,7 @@
 	import type { UserView } from 'backend'
 	import { page } from '$app/stores'
 	import { TicketList } from '$lib/components/TicketList'
+	import { AutoComplete } from '$lib'
 
 	const url = $page.url
 
@@ -48,6 +48,13 @@
 
 	export let data: PageData
 
+	async function searchFunction(keyword: string) {
+		return [
+  	  { name : "IT Department", id : "UBAEhQUS8tJWFkWtmZSazX" },
+  	  { name : "Dorm Manager", id : "A3UkAiMrP79M9cDTBDUSzK" },
+  	]
+	}
+
 </script>
 
 <svelte:head>
@@ -62,10 +69,12 @@
 		<Label>
 			Submit To:
 			<AutoComplete
+				items={data.receivers}
+				{searchFunction}
+				placeholder="Dorm,  IT,  319"
 				bind:selectedItem={destination}
 				class="my-1"
 				inputClass="w-full"
-				items={data.receivers}
 				labelFieldName="name"
 				valueFieldName="id"
 				required
