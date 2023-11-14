@@ -32,6 +32,9 @@ Content-Type: application/json
   }
 }
 
+###
+POST {{url}}/api/fake-login/W4Qkb3bGVeW1oGqYbd3Cm3
+
 ### Get user
 GET {{url}}/api/users/FDUeanyKADQEpyrydYn7XB
 

@@ -3,10 +3,9 @@ routes:
 server:
   endpoint: 127.0.0.1:3000
 storage:
-  elasticsearch:
-    endpoint: http://localhost:9200
-    user: elastic
-    password: elastic
+  meilisearch:
+    endpoint: http://localhost:7700
+    api_key: 'aSampleMasterKey'
 upload:
   s3:
     endpoint: http://localhost:9000

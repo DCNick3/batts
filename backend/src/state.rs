@@ -6,14 +6,13 @@ use crate::domain::ticket::{
     TicketView,
 };
 use crate::domain::user::{IdentityQuery, IdentityView, UserAggregate, UserServices, UserView};
-use crate::elasticsearch_view_repository::ElasticViewRepository;
+use crate::meilisearch_view_repository::MeilisearchViewRepository;
 use crate::routes::UploadState;
 use cqrs_es::lifecycle::{
     LifecycleAggregate, LifecycleAggregateState, LifecycleQuery, LifecycleView, LifecycleViewState,
 };
 use cqrs_es::mem_store::MemStore;
 use cqrs_es::{Aggregate, CqrsFramework, Query, View};
-use elasticsearch::Elasticsearch;
 use std::collections::HashSet;
 use std::default::Default;
 use std::sync::Arc;
@@ -21,10 +20,10 @@ use tracing::{info, warn};
 
 type MyCqrsFramework<A> = CqrsFramework<A, MemStore<A>>;
 
-type MyViewRepository<V> = ElasticViewRepository<V>;
+type MyViewRepository<V> = MeilisearchViewRepository<V>;
 // type MyGenericQuery<V> = GenericQuery<MyViewRepository<V>, V>;
 
-type MyLifecycleViewRepository<V> = ElasticViewRepository<LifecycleViewState<V>>;
+type MyLifecycleViewRepository<V> = MeilisearchViewRepository<LifecycleViewState<V>>;
 // type MyLifecycleQuery<V> = LifecycleQuery<MyLifecycleViewRepository<V>, V>;
 
 #[derive(Clone)]
@@ -50,16 +49,16 @@ pub struct ApplicationState {
 }
 
 struct CqrsBuilder {
-    elastic: Elasticsearch,
-    elastic_index_names: HashSet<String>,
+    meilisearch: meilisearch_sdk::Client,
+    index_names: HashSet<String>,
 }
 
 impl CqrsBuilder {
     // TODO: pass the event store
-    fn new(elastic: Elasticsearch) -> Self {
+    fn new(meilisearch: meilisearch_sdk::Client) -> Self {
         Self {
-            elastic,
-            elastic_index_names: HashSet::new(),
+            meilisearch,
+            index_names: HashSet::new(),
         }
     }
 
@@ -71,40 +70,54 @@ impl CqrsBuilder {
     }
 
     async fn finalize(self) {
+        let mut tasks = Vec::new();
+
         // wipe the elasticsearch database
         // TODO: remove this when we are able to handle persistence
-        for index in &self.elastic_index_names {
-            match crate::elasticsearch_view_repository::try_delete_index(
-                self.elastic.transport(),
-                index,
-            )
-            .await
-            {
-                Ok(true) => {
+        for index in &self.index_names {
+            match self.meilisearch.delete_index(index).await {
+                Ok(task) => {
+                    tasks.push(task);
                     warn!("Deleted index `{}`", index);
                 }
-                Ok(false) => {}
+                Err(meilisearch_sdk::Error::Meilisearch(meilisearch_sdk::MeilisearchError {
+                    error_code: meilisearch_sdk::ErrorCode::IndexNotFound,
+                    ..
+                })) => {}
                 Err(e) => {
                     panic!("Failed deleting index `{}`: {:?}", index, e);
                 }
             }
         }
 
-        for index in &self.elastic_index_names {
-            match crate::elasticsearch_view_repository::ensure_index_exists(
-                self.elastic.transport(),
-                index,
-            )
-            .await
-            {
-                Ok(true) => {
+        info!("Waiting for deletion tasks to complete...");
+        for task in tasks.drain(..) {
+            task.wait_for_completion(&self.meilisearch, None, None)
+                .await
+                .expect("Failed to wait for deletion task");
+        }
+
+        for index in &self.index_names {
+            match self.meilisearch.create_index(index, Some("_view_id")).await {
+                Ok(task) => {
+                    tasks.push(task);
                     info!("Created index `{}`", index);
                 }
-                Ok(false) => {}
+                Err(meilisearch_sdk::Error::Meilisearch(meilisearch_sdk::MeilisearchError {
+                    error_code: meilisearch_sdk::ErrorCode::IndexAlreadyExists,
+                    ..
+                })) => {}
                 Err(e) => {
                     panic!("Failed to create index `{}`: {:?}", index, e);
                 }
             }
+        }
+
+        info!("Waiting for creation tasks to complete...");
+        for task in tasks.drain(..) {
+            task.wait_for_completion(&self.meilisearch, None, None)
+                .await
+                .expect("Failed to wait for creation task");
         }
     }
 }
@@ -124,11 +137,11 @@ impl<'a, A: Aggregate> AggregateBuilder<'a, A> {
         name: &str,
         f: FnQ,
     ) -> Arc<MyViewRepository<V>> {
-        if !self.cqrs.elastic_index_names.insert(name.to_string()) {
+        if !self.cqrs.index_names.insert(name.to_string()) {
             panic!("An index named `{}` already exists", name)
         }
 
-        let view_repository = MyViewRepository::new(self.cqrs.elastic.clone(), name);
+        let view_repository = MyViewRepository::new(self.cqrs.meilisearch.clone(), name);
         let view_repository = Arc::new(view_repository);
 
         self.queries.push(Box::new(f(view_repository.clone())));
@@ -194,20 +207,12 @@ pub async fn new_application_state(config: &crate::config::Config) -> Applicatio
         }
     });
 
-    let elastic = elasticsearch::http::transport::TransportBuilder::new(
-        elasticsearch::http::transport::SingleNodeConnectionPool::new(
-            config.storage.elasticsearch.endpoint.clone(),
-        ),
-    )
-    .auth(elasticsearch::auth::Credentials::Basic(
-        config.storage.elasticsearch.user.clone(),
-        config.storage.elasticsearch.password.clone(),
-    ))
-    .build()
-    .expect("Failed to build elasticsearch transport");
-    let elastic = Elasticsearch::new(elastic);
+    let meilisearch = meilisearch_sdk::Client::new(
+        config.storage.meilisearch.endpoint.to_string(),
+        Some(&config.storage.meilisearch.api_key),
+    );
 
-    let mut builder = CqrsBuilder::new(elastic);
+    let mut builder = CqrsBuilder::new(meilisearch);
 
     let mut groups_builder = builder.aggregate("groups");
 

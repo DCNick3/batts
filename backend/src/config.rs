@@ -1,10 +1,10 @@
 use crate::routes::UploadPolicy;
 use custom_debug::Debug;
-use elasticsearch::http::Url;
 use serde::Deserialize;
 use snafu::{ResultExt, Whatever};
 use std::net::SocketAddr;
 use std::time::Duration;
+use url::Url;
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct Config {
@@ -96,16 +96,15 @@ pub struct S3Config {
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct Storage {
-    // elasticsearch is used as view repository
+    // meilisearch is mis-used as view repository
     // and to make searches (wow)
-    pub elasticsearch: Elasticsearch,
+    pub meilisearch: Meilisearch,
     // TODO: specify postgres creds when event store will be persistent
 }
 
 #[derive(Deserialize, Clone, Debug)]
-pub struct Elasticsearch {
+pub struct Meilisearch {
     #[debug(format = "{}")]
     pub endpoint: Url,
-    pub user: String,
-    pub password: String,
+    pub api_key: String,
 }

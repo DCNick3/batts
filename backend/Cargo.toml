@@ -58,8 +58,7 @@ secrecy = "0.8.0"
 hex = "0.4.3"
 url = { version = "2.4.1", features = ["serde"] }
 
-elasticsearch = "8.5.0-alpha.1"
-elasticsearch-dsl = "0.4.19"
+meilisearch-sdk = { git = "https://github.com/gibbz00/meilisearch-rust.git", rev = "d5723406ff51957bd7e616b82015203182dba1be" }
 http = "0.2.9"
 
 [profile.ship]
