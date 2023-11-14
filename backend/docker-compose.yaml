@@ -1,0 +1,23 @@
+services:
+  backend:
+    # TODO: update the docker image tag in the deploy script (or a separate one??)
+    image: ghcr.io/dcnick3/batts:backend-f69a8f7093b6542db5c5700f73bc5165ea7bd523
+    environment:
+      CONFIG_STORAGE__MEILISEARCH__ENDPOINT: "http://meilisearch:7700"
+      CONFIG_STORAGE__MEILISEARCH__API_KEY: "aSampleMasterKey"
+    ports:
+      - 3000:3000
+    depends_on:
+      meilisearch:
+        condition: service_healthy
+  meilisearch:
+    image: getmeili/meilisearch:v1.4
+    environment:
+      MEILI_ENV: "development"
+    ports:
+      - 7700:7700
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
