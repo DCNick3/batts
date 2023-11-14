@@ -1,2 +1,3 @@
 secrets.yaml
 elasticsearch-secret.yaml
+meilisearch-secret.yaml

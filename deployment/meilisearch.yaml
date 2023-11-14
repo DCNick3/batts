@@ -9,6 +9,13 @@ spec:
     chart: meilisearch
     repoURL: https://meilisearch.github.io/meilisearch-kubernetes
     targetRevision: v0.2.8
+    helm:
+      values: |
+        auth:
+          existingMasterKeySecret: batts-meilisearch
+        environment:
+          MEILI_ENV: production
+          MEILI_NO_ANALYTICS: true
   destination:
     namespace: default
     name: in-cluster
