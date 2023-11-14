@@ -91,7 +91,7 @@
 				trigger="click"
 				placement="bottom"
 			>
-				<div class="min-w-[120px] normal-case font-medium text-xs flex flex-col">
+				<div class="min-w-[120px] normal-case font-medium text-xs flex flex-col pb-3">
 					<Label class="flex flex-col">
 						Status
 						<AutoComplete
@@ -134,19 +134,21 @@
 								showClear
 							/>
 						</Label>
-						<div class="mt-3 flex flex-col gap-1">
-							{#each filters.owners as { id, name }}
-								<div class="flex items-center border border-gray-500 text-gray-700 rounded-full p-1 px-2 w-fit">
-									{name}
-									<button
-										class="flex items-center w-2 h-2 ml-2"
-										on:click={() => onSelectedOwnerRemove(id)}
-									>
-										<Icon icon="fa:remove" style="color: black" />
-									</button>
-								</div>
-							{/each}
-						</div>
+						{#if filters.owners.length > 0}
+							<div class="mt-3 flex flex-col gap-1">
+								{#each filters.owners as { id, name }}
+									<div class="flex items-center border border-gray-500 text-gray-700 rounded-full p-1 px-2 w-fit">
+										{name}
+										<button
+											class="flex items-center w-2 h-2 ml-2"
+											on:click={() => onSelectedOwnerRemove(id)}
+										>
+											<Icon icon="fa:remove" style="color: black" />
+										</button>
+									</div>
+								{/each}
+							</div>
+						{/if}
 					{/if}
 
 				</div>
