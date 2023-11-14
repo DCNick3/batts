@@ -1,6 +1,5 @@
 services:
   backend:
-    # TODO: update the docker image tag in the deploy script (or a separate one??)
     image: ghcr.io/dcnick3/batts:backend-f69a8f7093b6542db5c5700f73bc5165ea7bd523
     environment:
       CONFIG_STORAGE__MEILISEARCH__ENDPOINT: "http://meilisearch:7700"

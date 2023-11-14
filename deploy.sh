@@ -13,3 +13,4 @@ docker buildx build -t "ghcr.io/dcnick3/batts:backend-$(git rev-parse HEAD)" . -
 # yq command to rewrite image in k8s deployment
 yq -i -Y '.spec.template.spec.containers[0].image = "ghcr.io/dcnick3/batts:backend-'$(git rev-parse HEAD)'"' deployment/deployment.yaml
 yq -i -Y '.spec.template.spec.containers[1].image = "ghcr.io/dcnick3/batts:frontend-'$(git rev-parse HEAD)'"' deployment/deployment.yaml
+yq -i -Y '.services.backend.image = "ghcr.io/dcnick3/batts:backend-'$(git rev-parse HEAD)'"' backend/docker-compose.yaml
