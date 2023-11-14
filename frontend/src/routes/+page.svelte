@@ -108,9 +108,9 @@
 					let:label={label}
 				>
 					{#if item.type === 'Group'}
-						{item.view.title}
+						{@html label}
 					{:else}
-						{item.view.name}
+						{@html label}
 					{/if}
 				</div>
 			</AutoComplete>
