@@ -1,4 +1,5 @@
 use crate::api_result::ApiResult;
+use crate::domain::group::GroupView;
 use crate::domain::ticket::TicketView;
 use crate::domain::user::UserView;
 use crate::error::MeilisearchSnafu;
@@ -56,7 +57,7 @@ pub async fn tickets(
             .with_query(&query)
             .with_filter(r#"lifecycle_state = "Created""#)
             .with_attributes_to_highlight(Selectors::All)
-            .execute::<TicketView>()
+            .execute()
             .await
             .context(MeilisearchSnafu)
             .map(SearchResults::from_meili)
@@ -76,7 +77,7 @@ pub async fn users(
             .with_query(&query)
             .with_filter(r#"lifecycle_state = "Created""#)
             .with_attributes_to_highlight(Selectors::All)
-            .execute::<UserView>()
+            .execute()
             .await
             .context(MeilisearchSnafu)
             .map(SearchResults::from_meili)
@@ -87,7 +88,7 @@ pub async fn users(
 pub async fn groups(
     State(state): State<ApplicationState>,
     Query(SearchQuery { q: query }): Query<SearchQuery>,
-) -> ApiResult<SearchResults<UserView>> {
+) -> ApiResult<SearchResults<GroupView>> {
     ApiResult::from_async_fn(|| async {
         state
             .search
@@ -96,7 +97,7 @@ pub async fn groups(
             .with_query(&query)
             .with_filter(r#"lifecycle_state = "Created""#)
             .with_attributes_to_highlight(Selectors::All)
-            .execute::<UserView>()
+            .execute()
             .await
             .context(MeilisearchSnafu)
             .map(SearchResults::from_meili)
