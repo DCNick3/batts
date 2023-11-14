@@ -3,13 +3,14 @@
 		Button,
 		Input,
 		Label,
+		TabItem,
 		Textarea,
 	} from 'flowbite-svelte'
   import { goto } from '$app/navigation'
 	import type { PageData } from './$types'
 	import { Api, generateId } from 'backend'
   import { getContext } from 'svelte'
-	import type { UserView } from 'backend'
+	import type { ApiResult, GroupView, SearchResults, UserView } from 'backend'
 	import { page } from '$app/stores'
 	import { TicketList } from '$lib/components/TicketList'
 	import { AutoComplete } from '$lib'
@@ -17,14 +18,18 @@
 	const url = $page.url
 
   const user = getContext<SvelteStore<null | UserView>>('user')
-	let destination: {name: string, id: string}
+	let destination: { type: 'User', view: UserView } | { type: 'Group', view: GroupView }
 
 	const qName = url.searchParams.get('gname')
 	const qId = url.searchParams.get('gid')
 	if (qName && qId) {
 		destination = {
-			name: qName,
-			id: qId
+			type: 'Group',
+			view: {
+				id: qId,
+				title: qName,
+				members: [] // not required for purposes of destionation
+			}
 		}
 	}
 
@@ -37,7 +42,7 @@
 
 		const api = new Api(fetch)
 		const newId = generateId()
-		const result = await api.createTicket(newId, { title: topic, body: description, destination: { type: 'Group', id: destination.id }})
+		const result = await api.createTicket(newId, { title: topic, body: description, destination: { type: destination.type, id: destination.view.id }})
 		// TODO: handle error
 		if (result.status === 'Success') {
 			goto(`/tickets/${newId}`)
@@ -49,10 +54,29 @@
 	export let data: PageData
 
 	async function searchFunction(keyword: string) {
-		return [
-  	  { name : "IT Department", id : "UBAEhQUS8tJWFkWtmZSazX" },
-  	  { name : "Dorm Manager", id : "A3UkAiMrP79M9cDTBDUSzK" },
-  	]
+		const api = new Api(fetch)
+		const promises: [Promise<ApiResult<SearchResults<UserView>>>, Promise<ApiResult<SearchResults<GroupView>>>]
+			= [api.searchUsers(keyword), api.searchGroups(keyword)]
+		let options: ({ type: 'User', view: UserView } | { type: 'Group', view: GroupView })[] = []
+		try {
+			const [usrRes, grpRes] = await Promise.all(promises)
+			if (usrRes.status === 'Success') {
+				options = options.concat(usrRes.payload.top_hits.map(item => ({ type: 'User', view: item.value })))
+			} else {
+				// TODO: error handling
+				console.error(usrRes.payload)
+			}
+			if (grpRes.status === 'Success') {
+				options = options.concat(grpRes.payload.top_hits.map(item => ({ type: 'Group', view: item.value })))
+			} else {
+				// TODO: error handling
+				console.error(usrRes.payload)
+			}
+		} catch (error) {
+			// TODO: error handling
+			console.error(error)
+		}
+		return options
 	}
 
 </script>
@@ -69,16 +93,27 @@
 		<Label>
 			Submit To:
 			<AutoComplete
-				items={data.receivers}
 				{searchFunction}
 				placeholder="Dorm,  IT,  319"
 				bind:selectedItem={destination}
 				class="my-1"
 				inputClass="w-full"
-				labelFieldName="name"
-				valueFieldName="id"
 				required
-			/>
+				localFiltering={false}
+				labelFunction={(item) => item.type === 'User' ? item.view.name : item.view.title}
+			>
+				<div
+					slot="item"
+					let:item={item}
+					let:label={label}
+				>
+					{#if item.type === 'Group'}
+						{label}
+					{:else}
+						{item.view.name}
+					{/if}
+				</div>
+			</AutoComplete>
 		</Label>
 		<Label>
 			Topic:
