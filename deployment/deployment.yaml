@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: batts-backend
-          image: ghcr.io/dcnick3/batts:backend-03aae35767ee491e738e8a0cb0fd6e234dac685a
+          image: ghcr.io/dcnick3/batts:backend-29e682b0c662bb61bff9a3bfcadcb8f0e49ed425
           env:
             - name: CONFIG_SERVER__ENDPOINT
               value: "127.0.0.1:3001"
@@ -35,7 +35,7 @@ spec:
                   name: batts-meilisearch
                   key: MEILI_MASTER_KEY
         - name: batts-frontend
-          image: ghcr.io/dcnick3/batts:frontend-03aae35767ee491e738e8a0cb0fd6e234dac685a
+          image: ghcr.io/dcnick3/batts:frontend-29e682b0c662bb61bff9a3bfcadcb8f0e49ed425
           env:
             - name: BACKEND_URL
               value: "http://127.0.0.1:3001"
