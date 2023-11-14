@@ -108,7 +108,7 @@
 					let:label={label}
 				>
 					{#if item.type === 'Group'}
-						{label}
+						{item.view.title}
 					{:else}
 						{item.view.name}
 					{/if}
