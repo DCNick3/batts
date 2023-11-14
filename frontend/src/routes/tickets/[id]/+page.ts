@@ -35,10 +35,14 @@ export const load: PageLoad<Data> = async ({ fetch, params }) => {
       if (destination.type === 'Group') {
         const res = await api.getGroup(destination.id)
         if (res.status === 'Success') {
-          const { payload: group } = res.payload
+          const { payload: group, users: groupUsers } = res.payload
 
           group.members.forEach(m => {
-            editPermissions.add(m);
+            editPermissions.add(m)
+            const usr = groupUsers[m]
+            if (usr) {
+              users[m] = usr
+            }
           })
         } else {
           // TODO handle group info load failure
