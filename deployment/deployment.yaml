@@ -28,7 +28,7 @@ spec:
                   name: batts-secrets
                   key: telegram_secret
             - name: CONFIG_STORAGE__MEILISEARCH__ENDPOINT
-              value: "http://meilisearch:7700"
+              value: "http://batts-meilisearch.default.svc.cluster.local:7700"
             - name: CONFIG_STORAGE__MEILISEARCH__API_KEY
               valueFrom:
                 secretKeyRef:
