@@ -1,5 +1,5 @@
 use crate::api_result::ApiResult;
-use crate::error::{AuthSnafu, JsonSnafu, PathSnafu};
+use crate::error::{AuthSnafu, JsonSnafu, PathSnafu, QuerySnafu};
 use async_trait::async_trait;
 use axum::body::HttpBody;
 use axum::extract::{FromRequest, FromRequestParts};
@@ -12,7 +12,6 @@ use snafu::{IntoError, ResultExt};
 use crate::auth::{Authenticated, UserClaims};
 use crate::domain::user::UserId;
 use crate::state::ApplicationState;
-pub use axum::extract::State;
 use axum_extra::extract::CookieJar;
 
 /// See [`axum::Json`] for more details.
@@ -48,10 +47,29 @@ where
 {
     type Rejection = ApiResult;
 
-    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        match axum::extract::Path::<T>::from_request_parts(parts, _state).await {
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        match axum::extract::Path::<T>::from_request_parts(parts, state).await {
             Ok(path) => Ok(Path(path.0)),
             Err(err) => Err(ApiResult::err(PathSnafu.into_error(err))),
+        }
+    }
+}
+
+/// See [`axum::extract::Query`] for more details.
+pub struct Query<T>(pub T);
+
+#[async_trait]
+impl<T, S> FromRequestParts<S> for Query<T>
+where
+    T: DeserializeOwned,
+    S: Send + Sync,
+{
+    type Rejection = ApiResult;
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        match axum::extract::Query::<T>::from_request_parts(parts, state).await {
+            Ok(query) => Ok(Query(query.0)),
+            Err(err) => Err(ApiResult::err(QuerySnafu.into_error(err))),
         }
     }
 }

@@ -123,3 +123,6 @@ Content-Type: application/json
 
     client.log(command);
 %}
+
+### Search tickets
+GET {{url}}/api/search/tickets?q=brok

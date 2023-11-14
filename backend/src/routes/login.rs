@@ -48,6 +48,7 @@ pub async fn internal_fake_login(
 
     let result = ApiResult::from_async_fn(|| async {
         let Some(user) = state
+            .cqrs
             .user_view_repository
             .load_lifecycle(id)
             .await
@@ -152,6 +153,7 @@ pub async fn telegram_login(
 
         // try to find the user with this telegram id
         let user_id = match state
+            .cqrs
             .user_identity_view_repository
             .load(&identity.to_string())
             .await
@@ -165,6 +167,7 @@ pub async fn telegram_login(
                 info!("User not registered, creating a new one from the telegram profile: id={} profile={:?}", user_id.0, data.profile);
 
                 state
+                    .cqrs
                     .user_cqrs
                     .execute(
                         user_id,
@@ -179,6 +182,7 @@ pub async fn telegram_login(
         };
 
         let Some(user) = state
+            .cqrs
             .user_view_repository
             .load_lifecycle(user_id)
             .await

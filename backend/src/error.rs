@@ -55,10 +55,16 @@ pub enum Error {
     Path {
         source: axum::extract::rejection::PathRejection,
     },
+    /// Error while extracting value from query string
+    Query {
+        source: axum::extract::rejection::QueryRejection,
+    },
     /// Persistence error
     Persistence {
         source: cqrs_es::persist::PersistenceError,
     },
+    /// Error while interacting with Meilisearch
+    Meilisearch { source: meilisearch_sdk::Error },
     /// Auth error
     Auth { source: crate::auth::AuthError },
     /// Login error
@@ -92,7 +98,9 @@ impl ApiError for Error {
         match self {
             Error::Json { source } => source.status(),
             Error::Path { source } => source.status(),
+            Error::Query { source } => source.status(),
             Error::Persistence { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+            Error::Meilisearch { .. } => StatusCode::INTERNAL_SERVER_ERROR,
             Error::Auth { source } => source.status_code(),
             Error::Login { source } => source.status_code(),
             Error::Upload { source } => source.status_code(),

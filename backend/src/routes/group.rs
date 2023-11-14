@@ -20,13 +20,14 @@ pub async fn query(
 ) -> ApiResult<WithUsers<GroupView>> {
     ApiResult::from_async_fn(|| async {
         let view = state
+            .cqrs
             .group_view_repository
             .load_lifecycle(id)
             .await
             .context(PersistenceSnafu)?
             .ok_or(Error::NotFound)?;
 
-        WithUsers::new(state.user_view_repository.as_ref(), view).await
+        WithUsers::new(state.cqrs.user_view_repository.as_ref(), view).await
     })
     .await
 }
@@ -39,6 +40,7 @@ pub async fn create_command(
 ) -> ApiResult {
     ApiResult::from_result(
         state
+            .cqrs
             .group_cqrs
             .execute(
                 id,
@@ -57,6 +59,7 @@ pub async fn update_command(
 ) -> ApiResult {
     ApiResult::from_result(
         state
+            .cqrs
             .group_cqrs
             .execute(
                 id,
@@ -74,6 +77,7 @@ pub async fn tickets_query(
 ) -> ApiResult<WithGroupsAndUsers<Vec<TicketListingViewExpandedItem>>> {
     ApiResult::from_async_fn(|| async {
         let group_view = state
+            .cqrs
             .group_view_repository
             .load(&id.0.to_string())
             .await
@@ -94,6 +98,7 @@ pub async fn tickets_query(
 
         let destination_id = TicketDestination::Group(id);
         let listing = state
+            .cqrs
             .ticket_destination_listing_view_repository
             .load(&destination_id.to_string())
             .await

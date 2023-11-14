@@ -25,6 +25,7 @@ import type {
 
 import {v4 as uuidv4, parse as parseUuid} from 'uuid'
 import bs58 from "bs58";
+import type {SearchResults} from "./SearchResults";
 
 export function generateId(): string {
     const uuid = parseUuid(uuidv4());
@@ -135,6 +136,18 @@ export class Api {
     async changeTicketAssignee(id: TicketId, new_assignee: UserId | null): Promise<ApiResult<null>> {
         let command: UpdateTicket = {type: "ChangeAssignee", new_assignee};
         return await this.#sendCommand(`/api/tickets/${id}`, command);
+    }
+
+    async searchTickets(q: string): Promise<ApiResult<SearchResults<TicketView>>> {
+        return await this.#get(`/api/search/tickets?q=${q}`);
+    }
+
+    async searchUsers(q: string): Promise<ApiResult<SearchResults<UserView>>> {
+        return await this.#get(`/api/search/users?q=${q}`);
+    }
+
+    async searchGroups(q: string): Promise<ApiResult<SearchResults<GroupView>>> {
+        return await this.#get(`/api/search/groups?q=${q}`);
     }
 }
 

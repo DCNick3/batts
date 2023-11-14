@@ -323,6 +323,15 @@ class Api {
     let command = { type: "ChangeAssignee", new_assignee };
     return await this.#sendCommand(`/api/tickets/${id}`, command);
   }
+  async searchTickets(q) {
+    return await this.#get(`/api/search/tickets?q=${q}`);
+  }
+  async searchUsers(q) {
+    return await this.#get(`/api/search/users?q=${q}`);
+  }
+  async searchGroups(q) {
+    return await this.#get(`/api/search/groups?q=${q}`);
+  }
 }
 
 export { Api, generateId };

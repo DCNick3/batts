@@ -4,6 +4,7 @@ import nodeFetch from 'node-fetch';
 import makeFetchCookie from 'fetch-cookie';
 
 import { Api, generateId, FetchFn, UserId, ApiError, ApiResult } from "@";
+import api from "../bindings/Api";
 
 const BASE_URL = "http://localhost:3000";
 
@@ -322,4 +323,24 @@ test("make_mock_tickets", async () => {
         title: "Dashboard broken",
         body: "Hello,\n\nI'm writing to you because the dashboard is broken. Please fix it.",
     });
+})
+
+test("search_users", async () => {
+    const api = makeApi();
+
+    const userId = generateId();
+    unwrap(await api.internalCreateUser(userId, {
+        type: "Telegram", id: 654321,
+        first_name: "Abra", last_name: "Cadabra",
+        username: "Abracadabra1337", photo_url: null,
+    }));
+
+    async function testQuery(q: string) {
+        const results = unwrap(await api.searchUsers(q));
+        const found = results.top_hits.filter((item) => item.value.id == userId);
+        expect(found.length).toBe(1);
+    }
+
+    await testQuery("Abra");
+    await testQuery("abracadabra1337");
 })

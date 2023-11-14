@@ -20,6 +20,7 @@ pub async fn query(
 ) -> ApiResult<WithGroupsAndUsers<TicketView>> {
     ApiResult::from_async_fn(|| async {
         let view = state
+            .cqrs
             .ticket_view_repository
             .load_lifecycle(id)
             .await
@@ -27,8 +28,8 @@ pub async fn query(
             .ok_or(Error::NotFound)?;
 
         WithGroupsAndUsers::new(
-            state.user_view_repository.as_ref(),
-            state.group_view_repository.as_ref(),
+            state.cqrs.user_view_repository.as_ref(),
+            state.cqrs.group_view_repository.as_ref(),
             view,
         )
         .await
@@ -44,6 +45,7 @@ pub async fn create_command(
 ) -> ApiResult {
     ApiResult::from_result(
         state
+            .cqrs
             .ticket_cqrs
             .execute(
                 id,
@@ -62,6 +64,7 @@ pub async fn update_command(
 ) -> ApiResult {
     ApiResult::from_result(
         state
+            .cqrs
             .ticket_cqrs
             .execute(
                 id,
@@ -80,7 +83,7 @@ pub async fn expand_ticket_listing_view(
         ticket_view
             .items
             .iter()
-            .map(|id| async { state.ticket_view_repository.load_lifecycle(*id).await }),
+            .map(|id| async { state.cqrs.ticket_view_repository.load_lifecycle(*id).await }),
     )
     .await;
     let results = results
@@ -107,8 +110,8 @@ pub async fn expand_ticket_listing_view(
         .collect();
 
     WithGroupsAndUsers::new(
-        state.user_view_repository.as_ref(),
-        state.group_view_repository.as_ref(),
+        state.cqrs.user_view_repository.as_ref(),
+        state.cqrs.group_view_repository.as_ref(),
         results,
     )
     .await
@@ -120,6 +123,7 @@ pub async fn assignee_listing_query(
 ) -> ApiResult<WithGroupsAndUsers<Vec<TicketListingViewExpandedItem>>> {
     ApiResult::from_async_fn(|| async {
         let view = state
+            .cqrs
             .ticket_assignee_listing_view_repository
             .load(&user_context.user_id().0.to_string())
             .await
@@ -137,6 +141,7 @@ pub async fn owned_listing_query(
 ) -> ApiResult<WithGroupsAndUsers<Vec<TicketListingViewExpandedItem>>> {
     ApiResult::from_async_fn(|| async {
         let view = state
+            .cqrs
             .ticket_owner_listing_view_repository
             .load(&user_context.user_id().0.to_string())
             .await

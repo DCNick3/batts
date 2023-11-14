@@ -13,9 +13,9 @@ pub struct MeilisearchViewRepository<V> {
 }
 
 impl<V: Debug + Serialize + DeserializeOwned> MeilisearchViewRepository<V> {
-    pub fn new(meilisearch: meilisearch_sdk::Client, index: &str) -> Self {
+    pub fn new(index: meilisearch_sdk::Index) -> Self {
         Self {
-            index: meilisearch_sdk::Index::new(index, meilisearch),
+            index,
             phantom: PhantomData,
         }
     }

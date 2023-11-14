@@ -13,6 +13,7 @@ use cqrs_es::lifecycle::{
 };
 use cqrs_es::mem_store::MemStore;
 use cqrs_es::{Aggregate, CqrsFramework, Query, View};
+use meilisearch_sdk::Index;
 use std::collections::HashSet;
 use std::default::Default;
 use std::sync::Arc;
@@ -31,8 +32,98 @@ pub struct ApplicationState {
     pub cookie_authority: CookieAuthority,
     pub telegram_login_secret: Option<TelegramSecret>,
 
+    pub cqrs: CqrsState,
+    pub search: SearchState,
     pub upload: Option<UploadState>,
+}
 
+#[derive(Clone)]
+pub struct SearchState {
+    pub meilisearch: meilisearch_sdk::Client,
+
+    pub user_index: Index,
+    pub group_index: Index,
+    pub ticket_index: Index,
+}
+
+impl SearchState {
+    pub async fn ensure_settings(&self) {
+        let mut tasks = Vec::new();
+
+        tasks.push(
+            self.ticket_index
+                .set_settings(&meilisearch_sdk::Settings {
+                    searchable_attributes: Some(
+                        // TODO: search by messages? maybe in a different index?
+                        // honestly, we shouldn't be using meilisearch to store our data...
+                        ["title"].into_iter().map(ToString::to_string).collect(),
+                    ),
+                    filterable_attributes: Some(
+                        ["lifecycle_state"]
+                            .into_iter()
+                            .map(ToString::to_string)
+                            .collect(),
+                    ),
+                    ..Default::default()
+                })
+                .await
+                .expect("Failed to set ticket index settings"),
+        );
+
+        tasks.push(
+            self.group_index
+                .set_settings(&meilisearch_sdk::Settings {
+                    searchable_attributes: Some(
+                        ["title"].into_iter().map(ToString::to_string).collect(),
+                    ),
+                    filterable_attributes: Some(
+                        ["lifecycle_state"]
+                            .into_iter()
+                            .map(ToString::to_string)
+                            .collect(),
+                    ),
+                    ..Default::default()
+                })
+                .await
+                .expect("Failed to set group index settings"),
+        );
+
+        tasks.push(
+            self.user_index
+                .set_settings(&meilisearch_sdk::Settings {
+                    searchable_attributes: Some(
+                        [
+                            "name",
+                            "identities.telegram.username",
+                            "identities.university.email",
+                        ]
+                        .into_iter()
+                        .map(ToString::to_string)
+                        .collect(),
+                    ),
+                    filterable_attributes: Some(
+                        ["lifecycle_state"]
+                            .into_iter()
+                            .map(ToString::to_string)
+                            .collect(),
+                    ),
+                    ..Default::default()
+                })
+                .await
+                .expect("Failed to set user index settings"),
+        );
+
+        info!("Waiting for settings tasks to complete...");
+        for task in tasks.drain(..) {
+            task.wait_for_completion(&self.meilisearch, None, None)
+                .await
+                .expect("Failed to wait for settings task");
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct CqrsState {
     pub group_view_repository: Arc<MyLifecycleViewRepository<GroupView>>,
     pub user_groups_view_repository: Arc<MyViewRepository<UserGroupsView>>,
     pub group_cqrs: Arc<MyCqrsFramework<GroupAggregate>>,
@@ -128,6 +219,27 @@ struct AggregateBuilder<'a, A: Aggregate> {
 }
 
 impl<'a, A: Aggregate> AggregateBuilder<'a, A> {
+    fn view_repository_from_index<
+        V: View,
+        Q: Query<A> + 'static,
+        FnQ: FnOnce(Arc<MyViewRepository<V>>) -> Q,
+    >(
+        &mut self,
+        index: Index,
+        f: FnQ,
+    ) -> Arc<MyViewRepository<V>> {
+        if !self.cqrs.index_names.insert(index.uid.clone()) {
+            panic!("An index named `{}` already exists", index.uid)
+        }
+
+        let view_repository = MyViewRepository::new(index.clone());
+        let view_repository = Arc::new(view_repository);
+
+        self.queries.push(Box::new(f(view_repository.clone())));
+
+        view_repository
+    }
+
     fn view_repository<
         V: View,
         Q: Query<A> + 'static,
@@ -137,16 +249,8 @@ impl<'a, A: Aggregate> AggregateBuilder<'a, A> {
         name: &str,
         f: FnQ,
     ) -> Arc<MyViewRepository<V>> {
-        if !self.cqrs.index_names.insert(name.to_string()) {
-            panic!("An index named `{}` already exists", name)
-        }
-
-        let view_repository = MyViewRepository::new(self.cqrs.meilisearch.clone(), name);
-        let view_repository = Arc::new(view_repository);
-
-        self.queries.push(Box::new(f(view_repository.clone())));
-
-        view_repository
+        let index = Index::new(name, self.cqrs.meilisearch.clone());
+        self.view_repository_from_index(index, f)
     }
 
     fn build(self, services: A::Services) -> Arc<MyCqrsFramework<A>> {
@@ -162,9 +266,98 @@ impl<'a, A: Aggregate> AggregateBuilder<'a, A> {
 impl<'a, A: LifecycleAggregate> AggregateBuilder<'a, LifecycleAggregateState<A>> {
     fn lifecycle_view_repository<V: LifecycleView<Aggregate = A> + 'static>(
         &mut self,
-        name: &str,
+        index: Index,
     ) -> Arc<MyLifecycleViewRepository<V>> {
-        self.view_repository(name, |repo| LifecycleQuery::new(repo))
+        self.view_repository_from_index(index, |repo| LifecycleQuery::new(repo))
+    }
+}
+
+async fn search_state(config: &crate::config::Config) -> SearchState {
+    let meilisearch = meilisearch_sdk::Client::new(
+        config.storage.meilisearch.endpoint.to_string(),
+        Some(&config.storage.meilisearch.api_key),
+    );
+
+    let group_index = meilisearch.index("groups");
+    let ticket_index = meilisearch.index("tickets");
+    let user_index = meilisearch.index("users");
+
+    SearchState {
+        meilisearch,
+        user_index,
+        group_index,
+        ticket_index,
+    }
+}
+
+async fn cqrs_state(search_state: &SearchState) -> CqrsState {
+    let mut builder = CqrsBuilder::new(search_state.meilisearch.clone());
+
+    let mut groups_builder = builder.aggregate("groups");
+
+    let group_view_repository =
+        groups_builder.lifecycle_view_repository(search_state.group_index.clone());
+    let user_groups_view_repository =
+        groups_builder.view_repository("groups-user", UserGroupsQuery::new);
+
+    let group_cqrs = groups_builder.build(());
+
+    let mut tickets_builder = builder.aggregate("tickets");
+    let ticket_view_repository =
+        tickets_builder.lifecycle_view_repository(search_state.ticket_index.clone());
+
+    fn make_ticket_listing(
+        kind: TicketListingKind,
+    ) -> impl FnOnce(
+        Arc<MyViewRepository<TicketListingView>>,
+    ) -> TicketListingQuery<MyViewRepository<TicketListingView>> {
+        move |repo| TicketListingQuery::new(repo, kind)
+    }
+    // TODO: a lot of those become redundant if we use elastic's filter capabilities
+    let ticket_owner_listing_view_repository = tickets_builder.view_repository(
+        "tickets-owner-listing",
+        make_ticket_listing(TicketListingKind::Owned),
+    );
+    let ticket_assignee_listing_view_repository = tickets_builder.view_repository(
+        "tickets-assignee-listing",
+        make_ticket_listing(TicketListingKind::Assigned),
+    );
+    let ticket_destination_listing_view_repository = tickets_builder.view_repository(
+        "tickets-destination-listing",
+        make_ticket_listing(TicketListingKind::Destination),
+    );
+
+    let ticket_cqrs = tickets_builder.build(TicketServices {
+        group_view_repository: group_view_repository.clone(),
+    });
+
+    let mut user_builder = builder.aggregate("users");
+
+    let user_view_repository =
+        user_builder.lifecycle_view_repository(search_state.user_index.clone());
+    let user_identity_view_repository =
+        user_builder.view_repository("users-identity", IdentityQuery::new);
+
+    let user_cqrs = user_builder.build(UserServices {
+        user_identity_view_repository: user_identity_view_repository.clone(),
+    });
+
+    builder.finalize().await;
+
+    CqrsState {
+        ticket_view_repository,
+        ticket_owner_listing_view_repository,
+        ticket_assignee_listing_view_repository,
+        ticket_destination_listing_view_repository,
+        ticket_cqrs,
+
+        group_view_repository,
+        user_groups_view_repository,
+        group_cqrs,
+
+        user_view_repository,
+        user_identity_view_repository,
+        user_cqrs,
     }
 }
 
@@ -207,78 +400,16 @@ pub async fn new_application_state(config: &crate::config::Config) -> Applicatio
         }
     });
 
-    let meilisearch = meilisearch_sdk::Client::new(
-        config.storage.meilisearch.endpoint.to_string(),
-        Some(&config.storage.meilisearch.api_key),
-    );
+    let search = search_state(config).await;
+    let cqrs = cqrs_state(&search).await;
 
-    let mut builder = CqrsBuilder::new(meilisearch);
-
-    let mut groups_builder = builder.aggregate("groups");
-
-    let group_view_repository = groups_builder.lifecycle_view_repository("groups");
-    let user_groups_view_repository =
-        groups_builder.view_repository("groups-user", UserGroupsQuery::new);
-
-    let group_cqrs = groups_builder.build(());
-
-    let mut tickets_builder = builder.aggregate("tickets");
-    let ticket_view_repository = tickets_builder.lifecycle_view_repository("tickets");
-
-    fn make_ticket_listing(
-        kind: TicketListingKind,
-    ) -> impl FnOnce(
-        Arc<MyViewRepository<TicketListingView>>,
-    ) -> TicketListingQuery<MyViewRepository<TicketListingView>> {
-        move |repo| TicketListingQuery::new(repo, kind)
-    }
-    // TODO: a lot of those become redundant if we use elastic's filter capabilities
-    let ticket_owner_listing_view_repository = tickets_builder.view_repository(
-        "tickets-owner-listing",
-        make_ticket_listing(TicketListingKind::Owned),
-    );
-    let ticket_assignee_listing_view_repository = tickets_builder.view_repository(
-        "tickets-assignee-listing",
-        make_ticket_listing(TicketListingKind::Assigned),
-    );
-    let ticket_destination_listing_view_repository = tickets_builder.view_repository(
-        "tickets-destination-listing",
-        make_ticket_listing(TicketListingKind::Destination),
-    );
-
-    let ticket_cqrs = tickets_builder.build(TicketServices {
-        group_view_repository: group_view_repository.clone(),
-    });
-
-    let mut user_builder = builder.aggregate("users");
-
-    let user_view_repository = user_builder.lifecycle_view_repository("users");
-    let user_identity_view_repository =
-        user_builder.view_repository("users-identity", IdentityQuery::new);
-
-    let user_cqrs = user_builder.build(UserServices {
-        user_identity_view_repository: user_identity_view_repository.clone(),
-    });
-
-    builder.finalize().await;
+    search.ensure_settings().await;
 
     ApplicationState {
         cookie_authority: authority,
         telegram_login_secret: config.auth.telegram_secret.clone(),
+        cqrs,
+        search,
         upload,
-
-        ticket_view_repository,
-        ticket_owner_listing_view_repository,
-        ticket_assignee_listing_view_repository,
-        ticket_destination_listing_view_repository,
-        ticket_cqrs,
-
-        group_view_repository,
-        user_groups_view_repository,
-        group_cqrs,
-
-        user_view_repository,
-        user_identity_view_repository,
-        user_cqrs,
     }
 }

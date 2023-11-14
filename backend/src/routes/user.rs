@@ -20,6 +20,7 @@ pub async fn me_query(
 ) -> ApiResult<UserView> {
     ApiResult::from_async_fn(|| async {
         state
+            .cqrs
             .user_view_repository
             .load_lifecycle(user_context.user_id())
             .await
@@ -35,6 +36,7 @@ pub async fn profile_query(
 ) -> ApiResult<UserProfileView> {
     ApiResult::from_async_fn(|| async {
         state
+            .cqrs
             .user_view_repository
             .load_lifecycle(id)
             .await
@@ -51,18 +53,20 @@ pub async fn groups_query(
 ) -> ApiResult<WithUsers<Vec<GroupView>>> {
     ApiResult::from_async_fn(|| async {
         let groups_view = state
+            .cqrs
             .user_groups_view_repository
             .load(&id.0.to_string())
             .await
             .context(PersistenceSnafu)?
             .unwrap_or_default();
 
-        let results = futures_util::future::join_all(
-            groups_view
-                .items
-                .iter()
-                .map(|id| async { state.group_view_repository.load(&id.0.to_string()).await }),
-        )
+        let results = futures_util::future::join_all(groups_view.items.iter().map(|id| async {
+            state
+                .cqrs
+                .group_view_repository
+                .load(&id.0.to_string())
+                .await
+        }))
         .await;
         let results = results
             .into_iter()
@@ -80,7 +84,7 @@ pub async fn groups_query(
             })
             .collect();
 
-        WithUsers::new(state.user_view_repository.as_ref(), results).await
+        WithUsers::new(state.cqrs.user_view_repository.as_ref(), results).await
     })
     .await
 }
@@ -91,6 +95,7 @@ pub async fn internal_query(
 ) -> ApiResult<UserView> {
     ApiResult::from_async_fn(|| async {
         state
+            .cqrs
             .user_view_repository
             .load_lifecycle(id)
             .await
@@ -107,6 +112,7 @@ pub async fn internal_create_command(
 ) -> ApiResult {
     ApiResult::from_result(
         state
+            .cqrs
             .user_cqrs
             .execute(id, LifecycleCommand::Create(command))
             .await
@@ -121,6 +127,7 @@ pub async fn internal_update_command(
 ) -> ApiResult {
     ApiResult::from_result(
         state
+            .cqrs
             .user_cqrs
             .execute(id, LifecycleCommand::Update(command))
             .await
@@ -134,6 +141,7 @@ pub async fn internal_identity(
 ) -> ApiResult<IdentityView> {
     ApiResult::from_async_fn(|| async {
         let identity_view = state
+            .cqrs
             .user_identity_view_repository
             .load(&id)
             .await

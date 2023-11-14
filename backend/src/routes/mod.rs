@@ -1,5 +1,6 @@
 mod group;
 mod login;
+mod search;
 mod ticket;
 mod upload;
 mod user;
@@ -44,6 +45,11 @@ pub fn make_api_router(config: &crate::config::Routes) -> Router<ApplicationStat
     router = router.route("/login/telegram", post(login::telegram_login));
 
     router = router.route("/upload/initiate", post(upload::initiate));
+
+    router = router
+        .route("/search/tickets", get(search::tickets))
+        .route("/search/users", get(search::users))
+        .route("/search/groups", get(search::groups));
 
     if config.expose_internal {
         warn!("Running with internal routes exposed. DO NOT USE IN PRODUCTION!");
