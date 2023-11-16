@@ -10,6 +10,7 @@
   export let required = false
   export let placeholder = 'Choose option...'
 	export let inputClass = ''
+	export let dropdownClassName = ''
   export let labelFieldName: keyof NonNullable<T> | undefined = undefined
   export let valueFieldName: keyof NonNullable<T> | undefined = undefined
 	export let labelFunction: ((item: T) => string) | undefined = undefined
@@ -18,6 +19,7 @@
 	export let showClear = false
 	export let readOnly = false
 	export let localFiltering = true
+	export let itemFilterFunction: ((item: T, cleanedQuery: string) => boolean) | undefined = undefined
 
 	export let selectedItem: T
 </script>
@@ -25,7 +27,7 @@
 <AutoComplete
 	className={twMerge("block w-full", $$props.class)}
 	class={twMerge(defaultClass, inputClass)}
-	dropdownClassName={"rounded mt-1 !border-gray-300 !bg-gray-50 !text-gray-900 !ring-primary-500"}
+	dropdownClassName={twMerge("rounded mt-1 !border-gray-300 !bg-gray-50 !text-gray-900 !ring-primary-500", dropdownClassName)}
 	{items}
   {searchFunction}
 	bind:selectedItem
@@ -40,6 +42,7 @@
 	{required}
 	{onChange}
 	{localFiltering}
+	{itemFilterFunction}
 >
 	<slot
 		name="item"

@@ -11,6 +11,8 @@
   export let placeholder: string = ''
   export let required = false
   export let inputClass = ''
+  export let localFiltering = false
+	export let itemFilterFunction: ((item: Destination, cleanedQuery: string) => boolean) | undefined = undefined
 
 	async function searchFunction(keyword: string) {
 		const api = new Api(fetch)
@@ -46,7 +48,8 @@
   {placeholder}
   bind:selectedItem={destination}
   {required}
-  localFiltering={false}
+  {localFiltering}
+  {itemFilterFunction}
   labelFunction={(item) => item.type === 'User' ? item.view.name : item.view.title}
 >
   <div

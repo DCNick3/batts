@@ -8,6 +8,9 @@
   export let placeholder: string = ''
   export let required = false
   export let inputClass = ''
+  export let dropdownClassName = ''
+  export let localFiltering = false
+	export let itemFilterFunction: ((item: UserView, cleanedQuery: string) => boolean) | undefined = undefined
 
 	async function searchFunction(keyword: string) {
 		const api = new Api(fetch)
@@ -31,11 +34,13 @@
 <AutoComplete
   class={$$props.class}
   {inputClass}
+  {dropdownClassName}
   {searchFunction}
   {placeholder}
   bind:selectedItem={selectedUser}
   {required}
-  localFiltering={false}
+  {localFiltering}
+  {itemFilterFunction}
   labelFunction={item => item.name}
 >
   <div
@@ -43,6 +48,6 @@
     let:item={item}
     let:label={label}
   >
-    <UserSearchItem user={item.view} />
+    <UserSearchItem user={item} />
   </div>
 </AutoComplete>
