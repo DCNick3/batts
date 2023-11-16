@@ -3,7 +3,6 @@
 		Button,
 		Input,
 		Label,
-		TabItem,
 		Textarea,
 	} from 'flowbite-svelte'
   import { goto } from '$app/navigation'
@@ -13,7 +12,7 @@
 	import type { ApiResult, GroupView, SearchResults, UserView } from 'backend'
 	import { page } from '$app/stores'
 	import { TicketList } from '$lib/components/TicketList'
-	import { AutoComplete } from '$lib'
+	import { AutoComplete, UserAndGroupSearch } from '$lib'
 
 	const url = $page.url
 
@@ -28,7 +27,7 @@
 			view: {
 				id: qId,
 				title: qName,
-				members: [] // not required for purposes of destionation
+				members: [] // not required for purposes of destination
 			}
 		}
 	}
@@ -52,33 +51,6 @@
   }
 
 	export let data: PageData
-
-	async function searchFunction(keyword: string) {
-		const api = new Api(fetch)
-		const promises: [Promise<ApiResult<SearchResults<UserView>>>, Promise<ApiResult<SearchResults<GroupView>>>]
-			= [api.searchUsers(keyword), api.searchGroups(keyword)]
-		let options: ({ type: 'User', view: UserView } | { type: 'Group', view: GroupView })[] = []
-		try {
-			const [usrRes, grpRes] = await Promise.all(promises)
-			if (usrRes.status === 'Success') {
-				options = options.concat(usrRes.payload.top_hits.map(item => ({ type: 'User', view: item.value })))
-			} else {
-				// TODO: error handling
-				console.error(usrRes.payload)
-			}
-			if (grpRes.status === 'Success') {
-				options = options.concat(grpRes.payload.top_hits.map(item => ({ type: 'Group', view: item.value })))
-			} else {
-				// TODO: error handling
-				console.error(usrRes.payload)
-			}
-		} catch (error) {
-			// TODO: error handling
-			console.error(error)
-		}
-		return options
-	}
-
 </script>
 
 <svelte:head>
@@ -92,28 +64,13 @@
 	>
 		<Label>
 			Submit To:
-			<AutoComplete
-				{searchFunction}
-				placeholder="Dorm,  IT,  319"
-				bind:selectedItem={destination}
+			<UserAndGroupSearch
 				class="my-1"
 				inputClass="w-full"
+				placeholder="Dorm,  IT,  319"
+				bind:destination={destination}
 				required
-				localFiltering={false}
-				labelFunction={(item) => item.type === 'User' ? item.view.name : item.view.title}
-			>
-				<div
-					slot="item"
-					let:item={item}
-					let:label={label}
-				>
-					{#if item.type === 'Group'}
-						{@html label}
-					{:else}
-						{@html label}
-					{/if}
-				</div>
-			</AutoComplete>
+			/>
 		</Label>
 		<Label>
 			Topic:

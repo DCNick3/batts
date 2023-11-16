@@ -12,8 +12,8 @@
 	export let inputClass = ''
   export let labelFieldName: keyof NonNullable<T> | undefined = undefined
   export let valueFieldName: keyof NonNullable<T> | undefined = undefined
-	export let labelFunction: any = undefined
-	export let valueFunction: any = undefined
+	export let labelFunction: ((item: T) => string) | undefined = undefined
+	export let valueFunction: ((item: T) => any) | undefined = undefined
 	export let onChange: any = undefined
 	export let showClear = false
 	export let readOnly = false
