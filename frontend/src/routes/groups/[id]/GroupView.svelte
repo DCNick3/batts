@@ -89,8 +89,8 @@
   }
 
   const handleUpdates = async () => {
-    const titleChanged = groupTitleField !== groupTitle
-    const changesPresent = titleChanged || updates.updatesPresent()
+    const trimmedTitle = groupTitleField.trim()
+    const titleChanged = trimmedTitle !== groupTitle
 
     const api = new Api(fetch)
     try {
