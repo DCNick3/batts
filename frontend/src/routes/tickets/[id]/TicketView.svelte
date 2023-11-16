@@ -126,35 +126,38 @@
 
   <!-- Status column -->
   <div class="max-sm:hidden flex flex-col gap-2 sm:gap-6 basis-1/4 sm:order-4">
-    <div>
-      <StatusOption
-        canEdit={canEdit}
-        title="Assigned To"
-        header="Set assignee"
-      >
-        {#each editPermissions as id}
-          {#if getUsr(id) !== null && ticketView.assignee !== id}
+    {#if ticketView.destination.type === 'Group'}
+      <div>
+        <StatusOption
+          canEdit={canEdit}
+          title="Assigned To"
+          header="Set assignee"
+        >
+          {#each editPermissions as id}
+            {#if getUsr(id) !== null && ticketView.assignee !== id}
+              <DropdownItem>
+                <button
+                  on:click={() => handleSetAssignee(id)}
+                >
+                  {getUsr(id)}
+                </button>
+              </DropdownItem>
+            {/if}
+          {/each}
+          {#if ticketView.assignee !== null}
             <DropdownItem>
               <button
-                on:click={() => handleSetAssignee(id)}
+                on:click={() => handleSetAssignee(null)}
               >
-                {getUsr(id)}
+                Remove Assignee
               </button>
             </DropdownItem>
           {/if}
-        {/each}
-        {#if ticketView.assignee !== null}
-          <DropdownItem>
-            <button
-              on:click={() => handleSetAssignee(null)}
-            >
-              Remove Assignee
-            </button>
-          </DropdownItem>
-        {/if}
-      </StatusOption>
-      <div class="font-normal text-sm">{getUsr(ticketView.assignee || '') || 'No-one'}</div>  
-    </div>
+        </StatusOption>
+        <div class="font-normal text-sm">{getUsr(ticketView.assignee || '') || 'No-one'}</div>  
+      </div>
+    {/if}
+    
 
     <div>
       <div class="font-semibold text-zinc-600">Submitted To</div>
