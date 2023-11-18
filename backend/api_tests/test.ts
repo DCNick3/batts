@@ -344,3 +344,52 @@ test("search_users", async () => {
     await testQuery("Abra");
     await testQuery("abracadabra1337");
 })
+
+test("edit_groups", async() => {
+    const api = makeApi();
+
+    const userId = await makeFakeUser(api);
+    const anotherUserId = generateId();
+
+    unwrap(await api.internalCreateUser(anotherUserId, {
+        type: "Telegram", id: 654321,
+        first_name: "Abra", last_name: "Cadabra",
+        username: "Abracadabra1337", photo_url: null,
+    }));
+
+    const groupId = generateId();
+
+    unwrap(await api.createGroup(groupId, {title: "Test group"}));
+
+    const group = unwrap(await api.getGroup(groupId)).payload;
+    expect(group.title).toBe("Test group");
+    expect(group.members.length).toBe(1);
+    expect(group.members[0]).toBe(userId);
+
+    unwrap(await api.addGroupMember(groupId, anotherUserId));
+
+    const group2 = unwrap(await api.getGroup(groupId)).payload;
+    expect(group2.title).toBe("Test group");
+    expect(group2.members.length).toBe(2);
+    // ordering is undefined!
+    // actually, this should be fixed lol
+    expect(group2.members[0]).toBe(userId);
+    expect(group2.members[1]).toBe(anotherUserId);
+
+    unwrap(await api.changeGroupTitle(groupId, "New title"));
+
+    const group3 = unwrap(await api.getGroup(groupId)).payload;
+    expect(group3.title).toBe("New title");
+    expect(group3.members.length).toBe(2);
+    expect(group3.members[0]).toBe(userId);
+    expect(group3.members[1]).toBe(anotherUserId);
+
+    // the new user removes the previous admin
+    // so sneaky!
+    unwrap(await api.removeGroupMember(groupId, userId));
+
+    const group4 = unwrap(await api.getGroup(groupId)).payload;
+    expect(group4.title).toBe("New title");
+    expect(group4.members.length).toBe(1);
+    expect(group4.members[0]).toBe(anotherUserId);
+})

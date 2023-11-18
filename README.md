@@ -76,13 +76,13 @@ curl -X PUT --location "http://localhost:3000/api/users/FDUeanyKADQEpyrydYn7XB" 
         }"
 ```
 
-Second get a cookie for the created user:
+The second step is to get a cookie for the created user:
 
 ```
 curl -vvv -X POST --location "http://localhost:3000/api/fake-login/FDUeanyKADQEpyrydYn7XB"
 ```
 
-Third step is to add this cookie to your browser. You would want a browser extension or [addon](https://addons.mozilla.org/en-US/firefox/addon/cookie-quick-manager/) for that.
+The third step is to add this cookie to your browser. You would want a browser extension or [addon](https://addons.mozilla.org/en-US/firefox/addon/cookie-quick-manager/) for that.
 
 In frontend directory create (or edit) `.env` file to contain:
 
@@ -101,10 +101,11 @@ First set up meilisearch:
 docker run -it --rm \
            -p 7700:7700 \
            -e MEILI_ENV='development' \
-           getmeili/meilisearch:v1.4 -d --name meilisearch
+           -d --name meilisearch \
+           getmeili/meilisearch:v1.4
 ```
 
-*Near future* you may need to set up minio for object storage:
+*In the near future* you may need to set up minio for object storage:
 ```
 docker run -dt                                  \
   -p 9000:9000 -p 9090:9090                     \
