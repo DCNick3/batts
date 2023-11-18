@@ -51,11 +51,18 @@ pub struct RemoveGroupMember {
 }
 
 #[derive(Debug, TS, Serialize, Deserialize)]
+#[ts(export)]
+pub struct ChangeGroupTitle {
+    pub new_title: String,
+}
+
+#[derive(Debug, TS, Serialize, Deserialize)]
 #[serde(tag = "type")]
 #[ts(export)]
 pub enum UpdateGroup {
     AddMember(AddGroupMember),
     RemoveMember(RemoveGroupMember),
+    ChangeTitle(ChangeGroupTitle),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -75,8 +82,19 @@ impl DomainEvent for GroupCreated {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum GroupUpdated {
-    MemberAdded { performer: UserId, member: UserId },
-    MemberRemoved { performer: UserId, member: UserId },
+    MemberAdded {
+        performer: UserId,
+        member: UserId,
+    },
+    MemberRemoved {
+        performer: UserId,
+        member: UserId,
+    },
+    TitleChanged {
+        performer: UserId,
+        old_title: String,
+        new_title: String,
+    },
 }
 
 impl DomainEvent for GroupUpdated {
@@ -84,6 +102,7 @@ impl DomainEvent for GroupUpdated {
         match self {
             GroupUpdated::MemberAdded { .. } => "MemberAdded".to_string(),
             GroupUpdated::MemberRemoved { .. } => "MemberRemoved".to_string(),
+            GroupUpdated::TitleChanged { .. } => "TitleChanged".to_string(),
         }
     }
 
@@ -96,6 +115,15 @@ impl DomainEvent for GroupUpdated {
 pub struct Group {
     pub title: String,
     pub members: HashSet<UserId>,
+}
+
+impl Group {
+    fn check_access(&self, user_id: UserId) -> Result<(), GroupError> {
+        if !self.members.contains(&user_id) {
+            return Err(GroupError::Forbidden);
+        }
+        Ok(())
+    }
 }
 
 pub type GroupAggregate = LifecycleAggregateState<Group>;
@@ -160,9 +188,7 @@ impl LifecycleAggregate for Group {
 
         match command.payload {
             UpdateGroup::AddMember(AddGroupMember { new_member }) => {
-                if !self.members.contains(&performer) {
-                    return Err(GroupError::Forbidden);
-                }
+                self.check_access(performer)?;
                 if self.members.contains(&new_member) {
                     return Ok(vec![]);
                 }
@@ -172,15 +198,24 @@ impl LifecycleAggregate for Group {
                 }])
             }
             UpdateGroup::RemoveMember(RemoveGroupMember { removed_member }) => {
-                if !self.members.contains(&performer) {
-                    return Err(GroupError::Forbidden);
-                }
+                self.check_access(performer)?;
                 if !self.members.contains(&removed_member) {
                     return Ok(vec![]);
                 }
                 Ok(vec![GroupUpdated::MemberRemoved {
                     performer,
                     member: removed_member,
+                }])
+            }
+            UpdateGroup::ChangeTitle(ChangeGroupTitle { new_title }) => {
+                self.check_access(performer)?;
+                if self.title == new_title {
+                    return Ok(vec![]);
+                }
+                Ok(vec![GroupUpdated::TitleChanged {
+                    performer,
+                    old_title: self.title.clone(),
+                    new_title,
                 }])
             }
         }
@@ -208,6 +243,9 @@ impl LifecycleAggregate for Group {
             }
             GroupUpdated::MemberRemoved { member, .. } => {
                 self.members.remove(&member);
+            }
+            GroupUpdated::TitleChanged { new_title, .. } => {
+                self.title = new_title;
             }
         }
     }
@@ -249,6 +287,9 @@ impl LifecycleView for GroupView {
             }
             GroupUpdated::MemberRemoved { member, .. } => {
                 self.members.remove(&member);
+            }
+            GroupUpdated::TitleChanged { ref new_title, .. } => {
+                self.title = new_title.clone();
             }
         }
     }
@@ -322,6 +363,7 @@ where
                         GroupUpdated::MemberRemoved { .. } => {
                             view.items.remove(&group_id);
                         }
+                        _ => unreachable!(),
                     })
                     .await
                     .unwrap();
