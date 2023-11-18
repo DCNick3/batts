@@ -18,9 +18,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use tracing::info;
 use ts_rs::TS;
 
-#[derive(
-    Default, Debug, Copy, Clone, Eq, PartialEq, PartialOrd, Ord, Hash, TS, Serialize, Deserialize,
-)]
+#[derive(Default, Debug, Copy, Clone, Eq, PartialEq, Hash, TS, Serialize, Deserialize)]
 #[ts(export)]
 pub struct UploadId(pub Id);
 

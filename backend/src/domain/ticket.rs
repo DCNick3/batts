@@ -14,6 +14,7 @@ use cqrs_es::lifecycle::{
 use cqrs_es::persist::ViewRepository;
 use cqrs_es::{AnyId, Id};
 use cqrs_es::{DomainEvent, Query, View};
+use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 use std::collections::HashSet;
@@ -22,7 +23,7 @@ use std::sync::Arc;
 use tracing::error;
 use ts_rs::TS;
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, PartialOrd, Ord, Hash, TS, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, TS, Serialize, Deserialize)]
 #[ts(export)]
 pub struct TicketId(pub Id);
 
@@ -167,7 +168,7 @@ impl Display for TicketDestination {
 }
 
 impl CollectIds<UserId> for TicketDestination {
-    fn collect_ids(&self, user_ids: &mut HashSet<UserId>) {
+    fn collect_ids(&self, user_ids: &mut IndexSet<UserId>) {
         let TicketDestination::User(user) = *self else {
             return;
         };
@@ -176,7 +177,7 @@ impl CollectIds<UserId> for TicketDestination {
 }
 
 impl CollectIds<GroupId> for TicketDestination {
-    fn collect_ids(&self, group_ids: &mut HashSet<GroupId>) {
+    fn collect_ids(&self, group_ids: &mut IndexSet<GroupId>) {
         let TicketDestination::Group(group) = *self else {
             return;
         };
@@ -203,7 +204,7 @@ pub enum TicketTimelineItemContent {
 }
 
 impl CollectIds<UserId> for TicketTimelineItemContent {
-    fn collect_ids(&self, user_ids: &mut HashSet<UserId>) {
+    fn collect_ids(&self, user_ids: &mut IndexSet<UserId>) {
         match self {
             TicketTimelineItemContent::Message { from, .. } => {
                 user_ids.insert(*from);
@@ -222,7 +223,7 @@ impl CollectIds<UserId> for TicketTimelineItemContent {
 }
 
 impl CollectIds<GroupId> for TicketTimelineItemContent {
-    fn collect_ids(&self, _group_ids: &mut HashSet<GroupId>) {
+    fn collect_ids(&self, _group_ids: &mut IndexSet<GroupId>) {
         match self {
             TicketTimelineItemContent::Message { .. } => {}
             TicketTimelineItemContent::StatusChange { .. } => {}
@@ -234,19 +235,18 @@ impl CollectIds<GroupId> for TicketTimelineItemContent {
 #[derive(Debug, Clone, Eq, PartialEq, TS, Serialize, Deserialize)]
 #[ts(export)]
 pub struct TicketTimelineItem {
-    #[ts(type = "string")]
     date: DateTime<Utc>,
     content: TicketTimelineItemContent,
 }
 
 impl CollectIds<UserId> for TicketTimelineItem {
-    fn collect_ids(&self, user_ids: &mut HashSet<UserId>) {
+    fn collect_ids(&self, user_ids: &mut IndexSet<UserId>) {
         self.content.collect_ids(user_ids);
     }
 }
 
 impl CollectIds<GroupId> for TicketTimelineItem {
-    fn collect_ids(&self, group_ids: &mut HashSet<GroupId>) {
+    fn collect_ids(&self, group_ids: &mut IndexSet<GroupId>) {
         self.content.collect_ids(group_ids);
     }
 }
@@ -450,7 +450,6 @@ pub struct TicketView {
     pub title: String,
     pub status: TicketStatus,
     pub timeline: Vec<TicketTimelineItem>,
-    #[ts(type = "string")]
     pub latest_update: DateTime<Utc>,
 }
 
@@ -527,7 +526,7 @@ impl LifecycleView for TicketView {
 }
 
 impl CollectIds<UserId> for TicketView {
-    fn collect_ids(&self, user_ids: &mut HashSet<UserId>) {
+    fn collect_ids(&self, user_ids: &mut IndexSet<UserId>) {
         self.destination.collect_ids(user_ids);
         user_ids.insert(self.owner);
         if let Some(assignee) = self.assignee {
@@ -540,7 +539,7 @@ impl CollectIds<UserId> for TicketView {
 }
 
 impl CollectIds<GroupId> for TicketView {
-    fn collect_ids(&self, group_ids: &mut HashSet<GroupId>) {
+    fn collect_ids(&self, group_ids: &mut IndexSet<GroupId>) {
         self.destination.collect_ids(group_ids);
         for item in &self.timeline {
             item.collect_ids(group_ids);
@@ -557,12 +556,11 @@ pub struct TicketListingViewExpandedItem {
     pub assignee: Option<UserId>,
     pub title: String,
     pub status: TicketStatus,
-    #[ts(type = "string")]
     pub latest_update: DateTime<Utc>,
 }
 
 impl CollectIds<UserId> for TicketListingViewExpandedItem {
-    fn collect_ids(&self, user_ids: &mut HashSet<UserId>) {
+    fn collect_ids(&self, user_ids: &mut IndexSet<UserId>) {
         self.destination.collect_ids(user_ids);
         user_ids.insert(self.owner);
         if let Some(assignee) = self.assignee {
@@ -572,7 +570,7 @@ impl CollectIds<UserId> for TicketListingViewExpandedItem {
 }
 
 impl CollectIds<GroupId> for TicketListingViewExpandedItem {
-    fn collect_ids(&self, group_ids: &mut HashSet<GroupId>) {
+    fn collect_ids(&self, group_ids: &mut IndexSet<GroupId>) {
         self.destination.collect_ids(group_ids);
     }
 }

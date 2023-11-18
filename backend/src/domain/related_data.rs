@@ -5,17 +5,17 @@ use crate::view_repositry_ext::LifecycleViewRepositoryExt;
 use cqrs_es::lifecycle::{LifecycleAggregate, LifecycleView, LifecycleViewState};
 use cqrs_es::persist::ViewRepository;
 use cqrs_es::AnyId;
+use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
-use std::collections::{HashMap, HashSet};
 use ts_rs::TS;
 
 pub trait CollectIds<Id: AnyId> {
-    fn collect_ids(&self, user_ids: &mut HashSet<Id>);
+    fn collect_ids(&self, user_ids: &mut IndexSet<Id>);
 }
 
 impl<Id: AnyId, T: CollectIds<Id>> CollectIds<Id> for Vec<T> {
-    fn collect_ids(&self, user_ids: &mut HashSet<Id>) {
+    fn collect_ids(&self, user_ids: &mut IndexSet<Id>) {
         for item in self {
             item.collect_ids(user_ids);
         }
@@ -40,8 +40,8 @@ where
 
 async fn retrieve_users<R>(
     view_repository: &R,
-    user_ids: HashSet<UserId>,
-) -> Result<HashMap<UserId, UserProfileView>, Error>
+    user_ids: IndexSet<UserId>,
+) -> Result<IndexMap<UserId, UserProfileView>, Error>
 where
     R: ViewRepository<LifecycleViewState<UserView>>,
 {
@@ -54,8 +54,8 @@ where
 
 async fn retrieve_groups<R>(
     view_repository: &R,
-    group_ids: HashSet<GroupId>,
-) -> Result<HashMap<GroupId, GroupProfileView>, Error>
+    group_ids: IndexSet<GroupId>,
+) -> Result<IndexMap<GroupId, GroupProfileView>, Error>
 where
     R: ViewRepository<LifecycleViewState<GroupView>>,
 {
@@ -69,7 +69,7 @@ where
 #[derive(Debug, TS, Serialize, Deserialize)]
 #[ts(export)]
 pub struct WithUsers<T> {
-    pub users: HashMap<UserId, UserProfileView>,
+    pub users: IndexMap<UserId, UserProfileView>,
     pub payload: T,
 }
 
@@ -78,7 +78,7 @@ impl<T: CollectIds<UserId>> WithUsers<T> {
     where
         R: ViewRepository<LifecycleViewState<UserView>>,
     {
-        let mut user_ids = HashSet::new();
+        let mut user_ids = IndexSet::new();
         payload.collect_ids(&mut user_ids);
 
         let users = retrieve_users(view_repository, user_ids).await?;
@@ -90,7 +90,7 @@ impl<T: CollectIds<UserId>> WithUsers<T> {
 #[derive(Debug, TS, Serialize, Deserialize)]
 #[ts(export)]
 pub struct WithGroups<T> {
-    pub groups: HashMap<GroupId, GroupProfileView>,
+    pub groups: IndexMap<GroupId, GroupProfileView>,
     pub payload: T,
 }
 
@@ -99,7 +99,7 @@ impl<T: CollectIds<GroupId>> WithGroups<T> {
     where
         R: ViewRepository<LifecycleViewState<GroupView>>,
     {
-        let mut group_ids = HashSet::new();
+        let mut group_ids = IndexSet::new();
         payload.collect_ids(&mut group_ids);
 
         let groups = retrieve_groups(view_repository, group_ids).await?;
@@ -111,8 +111,8 @@ impl<T: CollectIds<GroupId>> WithGroups<T> {
 #[derive(Debug, TS, Serialize, Deserialize)]
 #[ts(export)]
 pub struct WithGroupsAndUsers<T> {
-    pub groups: HashMap<GroupId, GroupProfileView>,
-    pub users: HashMap<UserId, UserProfileView>,
+    pub groups: IndexMap<GroupId, GroupProfileView>,
+    pub users: IndexMap<UserId, UserProfileView>,
     pub payload: T,
 }
 
@@ -126,8 +126,8 @@ impl<T: CollectIds<UserId> + CollectIds<GroupId>> WithGroupsAndUsers<T> {
         UR: ViewRepository<LifecycleViewState<UserView>>,
         GR: ViewRepository<LifecycleViewState<GroupView>>,
     {
-        let mut user_ids = HashSet::new();
-        let mut group_ids = HashSet::new();
+        let mut user_ids = IndexSet::new();
+        let mut group_ids = IndexSet::new();
         payload.collect_ids(&mut user_ids);
         payload.collect_ids(&mut group_ids);
 

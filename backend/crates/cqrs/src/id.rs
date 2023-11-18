@@ -6,7 +6,7 @@ use ts_rs::TS;
 use uuid::Uuid;
 
 /// An identified of an aggregate. It is an uuid under the hood.
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Id(Uuid);
 
 impl Id {
@@ -55,6 +55,12 @@ pub enum IdError {
     /// Id length is invalid. It must be 16 bytes/22 characters long.
     #[error("Id length is invalid. It must be 16 bytes/22 characters long.")]
     Length,
+}
+
+impl Debug for Id {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Id({})", bs58::encode(self.0.as_bytes()).into_string())
+    }
 }
 
 impl Display for Id {

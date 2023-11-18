@@ -12,13 +12,13 @@ use cqrs_es::lifecycle::{
 use cqrs_es::persist::ViewRepository;
 use cqrs_es::{AnyId, Id};
 use cqrs_es::{DomainEvent, Query, View};
+use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
-use std::collections::{BTreeSet, HashSet};
 use std::sync::Arc;
 use ts_rs::TS;
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, PartialOrd, Ord, Hash, TS, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, TS, Serialize, Deserialize)]
 #[ts(export)]
 pub struct GroupId(pub Id);
 
@@ -114,7 +114,7 @@ impl DomainEvent for GroupUpdated {
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct Group {
     pub title: String,
-    pub members: HashSet<UserId>,
+    pub members: IndexSet<UserId>,
 }
 
 impl Group {
@@ -232,7 +232,7 @@ impl LifecycleAggregate for Group {
     fn apply_create(GroupCreated { title }: Self::CreateEvent) -> Self {
         Self {
             title,
-            members: HashSet::new(),
+            members: IndexSet::new(),
         }
     }
 
@@ -242,7 +242,7 @@ impl LifecycleAggregate for Group {
                 self.members.insert(member);
             }
             GroupUpdated::MemberRemoved { member, .. } => {
-                self.members.remove(&member);
+                self.members.shift_remove(&member);
             }
             GroupUpdated::TitleChanged { new_title, .. } => {
                 self.title = new_title;
@@ -256,7 +256,7 @@ impl LifecycleAggregate for Group {
 pub struct GroupView {
     pub id: GroupId,
     pub title: String,
-    pub members: BTreeSet<UserId>,
+    pub members: IndexSet<UserId>,
 }
 
 impl GroupView {
@@ -276,7 +276,7 @@ impl LifecycleView for GroupView {
         Self {
             id: event.aggregate_id,
             title: title.clone(),
-            members: BTreeSet::new(),
+            members: IndexSet::new(),
         }
     }
 
@@ -296,8 +296,14 @@ impl LifecycleView for GroupView {
 }
 
 impl CollectIds<UserId> for GroupView {
-    fn collect_ids(&self, user_ids: &mut HashSet<UserId>) {
+    fn collect_ids(&self, user_ids: &mut IndexSet<UserId>) {
         user_ids.extend(self.members.iter().cloned());
+    }
+}
+
+impl CollectIds<GroupId> for GroupView {
+    fn collect_ids(&self, group_ids: &mut IndexSet<GroupId>) {
+        group_ids.insert(self.id);
     }
 }
 
@@ -311,13 +317,7 @@ pub struct GroupProfileView {
 #[derive(Default, Debug, Clone, TS, Serialize, Deserialize)]
 #[ts(export)]
 pub struct UserGroupsView {
-    pub items: HashSet<GroupId>,
-}
-
-impl CollectIds<GroupId> for GroupView {
-    fn collect_ids(&self, group_ids: &mut HashSet<GroupId>) {
-        group_ids.insert(self.id);
-    }
+    pub items: IndexSet<GroupId>,
 }
 
 impl View for UserGroupsView {
@@ -361,7 +361,7 @@ where
                             view.items.insert(group_id);
                         }
                         GroupUpdated::MemberRemoved { .. } => {
-                            view.items.remove(&group_id);
+                            view.items.shift_remove(&group_id);
                         }
                         _ => unreachable!(),
                     })

@@ -28,6 +28,7 @@ custom_debug = "0.5.1"
 
 uuid = { version = "1.4.1", features = ["v4"] }
 bs58 = "0.5.0"
+indexmap = { version = "2.1.0", features = ["serde"] }
 
 # not updating it since jwt-compact still uses the 1.0 version
 ed25519-dalek = { version = "1.0.1", features = [] }
@@ -51,7 +52,7 @@ opentelemetry = { version = "0.20.0", features = ["rt-tokio"] }
 opentelemetry-otlp = "0.13.0"
 tracing-opentelemetry-instrumentation-sdk = "0.14.1"
 axum-tracing-opentelemetry = "0.14.1"
-ts-rs = "7.0.0"
+ts-rs = { version = "7.0.0", features = ["chrono-impl", "indexmap-impl"] }
 
 config = "0.13.3"
 humantime-serde = "1.1.1"

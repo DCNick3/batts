@@ -371,8 +371,6 @@ test("edit_groups", async() => {
     const group2 = unwrap(await api.getGroup(groupId)).payload;
     expect(group2.title).toBe("Test group");
     expect(group2.members.length).toBe(2);
-    // ordering is undefined!
-    // actually, this should be fixed lol
     expect(group2.members[0]).toBe(userId);
     expect(group2.members[1]).toBe(anotherUserId);
 
