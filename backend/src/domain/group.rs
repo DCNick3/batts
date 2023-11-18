@@ -45,10 +45,17 @@ pub struct AddGroupMember {
 }
 
 #[derive(Debug, TS, Serialize, Deserialize)]
+#[ts(export)]
+pub struct RemoveGroupMember {
+    pub removed_member: UserId,
+}
+
+#[derive(Debug, TS, Serialize, Deserialize)]
 #[serde(tag = "type")]
 #[ts(export)]
 pub enum UpdateGroup {
     AddMember(AddGroupMember),
+    RemoveMember(RemoveGroupMember),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -68,13 +75,15 @@ impl DomainEvent for GroupCreated {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum GroupUpdated {
-    MemberAdded { member: UserId },
+    MemberAdded { performer: UserId, member: UserId },
+    MemberRemoved { performer: UserId, member: UserId },
 }
 
 impl DomainEvent for GroupUpdated {
     fn event_type(&self) -> String {
         match self {
             GroupUpdated::MemberAdded { .. } => "MemberAdded".to_string(),
+            GroupUpdated::MemberRemoved { .. } => "MemberRemoved".to_string(),
         }
     }
 
@@ -128,14 +137,17 @@ impl LifecycleAggregate for Group {
 
     async fn handle_create(
         Authenticated {
-            user_id,
+            user_id: performer,
             payload: CreateGroup { title },
         }: Self::CreateCommand,
         _service: &Self::Services,
     ) -> Result<(Self::CreateEvent, Vec<Self::UpdateEvent>), Self::Error> {
         Ok((
             GroupCreated { title },
-            vec![GroupUpdated::MemberAdded { member: user_id }],
+            vec![GroupUpdated::MemberAdded {
+                performer,
+                member: performer,
+            }],
         ))
     }
 
@@ -154,7 +166,22 @@ impl LifecycleAggregate for Group {
                 if self.members.contains(&new_member) {
                     return Ok(vec![]);
                 }
-                Ok(vec![GroupUpdated::MemberAdded { member: new_member }])
+                Ok(vec![GroupUpdated::MemberAdded {
+                    performer,
+                    member: new_member,
+                }])
+            }
+            UpdateGroup::RemoveMember(RemoveGroupMember { removed_member }) => {
+                if !self.members.contains(&performer) {
+                    return Err(GroupError::Forbidden);
+                }
+                if !self.members.contains(&removed_member) {
+                    return Ok(vec![]);
+                }
+                Ok(vec![GroupUpdated::MemberRemoved {
+                    performer,
+                    member: removed_member,
+                }])
             }
         }
     }
@@ -176,8 +203,11 @@ impl LifecycleAggregate for Group {
 
     fn apply(&mut self, event: Self::UpdateEvent) {
         match event {
-            GroupUpdated::MemberAdded { member } => {
+            GroupUpdated::MemberAdded { member, .. } => {
                 self.members.insert(member);
+            }
+            GroupUpdated::MemberRemoved { member, .. } => {
+                self.members.remove(&member);
             }
         }
     }
@@ -214,8 +244,11 @@ impl LifecycleView for GroupView {
 
     fn update(&mut self, event: UpdateEnvelope<'_, Self::Aggregate>) {
         match *event.payload {
-            GroupUpdated::MemberAdded { member } => {
+            GroupUpdated::MemberAdded { member, .. } => {
                 self.members.insert(member);
+            }
+            GroupUpdated::MemberRemoved { member, .. } => {
+                self.members.remove(&member);
             }
         }
     }
@@ -273,12 +306,22 @@ where
 {
     async fn dispatch(&self, _aggregate_id: GroupId, events: &[LifecycleEnvelope<Group>]) {
         for event in events {
-            if let LifecycleEvent::Updated(GroupUpdated::MemberAdded { member }) = &event.payload {
+            let group_id = event.aggregate_id;
+            if let LifecycleEvent::Updated(
+                event @ (GroupUpdated::MemberAdded { member, .. }
+                | GroupUpdated::MemberRemoved { member, .. }),
+            ) = &event.payload
+            {
                 let user_id = member.0.to_string();
 
                 self.view_repository
-                    .load_modify_update_default(&user_id, |view| {
-                        view.items.insert(event.aggregate_id);
+                    .load_modify_update_default(&user_id, |view| match event {
+                        GroupUpdated::MemberAdded { .. } => {
+                            view.items.insert(group_id);
+                        }
+                        GroupUpdated::MemberRemoved { .. } => {
+                            view.items.remove(&group_id);
+                        }
                     })
                     .await
                     .unwrap();
