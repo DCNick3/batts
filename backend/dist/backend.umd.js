@@ -305,6 +305,14 @@
       let command = { type: "AddMember", new_member };
       return await this.#sendCommand(`/api/groups/${id}`, command);
     }
+    async removeGroupMember(id, removed_member) {
+      let command = { type: "RemoveMember", removed_member };
+      return await this.#sendCommand(`/api/groups/${id}`, command);
+    }
+    async changeGroupTitle(id, new_title) {
+      let command = { type: "ChangeTitle", new_title };
+      return await this.#sendCommand(`/api/groups/${id}`, command);
+    }
     async createTicket(id, creation) {
       return await this.#sendCreateCommand(`/api/tickets/${id}`, creation);
     }

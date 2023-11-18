@@ -107,6 +107,16 @@ export class Api {
         return await this.#sendCommand(`/api/groups/${id}`, command);
     }
 
+    async removeGroupMember(id: GroupId, removed_member: UserId): Promise<ApiResult<null>> {
+        let command: UpdateGroup = {type: "RemoveMember", removed_member};
+        return await this.#sendCommand(`/api/groups/${id}`, command);
+    }
+
+    async changeGroupTitle(id: GroupId, new_title: string): Promise<ApiResult<null>> {
+        let command: UpdateGroup = {type: "ChangeTitle", new_title};
+        return await this.#sendCommand(`/api/groups/${id}`, command);
+    }
+
     async createTicket(id: TicketId, creation: CreateTicket): Promise<ApiResult<null>> {
         return await this.#sendCreateCommand(`/api/tickets/${id}`, creation);
     }

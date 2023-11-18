@@ -15,6 +15,8 @@ export declare class Api {
     getGroupTickets(id: GroupId): Promise<ApiResult<WithGroupsAndUsers<TicketListingViewExpandedItem[]>>>;
     getGroup(id: GroupId): Promise<ApiResult<WithUsers<GroupView>>>;
     addGroupMember(id: GroupId, new_member: UserId): Promise<ApiResult<null>>;
+    removeGroupMember(id: GroupId, removed_member: UserId): Promise<ApiResult<null>>;
+    changeGroupTitle(id: GroupId, new_title: string): Promise<ApiResult<null>>;
     createTicket(id: TicketId, creation: CreateTicket): Promise<ApiResult<null>>;
     getTicket(id: TicketId): Promise<ApiResult<WithGroupsAndUsers<TicketView>>>;
     getOwnedTickets(): Promise<ApiResult<WithGroupsAndUsers<TicketListingViewExpandedItem[]>>>;

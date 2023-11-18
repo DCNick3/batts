@@ -22,6 +22,8 @@ export type { GroupProfileView } from './bindings/GroupProfileView';
 export type { UpdateGroup } from './bindings/UpdateGroup';
 export type { CreateGroup } from './bindings/CreateGroup';
 export type { AddGroupMember } from './bindings/AddGroupMember';
+export type { RemoveGroupMember } from './bindings/RemoveGroupMember';
+export type { ChangeGroupTitle } from './bindings/ChangeGroupTitle';
 export type { TicketId } from './bindings/TicketId';
 export type { TicketStatus } from './bindings/TicketStatus';
 export type { TicketDestination } from './bindings/TicketDestination';
