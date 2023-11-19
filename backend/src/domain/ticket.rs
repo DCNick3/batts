@@ -363,31 +363,39 @@ impl LifecycleAggregate for Ticket {
         }: Self::UpdateCommand,
         service: &Self::Services,
     ) -> Result<Vec<Self::UpdateEvent>, Self::Error> {
+        let mut events = Vec::new();
+
         match command {
             UpdateTicket::SendTicketMessage(SendTicketMessage { body }) => {
-                Ok(vec![TicketUpdated::Message {
+                events.push(TicketUpdated::Message {
                     date: Utc::now(),
                     from: user_id,
                     text: body,
-                }])
+                });
             }
             UpdateTicket::ChangeStatus(ChangeStatus { new_status }) => {
                 self.check_access(user_id, service).await?;
-                Ok(vec![TicketUpdated::StatusChanged {
-                    date: Utc::now(),
-                    old_status: self.status,
-                    new_status,
-                }])
+                if self.status != new_status {
+                    events.push(TicketUpdated::StatusChanged {
+                        date: Utc::now(),
+                        old_status: self.status,
+                        new_status,
+                    })
+                }
             }
             UpdateTicket::ChangeAssignee(ChangeAssignee { new_assignee }) => {
                 self.check_access(user_id, service).await?;
-                Ok(vec![TicketUpdated::AssigneeChanged {
-                    date: Utc::now(),
-                    old_assignee: self.assignee,
-                    new_assignee,
-                }])
+                if self.assignee != new_assignee {
+                    events.push(TicketUpdated::AssigneeChanged {
+                        date: Utc::now(),
+                        old_assignee: self.assignee,
+                        new_assignee,
+                    });
+                }
             }
         }
+
+        Ok(events)
     }
 
     async fn handle_delete(

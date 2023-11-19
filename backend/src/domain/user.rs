@@ -265,6 +265,8 @@ impl LifecycleAggregate for User {
         command: Self::UpdateCommand,
         service: &Self::Services,
     ) -> Result<Vec<Self::UpdateEvent>, Self::Error> {
+        let mut events = Vec::new();
+
         match command {
             UpdateUser::AddIdentity { profile } => {
                 if !self.identities.can_add_identity(&profile) {
@@ -279,9 +281,11 @@ impl LifecycleAggregate for User {
                 {
                     return Err(UserError::IdentityUsed);
                 }
-                Ok(vec![UserUpdated::IdentityAdded { profile }])
+                events.push(UserUpdated::IdentityAdded { profile });
             }
         }
+
+        Ok(events)
     }
 
     async fn handle_delete(

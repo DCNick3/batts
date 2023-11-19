@@ -184,41 +184,41 @@ impl LifecycleAggregate for Group {
         command: Self::UpdateCommand,
         _service: &Self::Services,
     ) -> Result<Vec<Self::UpdateEvent>, Self::Error> {
+        let mut events = Vec::new();
         let performer = command.user_id;
 
         match command.payload {
             UpdateGroup::AddMember(AddGroupMember { new_member }) => {
                 self.check_access(performer)?;
-                if self.members.contains(&new_member) {
-                    return Ok(vec![]);
+                if !self.members.contains(&new_member) {
+                    events.push(GroupUpdated::MemberAdded {
+                        performer,
+                        member: new_member,
+                    });
                 }
-                Ok(vec![GroupUpdated::MemberAdded {
-                    performer,
-                    member: new_member,
-                }])
             }
             UpdateGroup::RemoveMember(RemoveGroupMember { removed_member }) => {
                 self.check_access(performer)?;
-                if !self.members.contains(&removed_member) {
-                    return Ok(vec![]);
+                if self.members.contains(&removed_member) {
+                    events.push(GroupUpdated::MemberRemoved {
+                        performer,
+                        member: removed_member,
+                    });
                 }
-                Ok(vec![GroupUpdated::MemberRemoved {
-                    performer,
-                    member: removed_member,
-                }])
             }
             UpdateGroup::ChangeTitle(ChangeGroupTitle { new_title }) => {
                 self.check_access(performer)?;
-                if self.title == new_title {
-                    return Ok(vec![]);
+                if self.title != new_title {
+                    events.push(GroupUpdated::TitleChanged {
+                        performer,
+                        old_title: self.title.clone(),
+                        new_title,
+                    })
                 }
-                Ok(vec![GroupUpdated::TitleChanged {
-                    performer,
-                    old_title: self.title.clone(),
-                    new_title,
-                }])
             }
         }
+
+        Ok(events)
     }
 
     async fn handle_delete(
