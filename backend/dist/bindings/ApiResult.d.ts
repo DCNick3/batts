@@ -1,5 +1,5 @@
 export interface ApiError {
-    underlyingError: string;
+    underlying_error: string;
     report: string;
     trace_id: string;
     span_id: string;

@@ -1,5 +1,5 @@
 use crate::api_result::ApiResult;
-use crate::error::{AuthSnafu, JsonSnafu, PathSnafu, QuerySnafu};
+use crate::error::{AuthSnafu, Error, JsonSnafu, PathSnafu, PersistenceSnafu, QuerySnafu};
 use async_trait::async_trait;
 use axum::body::HttpBody;
 use axum::extract::{FromRequest, FromRequestParts};
@@ -12,6 +12,7 @@ use snafu::{IntoError, ResultExt};
 use crate::auth::{Authenticated, UserClaims};
 use crate::domain::user::UserId;
 use crate::state::ApplicationState;
+use crate::view_repositry_ext::LifecycleViewRepositoryExt as _;
 use axum_extra::extract::CookieJar;
 
 /// See [`axum::Json`] for more details.
@@ -104,6 +105,18 @@ impl FromRequestParts<ApplicationState> for UserContext {
             .context(AuthSnafu)
             .map_err(ApiResult::err)?;
 
-        Ok(Self(token.claims().custom.clone()))
+        let claims = token.claims().custom.clone();
+
+        // check that the user exists
+        state
+            .cqrs
+            .user_view_repository
+            .load_lifecycle(claims.user_id)
+            .await
+            .context(PersistenceSnafu)
+            .map_err(ApiResult::err)?
+            .ok_or_else(|| ApiResult::err(Error::AuthenticatedUserNotFound))?;
+
+        Ok(Self(claims))
     }
 }

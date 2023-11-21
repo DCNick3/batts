@@ -5,12 +5,13 @@ mod ticket;
 mod upload;
 mod user;
 
-use crate::state::{ApplicationState, BattsAggregate, BattsView};
+use crate::state::{ApplicationState, BattsAggregate, BattsView, CqrsState};
 use axum::extract::State;
 use axum::routing::{get, post};
 use axum::Router;
 use cqrs_es::lifecycle::{LifecycleAggregate, LifecycleCommand, LifecycleError, LifecycleView};
 use cqrs_es::AggregateError;
+use indexmap::IndexSet;
 use serde::de::DeserializeOwned;
 use snafu::ResultExt;
 use tracing::warn;
@@ -19,10 +20,11 @@ use crate::api_result::ApiResult;
 use crate::error::{Error, PersistenceSnafu};
 
 use crate::auth::Authenticated;
-use crate::domain::group::{Group, GroupView};
+use crate::domain::group::{Group, GroupId, GroupView};
 use crate::domain::ticket::{Ticket, TicketView};
+use crate::domain::user::UserId;
 use crate::extractors::{Json, Path, UserContext};
-use crate::related_data::{ViewWithRelated, WithGroupsAndUsers, WithUsers};
+use crate::related_data::{CollectIds, ViewWithRelated, WithGroupsAndUsers, WithUsers};
 use crate::view_repositry_ext::LifecycleViewRepositoryExt as _;
 pub use login::LoginError;
 pub use upload::{UploadError, UploadPolicy, UploadState};
@@ -49,6 +51,32 @@ where
     .await
 }
 
+async fn verify_command<C>(state: &CqrsState, command: &C) -> Result<(), Error>
+where
+    C: CollectIds<UserId> + CollectIds<GroupId>,
+{
+    let mut user_ids = IndexSet::new();
+    let mut group_ids = IndexSet::new();
+    command.collect_ids(&mut user_ids);
+    command.collect_ids(&mut group_ids);
+
+    fn map_error(e: Error) -> Error {
+        match e {
+            Error::ViewRelatedItemNotFound => Error::CommandRelatedItemNotFound,
+            e => e,
+        }
+    }
+
+    super::related_data::retrieve_users(state.user_view_repository.as_ref(), user_ids)
+        .await
+        .map_err(map_error)?;
+    super::related_data::retrieve_groups(state.group_view_repository.as_ref(), group_ids)
+        .await
+        .map_err(map_error)?;
+
+    Ok(())
+}
+
 async fn generic_authenticated_create_command<A, C>(
     State(state): State<ApplicationState>,
     user_context: UserContext,
@@ -57,11 +85,12 @@ async fn generic_authenticated_create_command<A, C>(
 ) -> ApiResult
 where
     A: BattsAggregate<CreateCommand = Authenticated<C>>,
-    C: DeserializeOwned + 'static,
+    C: DeserializeOwned + CollectIds<UserId> + CollectIds<GroupId> + 'static,
     AggregateError<LifecycleError<A::Error>>: Into<Error>,
 {
     ApiResult::from_async_fn(move || async move {
         let cqrs = A::get_cqrs_state(&state.cqrs);
+        verify_command(&state.cqrs, &command).await?;
         cqrs.execute(
             id,
             LifecycleCommand::Create(user_context.authenticated(command)),
@@ -80,11 +109,12 @@ async fn generic_authenticated_update_command<A, C>(
 ) -> ApiResult
 where
     A: BattsAggregate<UpdateCommand = Authenticated<C>>,
-    C: DeserializeOwned + 'static,
+    C: DeserializeOwned + CollectIds<UserId> + CollectIds<GroupId> + 'static,
     AggregateError<LifecycleError<A::Error>>: Into<Error>,
 {
     ApiResult::from_async_fn(move || async move {
         let cqrs = A::get_cqrs_state(&state.cqrs);
+        verify_command(&state.cqrs, &command).await?;
         cqrs.execute(
             id,
             LifecycleCommand::Update(user_context.authenticated(command)),

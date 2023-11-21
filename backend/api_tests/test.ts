@@ -391,3 +391,15 @@ test("edit_groups", async() => {
     expect(group4.members.length).toBe(1);
     expect(group4.members[0]).toBe(anotherUserId);
 })
+
+test("nonexistent stuff errors", async () => {
+    const api = makeApi();
+
+    const userId = await makeFakeUser(api);
+    const groupId = generateId();
+    const nonExistentUserId = generateId();
+
+    unwrap(await api.createGroup(groupId, {title: "Test group"}));
+    const error = unwrapErr(await api.addGroupMember(groupId, nonExistentUserId));
+    expect(error.underlying_error).toBe("Bad request: a command referenced a related item that was not found");
+})

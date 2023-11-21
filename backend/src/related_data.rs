@@ -79,12 +79,12 @@ where
         .into_iter()
         .map(|v| {
             v.context(PersistenceSnafu)
-                .and_then(|v| v.ok_or(Error::RelatedItemNotFound))
+                .and_then(|v| v.ok_or(Error::ViewRelatedItemNotFound))
         })
         .collect::<Result<Vec<_>, _>>()
 }
 
-async fn retrieve_users<R>(
+pub async fn retrieve_users<R>(
     view_repository: &R,
     user_ids: IndexSet<UserId>,
 ) -> Result<IndexMap<UserId, UserProfileView>, Error>
@@ -98,7 +98,7 @@ where
         .collect())
 }
 
-async fn retrieve_groups<R>(
+pub async fn retrieve_groups<R>(
     view_repository: &R,
     group_ids: IndexSet<GroupId>,
 ) -> Result<IndexMap<GroupId, GroupProfileView>, Error>

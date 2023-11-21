@@ -89,9 +89,13 @@ pub enum Error {
     /// The requested object was not found
     NotFound,
     /// Inconsistency in the database: a related item was not found
-    RelatedItemNotFound,
+    ViewRelatedItemNotFound,
+    /// Bad request: a command referenced a related item that was not found
+    CommandRelatedItemNotFound,
     /// Could not find a route for the request
     RouteNotFound,
+    /// A valid auth cookie provided, but the authenticated user does not exist in the database
+    AuthenticatedUserNotFound,
     /// Internal error
     Whatever { source: Whatever },
 }
@@ -111,8 +115,10 @@ impl ApiError for Error {
             Error::Group { source } => source.status_code(),
             Error::User { source } => source.status_code(),
             Error::NotFound => StatusCode::NOT_FOUND,
-            Error::RelatedItemNotFound => StatusCode::INTERNAL_SERVER_ERROR,
+            Error::ViewRelatedItemNotFound => StatusCode::INTERNAL_SERVER_ERROR,
+            Error::CommandRelatedItemNotFound => StatusCode::BAD_REQUEST,
             Error::RouteNotFound => StatusCode::NOT_FOUND,
+            Error::AuthenticatedUserNotFound => StatusCode::UNAUTHORIZED,
             Error::Whatever { .. } => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
