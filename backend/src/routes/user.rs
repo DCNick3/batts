@@ -1,11 +1,11 @@
 use crate::api_result::ApiResult;
 use crate::domain::group::GroupView;
-use crate::domain::related_data::WithUsers;
 use crate::domain::user::{
     CreateUser, IdentityView, UpdateUser, UserId, UserProfileView, UserView,
 };
 use crate::error::{Error, PersistenceSnafu, UserSnafu};
 use crate::extractors::{Json, Path, UserContext};
+use crate::related_data::WithUsers;
 use crate::state::ApplicationState;
 use crate::view_repositry_ext::LifecycleViewRepositoryExt;
 use axum::extract::State;

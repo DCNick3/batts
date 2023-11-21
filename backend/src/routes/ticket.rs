@@ -1,11 +1,11 @@
 use crate::api_result::ApiResult;
-use crate::domain::related_data::WithGroupsAndUsers;
 use crate::domain::ticket::{
     CreateTicket, TicketId, TicketListingView, TicketListingViewExpandedItem, TicketView,
     UpdateTicket,
 };
 use crate::error::{Error, PersistenceSnafu, TicketSnafu};
 use crate::extractors::{Json, Path, UserContext};
+use crate::related_data::WithGroupsAndUsers;
 use crate::state::ApplicationState;
 use crate::view_repositry_ext::LifecycleViewRepositoryExt;
 use axum::extract::State;

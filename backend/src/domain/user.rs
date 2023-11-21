@@ -1,4 +1,5 @@
 use crate::error::ApiError;
+use crate::related_data::CollectIds;
 use crate::view_repositry_ext::ViewRepositoryExt;
 use async_trait::async_trait;
 use axum::http::StatusCode;
@@ -10,6 +11,7 @@ use cqrs_es::lifecycle::{
 use cqrs_es::persist::ViewRepository;
 use cqrs_es::{AnyId, Id};
 use cqrs_es::{DomainEvent, Query, View};
+use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 use std::fmt::Display;
@@ -29,6 +31,16 @@ impl AnyId for UserId {
     fn id(&self) -> Id {
         self.0
     }
+}
+
+impl CollectIds<UserId> for UserId {
+    fn collect_ids(&self, target: &mut IndexSet<UserId>) {
+        target.insert(*self);
+    }
+}
+
+impl CollectIds<super::group::GroupId> for UserId {
+    fn collect_ids(&self, _: &mut IndexSet<super::group::GroupId>) {}
 }
 
 #[derive(Debug, TS, Serialize, Deserialize)]

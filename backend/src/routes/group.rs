@@ -1,9 +1,9 @@
 use crate::api_result::ApiResult;
 use crate::domain::group::{CreateGroup, GroupError, GroupId, GroupView, UpdateGroup};
-use crate::domain::related_data::{WithGroupsAndUsers, WithUsers};
 use crate::domain::ticket::{TicketDestination, TicketListingViewExpandedItem};
 use crate::error::{Error, GroupSnafu, PersistenceSnafu};
 use crate::extractors::{Json, Path, UserContext};
+use crate::related_data::{WithGroupsAndUsers, WithUsers};
 use crate::routes::ticket;
 use crate::state::ApplicationState;
 use crate::view_repositry_ext::LifecycleViewRepositoryExt;

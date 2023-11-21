@@ -7,6 +7,7 @@ mod extractors;
 mod init_tracing;
 mod meilisearch_view_repository;
 mod memory_view_repository;
+mod related_data;
 mod routes;
 mod state;
 mod view_repositry_ext;

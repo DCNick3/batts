@@ -2,6 +2,7 @@ use crate::domain::group::{GroupId, GroupProfileView, GroupView};
 use crate::domain::user::{UserId, UserProfileView, UserView};
 use crate::error::{Error, PersistenceSnafu};
 use crate::view_repositry_ext::LifecycleViewRepositoryExt;
+pub use batts_derive::CollectIds;
 use cqrs_es::lifecycle::{LifecycleAggregate, LifecycleView, LifecycleViewState};
 use cqrs_es::persist::ViewRepository;
 use cqrs_es::AnyId;
@@ -11,13 +12,39 @@ use snafu::ResultExt;
 use ts_rs::TS;
 
 pub trait CollectIds<Id: AnyId> {
-    fn collect_ids(&self, user_ids: &mut IndexSet<Id>);
+    fn collect_ids(&self, target: &mut IndexSet<Id>);
+}
+
+impl<Id: AnyId> CollectIds<Id> for () {
+    fn collect_ids(&self, _: &mut IndexSet<Id>) {}
+}
+
+impl<Id: AnyId> CollectIds<Id> for String {
+    fn collect_ids(&self, _: &mut IndexSet<Id>) {}
+}
+impl<Id: AnyId> CollectIds<Id> for chrono::DateTime<chrono::Utc> {
+    fn collect_ids(&self, _: &mut IndexSet<Id>) {}
+}
+
+impl<Id: AnyId, T: CollectIds<Id>> CollectIds<Id> for Option<T> {
+    fn collect_ids(&self, target: &mut IndexSet<Id>) {
+        if let Some(item) = self {
+            item.collect_ids(target);
+        }
+    }
 }
 
 impl<Id: AnyId, T: CollectIds<Id>> CollectIds<Id> for Vec<T> {
     fn collect_ids(&self, user_ids: &mut IndexSet<Id>) {
         for item in self {
             item.collect_ids(user_ids);
+        }
+    }
+}
+impl<Id: AnyId, T: CollectIds<Id>> CollectIds<Id> for IndexSet<T> {
+    fn collect_ids(&self, target: &mut IndexSet<Id>) {
+        for item in self {
+            item.collect_ids(target);
         }
     }
 }

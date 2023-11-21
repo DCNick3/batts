@@ -1,7 +1,7 @@
 use crate::auth::Authenticated;
 use crate::domain::user::UserId;
-use crate::domain::CollectIds;
 use crate::error::ApiError;
+use crate::related_data::CollectIds;
 use crate::view_repositry_ext::ViewRepositoryExt;
 use async_trait::async_trait;
 use axum::http::StatusCode;
@@ -29,6 +29,16 @@ impl AnyId for GroupId {
 
     fn id(&self) -> Id {
         self.0
+    }
+}
+
+impl CollectIds<UserId> for GroupId {
+    fn collect_ids(&self, _: &mut IndexSet<UserId>) {}
+}
+
+impl CollectIds<GroupId> for GroupId {
+    fn collect_ids(&self, target: &mut IndexSet<GroupId>) {
+        target.insert(*self);
     }
 }
 
@@ -251,9 +261,11 @@ impl LifecycleAggregate for Group {
     }
 }
 
-#[derive(Debug, Clone, TS, Serialize, Deserialize)]
+#[derive(Debug, Clone, TS, Serialize, Deserialize, CollectIds)]
 #[ts(export)]
+#[collect_ids(UserId, GroupId)]
 pub struct GroupView {
+    #[collect_ids(skip)]
     pub id: GroupId,
     pub title: String,
     pub members: IndexSet<UserId>,
@@ -292,18 +304,6 @@ impl LifecycleView for GroupView {
                 self.title = new_title.clone();
             }
         }
-    }
-}
-
-impl CollectIds<UserId> for GroupView {
-    fn collect_ids(&self, user_ids: &mut IndexSet<UserId>) {
-        user_ids.extend(self.members.iter().cloned());
-    }
-}
-
-impl CollectIds<GroupId> for GroupView {
-    fn collect_ids(&self, group_ids: &mut IndexSet<GroupId>) {
-        group_ids.insert(self.id);
     }
 }
 
