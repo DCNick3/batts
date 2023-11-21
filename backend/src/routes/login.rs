@@ -4,7 +4,7 @@ use crate::config::TelegramSecret;
 use crate::domain::user::{
     CreateUser, ExternalUserIdentity, ExternalUserProfile, TelegramLoginData, UserId,
 };
-use crate::error::{ApiError, Error, LoginSnafu, PersistenceSnafu, UserSnafu, WhateverSnafu};
+use crate::error::{ApiError, Error, LoginSnafu, PersistenceSnafu, WhateverSnafu};
 use crate::extractors::{Json, Path};
 use crate::state::ApplicationState;
 use crate::view_repositry_ext::LifecycleViewRepositoryExt;
@@ -175,8 +175,7 @@ pub async fn telegram_login(
                             profile: ExternalUserProfile::Telegram(data.profile),
                         }),
                     )
-                    .await
-                    .context(UserSnafu)?;
+                    .await?;
                 user_id
             }
         };

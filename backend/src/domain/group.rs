@@ -42,33 +42,38 @@ impl CollectIds<GroupId> for GroupId {
     }
 }
 
-#[derive(Debug, TS, Serialize, Deserialize)]
+#[derive(Debug, TS, Serialize, Deserialize, CollectIds)]
 #[ts(export)]
+#[collect_ids(UserId, GroupId)]
 pub struct CreateGroup {
     pub title: String,
 }
 
-#[derive(Debug, TS, Serialize, Deserialize)]
+#[derive(Debug, TS, Serialize, Deserialize, CollectIds)]
 #[ts(export)]
+#[collect_ids(UserId, GroupId)]
 pub struct AddGroupMember {
     pub new_member: UserId,
 }
 
-#[derive(Debug, TS, Serialize, Deserialize)]
+#[derive(Debug, TS, Serialize, Deserialize, CollectIds)]
 #[ts(export)]
+#[collect_ids(UserId, GroupId)]
 pub struct RemoveGroupMember {
     pub removed_member: UserId,
 }
 
-#[derive(Debug, TS, Serialize, Deserialize)]
+#[derive(Debug, TS, Serialize, Deserialize, CollectIds)]
 #[ts(export)]
+#[collect_ids(UserId, GroupId)]
 pub struct ChangeGroupTitle {
     pub new_title: String,
 }
 
-#[derive(Debug, TS, Serialize, Deserialize)]
-#[serde(tag = "type")]
+#[derive(Debug, TS, Serialize, Deserialize, CollectIds)]
 #[ts(export)]
+#[serde(tag = "type")]
+#[collect_ids(UserId, GroupId)]
 pub enum UpdateGroup {
     AddMember(AddGroupMember),
     RemoveMember(RemoveGroupMember),

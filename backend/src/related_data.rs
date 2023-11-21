@@ -1,9 +1,11 @@
 use crate::domain::group::{GroupId, GroupProfileView, GroupView};
 use crate::domain::user::{UserId, UserProfileView, UserView};
 use crate::error::{Error, PersistenceSnafu};
+use crate::state::CqrsState;
 use crate::view_repositry_ext::LifecycleViewRepositoryExt;
+use async_trait::async_trait;
 pub use batts_derive::CollectIds;
-use cqrs_es::lifecycle::{LifecycleAggregate, LifecycleView, LifecycleViewState};
+use cqrs_es::lifecycle::{LifecycleAggregate, LifecycleCommand, LifecycleView, LifecycleViewState};
 use cqrs_es::persist::ViewRepository;
 use cqrs_es::AnyId;
 use indexmap::{IndexMap, IndexSet};
@@ -15,16 +17,18 @@ pub trait CollectIds<Id: AnyId> {
     fn collect_ids(&self, target: &mut IndexSet<Id>);
 }
 
-impl<Id: AnyId> CollectIds<Id> for () {
-    fn collect_ids(&self, _: &mut IndexSet<Id>) {}
+macro_rules! noop_impl {
+    ($($ty:ty),*) => {
+        $(
+            impl<Id: AnyId> CollectIds<Id> for $ty {
+                fn collect_ids(&self, _: &mut IndexSet<Id>) {}
+            }
+        )*
+    };
 }
 
-impl<Id: AnyId> CollectIds<Id> for String {
-    fn collect_ids(&self, _: &mut IndexSet<Id>) {}
-}
-impl<Id: AnyId> CollectIds<Id> for chrono::DateTime<chrono::Utc> {
-    fn collect_ids(&self, _: &mut IndexSet<Id>) {}
-}
+noop_impl!((), i32, i64, String);
+noop_impl!(chrono::DateTime<chrono::Utc>);
 
 impl<Id: AnyId, T: CollectIds<Id>> CollectIds<Id> for Option<T> {
     fn collect_ids(&self, target: &mut IndexSet<Id>) {
@@ -45,6 +49,21 @@ impl<Id: AnyId, T: CollectIds<Id>> CollectIds<Id> for IndexSet<T> {
     fn collect_ids(&self, target: &mut IndexSet<Id>) {
         for item in self {
             item.collect_ids(target);
+        }
+    }
+}
+
+impl<Id: AnyId, A: LifecycleAggregate> CollectIds<Id> for LifecycleCommand<A>
+where
+    <A as LifecycleAggregate>::CreateCommand: CollectIds<Id>,
+    <A as LifecycleAggregate>::UpdateCommand: CollectIds<Id>,
+{
+    fn collect_ids(&self, target: &mut IndexSet<Id>) {
+        match self {
+            LifecycleCommand::Create(cmd) => cmd.collect_ids(target),
+            LifecycleCommand::Update(cmd) => cmd.collect_ids(target),
+            // I don't think the delete command will have any arguments, so don't bother for now
+            LifecycleCommand::Delete(_) => {}
         }
     }
 }
@@ -93,6 +112,14 @@ where
         .collect())
 }
 
+#[async_trait]
+pub trait ViewWithRelated: Sized {
+    type View;
+
+    // sad that we have to pass the whole state tbh...
+    async fn new(state: &CqrsState, payload: Self::View) -> Result<Self, Error>;
+}
+
 #[derive(Debug, TS, Serialize, Deserialize)]
 #[ts(export)]
 pub struct WithUsers<T> {
@@ -100,15 +127,15 @@ pub struct WithUsers<T> {
     pub payload: T,
 }
 
-impl<T: CollectIds<UserId>> WithUsers<T> {
-    pub async fn new<R>(view_repository: &R, payload: T) -> Result<Self, Error>
-    where
-        R: ViewRepository<LifecycleViewState<UserView>>,
-    {
+#[async_trait]
+impl<T: CollectIds<UserId> + Send> ViewWithRelated for WithUsers<T> {
+    type View = T;
+
+    async fn new(state: &CqrsState, payload: Self::View) -> Result<Self, Error> {
         let mut user_ids = IndexSet::new();
         payload.collect_ids(&mut user_ids);
 
-        let users = retrieve_users(view_repository, user_ids).await?;
+        let users = retrieve_users(state.user_view_repository.as_ref(), user_ids).await?;
 
         Ok(Self { users, payload })
     }
@@ -121,15 +148,15 @@ pub struct WithGroups<T> {
     pub payload: T,
 }
 
-impl<T: CollectIds<GroupId>> WithGroups<T> {
-    pub async fn new<R>(view_repository: &R, payload: T) -> Result<Self, Error>
-    where
-        R: ViewRepository<LifecycleViewState<GroupView>>,
-    {
+#[async_trait]
+impl<T: CollectIds<GroupId> + Send> ViewWithRelated for WithGroups<T> {
+    type View = T;
+
+    async fn new(state: &CqrsState, payload: Self::View) -> Result<Self, Error> {
         let mut group_ids = IndexSet::new();
         payload.collect_ids(&mut group_ids);
 
-        let groups = retrieve_groups(view_repository, group_ids).await?;
+        let groups = retrieve_groups(state.group_view_repository.as_ref(), group_ids).await?;
 
         Ok(Self { groups, payload })
     }
@@ -143,23 +170,18 @@ pub struct WithGroupsAndUsers<T> {
     pub payload: T,
 }
 
-impl<T: CollectIds<UserId> + CollectIds<GroupId>> WithGroupsAndUsers<T> {
-    pub async fn new<UR, GR>(
-        user_view_repository: &UR,
-        group_view_repository: &GR,
-        payload: T,
-    ) -> Result<Self, Error>
-    where
-        UR: ViewRepository<LifecycleViewState<UserView>>,
-        GR: ViewRepository<LifecycleViewState<GroupView>>,
-    {
+#[async_trait]
+impl<T: CollectIds<UserId> + CollectIds<GroupId> + Send> ViewWithRelated for WithGroupsAndUsers<T> {
+    type View = T;
+
+    async fn new(state: &CqrsState, payload: Self::View) -> Result<Self, Error> {
         let mut user_ids = IndexSet::new();
         let mut group_ids = IndexSet::new();
         payload.collect_ids(&mut user_ids);
         payload.collect_ids(&mut group_ids);
 
-        let users = retrieve_users(user_view_repository, user_ids).await?;
-        let groups = retrieve_groups(group_view_repository, group_ids).await?;
+        let users = retrieve_users(state.user_view_repository.as_ref(), user_ids).await?;
+        let groups = retrieve_groups(state.group_view_repository.as_ref(), group_ids).await?;
 
         Ok(Self {
             users,

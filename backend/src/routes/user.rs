@@ -3,9 +3,9 @@ use crate::domain::group::GroupView;
 use crate::domain::user::{
     CreateUser, IdentityView, UpdateUser, UserId, UserProfileView, UserView,
 };
-use crate::error::{Error, PersistenceSnafu, UserSnafu};
+use crate::error::{Error, PersistenceSnafu};
 use crate::extractors::{Json, Path, UserContext};
-use crate::related_data::WithUsers;
+use crate::related_data::{ViewWithRelated as _, WithUsers};
 use crate::state::ApplicationState;
 use crate::view_repositry_ext::LifecycleViewRepositoryExt;
 use axum::extract::State;
@@ -84,7 +84,7 @@ pub async fn groups_query(
             })
             .collect();
 
-        WithUsers::new(state.cqrs.user_view_repository.as_ref(), results).await
+        WithUsers::new(&state.cqrs, results).await
     })
     .await
 }
@@ -116,7 +116,7 @@ pub async fn internal_create_command(
             .user_cqrs
             .execute(id, LifecycleCommand::Create(command))
             .await
-            .context(UserSnafu),
+            .map_err(Into::into),
     )
 }
 
@@ -131,7 +131,7 @@ pub async fn internal_update_command(
             .user_cqrs
             .execute(id, LifecycleCommand::Update(command))
             .await
-            .context(UserSnafu),
+            .map_err(Into::into),
     )
 }
 

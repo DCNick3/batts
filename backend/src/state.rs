@@ -1,11 +1,10 @@
 use crate::auth::CookieAuthority;
 use crate::config::TelegramSecret;
-use crate::domain::group::{GroupAggregate, GroupView, UserGroupsQuery, UserGroupsView};
+use crate::domain::group::{Group, GroupView, UserGroupsQuery, UserGroupsView};
 use crate::domain::ticket::{
-    TicketAggregate, TicketListingKind, TicketListingQuery, TicketListingView, TicketServices,
-    TicketView,
+    Ticket, TicketListingKind, TicketListingQuery, TicketListingView, TicketServices, TicketView,
 };
-use crate::domain::user::{IdentityQuery, IdentityView, UserAggregate, UserServices, UserView};
+use crate::domain::user::{IdentityQuery, IdentityView, User, UserServices, UserView};
 use crate::meilisearch_view_repository::MeilisearchViewRepository;
 use crate::routes::UploadState;
 use cqrs_es::lifecycle::{
@@ -19,7 +18,9 @@ use std::default::Default;
 use std::sync::Arc;
 use tracing::{info, warn};
 
-type MyCqrsFramework<A> = CqrsFramework<A, MemStore<A>>;
+type MyEventStore<A> = MemStore<A>;
+type MyCqrsFramework<A> =
+    CqrsFramework<LifecycleAggregateState<A>, MyEventStore<LifecycleAggregateState<A>>>;
 
 type MyViewRepository<V> = MeilisearchViewRepository<V>;
 // type MyGenericQuery<V> = GenericQuery<MyViewRepository<V>, V>;
@@ -126,17 +127,64 @@ impl SearchState {
 pub struct CqrsState {
     pub group_view_repository: Arc<MyLifecycleViewRepository<GroupView>>,
     pub user_groups_view_repository: Arc<MyViewRepository<UserGroupsView>>,
-    pub group_cqrs: Arc<MyCqrsFramework<GroupAggregate>>,
+    pub group_cqrs: Arc<MyCqrsFramework<Group>>,
 
     pub ticket_view_repository: Arc<MyLifecycleViewRepository<TicketView>>,
     pub ticket_owner_listing_view_repository: Arc<MyViewRepository<TicketListingView>>,
     pub ticket_assignee_listing_view_repository: Arc<MyViewRepository<TicketListingView>>,
     pub ticket_destination_listing_view_repository: Arc<MyViewRepository<TicketListingView>>,
-    pub ticket_cqrs: Arc<MyCqrsFramework<TicketAggregate>>,
+    pub ticket_cqrs: Arc<MyCqrsFramework<Ticket>>,
 
     pub user_view_repository: Arc<MyLifecycleViewRepository<UserView>>,
     pub user_identity_view_repository: Arc<MyViewRepository<IdentityView>>,
-    pub user_cqrs: Arc<MyCqrsFramework<UserAggregate>>,
+    pub user_cqrs: Arc<MyCqrsFramework<User>>,
+}
+
+pub trait BattsAggregate: LifecycleAggregate {
+    fn get_cqrs_state(state: &CqrsState) -> &Arc<MyCqrsFramework<Self>>;
+}
+
+pub trait BattsView: LifecycleView
+where
+    <Self as LifecycleView>::Aggregate: BattsAggregate,
+{
+    fn get_view_repository(state: &CqrsState) -> &Arc<MyLifecycleViewRepository<Self>>;
+}
+
+impl BattsAggregate for User {
+    fn get_cqrs_state(state: &CqrsState) -> &Arc<MyCqrsFramework<Self>> {
+        &state.user_cqrs
+    }
+}
+
+impl BattsView for UserView {
+    fn get_view_repository(state: &CqrsState) -> &Arc<MyLifecycleViewRepository<Self>> {
+        &state.user_view_repository
+    }
+}
+
+impl BattsAggregate for Group {
+    fn get_cqrs_state(state: &CqrsState) -> &Arc<MyCqrsFramework<Self>> {
+        &state.group_cqrs
+    }
+}
+
+impl BattsView for GroupView {
+    fn get_view_repository(state: &CqrsState) -> &Arc<MyLifecycleViewRepository<Self>> {
+        &state.group_view_repository
+    }
+}
+
+impl BattsAggregate for Ticket {
+    fn get_cqrs_state(state: &CqrsState) -> &Arc<MyCqrsFramework<Self>> {
+        &state.ticket_cqrs
+    }
+}
+
+impl BattsView for TicketView {
+    fn get_view_repository(state: &CqrsState) -> &Arc<MyLifecycleViewRepository<Self>> {
+        &state.ticket_view_repository
+    }
 }
 
 struct CqrsBuilder {
@@ -253,7 +301,7 @@ impl<'a, A: Aggregate> AggregateBuilder<'a, A> {
         self.view_repository_from_index(index, f)
     }
 
-    fn build(self, services: A::Services) -> Arc<MyCqrsFramework<A>> {
+    fn build(self, services: A::Services) -> Arc<CqrsFramework<A, MyEventStore<A>>> {
         Arc::new(CqrsFramework::new(
             // TODO: use an actual event store
             MemStore::default(),

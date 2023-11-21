@@ -1,3 +1,4 @@
+use super::group::GroupId;
 use crate::error::ApiError;
 use crate::related_data::CollectIds;
 use crate::view_repositry_ext::ViewRepositoryExt;
@@ -39,19 +40,21 @@ impl CollectIds<UserId> for UserId {
     }
 }
 
-impl CollectIds<super::group::GroupId> for UserId {
-    fn collect_ids(&self, _: &mut IndexSet<super::group::GroupId>) {}
+impl CollectIds<GroupId> for UserId {
+    fn collect_ids(&self, _: &mut IndexSet<GroupId>) {}
 }
 
-#[derive(Debug, TS, Serialize, Deserialize)]
+#[derive(Debug, TS, Serialize, Deserialize, CollectIds)]
 #[ts(export)]
+#[collect_ids(UserId, GroupId)]
 pub struct CreateUser {
     pub profile: ExternalUserProfile,
 }
 
-#[derive(Debug, TS, Serialize, Deserialize)]
-#[serde(tag = "type")]
+#[derive(Debug, TS, Serialize, Deserialize, CollectIds)]
 #[ts(export)]
+#[serde(tag = "type")]
+#[collect_ids(UserId, GroupId)]
 pub enum UpdateUser {
     AddIdentity { profile: ExternalUserProfile },
 }
@@ -177,9 +180,10 @@ impl Display for ExternalUserIdentity {
     }
 }
 
-#[derive(Debug, Clone, TS, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, TS, Serialize, Deserialize, PartialEq, CollectIds)]
 #[serde(tag = "type")]
 #[ts(export)]
+#[collect_ids(UserId, GroupId)]
 pub enum ExternalUserProfile {
     Telegram(TelegramProfile),
     University(UniversityProfile),
@@ -210,8 +214,9 @@ impl ExternalUserProfile {
     }
 }
 
-#[derive(Default, Debug, Clone, TS, Serialize, Deserialize, PartialEq)]
+#[derive(Default, Debug, Clone, TS, Serialize, Deserialize, PartialEq, CollectIds)]
 #[ts(export)]
+#[collect_ids(UserId, GroupId)]
 pub struct TelegramProfile {
     #[ts(type = "number")]
     pub id: i64,
@@ -232,8 +237,9 @@ pub struct TelegramLoginData {
     pub hash: String,
 }
 
-#[derive(Default, Debug, Clone, TS, Serialize, Deserialize, PartialEq)]
+#[derive(Default, Debug, Clone, TS, Serialize, Deserialize, PartialEq, CollectIds)]
 #[ts(export)]
+#[collect_ids(UserId, GroupId)]
 pub struct UniversityProfile {
     pub email: String,
     pub commonname: String,

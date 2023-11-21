@@ -72,14 +72,17 @@ pub enum Error {
     /// Upload error
     Upload { source: crate::routes::UploadError },
     /// Error while manipulating a ticket
+    #[snafu(context(false))] // implement From conversion
     Ticket {
         source: AggregateError<LifecycleError<TicketError>>,
     },
     /// Error while manipulating a group
+    #[snafu(context(false))]
     Group {
         source: AggregateError<LifecycleError<GroupError>>,
     },
     /// Error while manipulating a user
+    #[snafu(context(false))]
     User {
         source: AggregateError<LifecycleError<UserError>>,
     },

@@ -5,25 +5,104 @@ mod ticket;
 mod upload;
 mod user;
 
-use crate::state::ApplicationState;
+use crate::state::{ApplicationState, BattsAggregate, BattsView};
+use axum::extract::State;
 use axum::routing::{get, post};
 use axum::Router;
+use cqrs_es::lifecycle::{LifecycleAggregate, LifecycleCommand, LifecycleError, LifecycleView};
+use cqrs_es::AggregateError;
+use serde::de::DeserializeOwned;
+use snafu::ResultExt;
 use tracing::warn;
 
 use crate::api_result::ApiResult;
-use crate::error::Error;
+use crate::error::{Error, PersistenceSnafu};
 
+use crate::auth::Authenticated;
+use crate::domain::group::{Group, GroupView};
+use crate::domain::ticket::{Ticket, TicketView};
+use crate::extractors::{Json, Path, UserContext};
+use crate::related_data::{ViewWithRelated, WithGroupsAndUsers, WithUsers};
+use crate::view_repositry_ext::LifecycleViewRepositoryExt as _;
 pub use login::LoginError;
 pub use upload::{UploadError, UploadPolicy, UploadState};
+
+async fn generic_query<R: ViewWithRelated>(
+    State(state): State<ApplicationState>,
+    Path(id): Path<<<R::View as LifecycleView>::Aggregate as LifecycleAggregate>::Id>,
+) -> ApiResult<R>
+where
+    <R as ViewWithRelated>::View: LifecycleView + BattsView,
+    <<R as ViewWithRelated>::View as LifecycleView>::Aggregate: BattsAggregate,
+{
+    ApiResult::from_async_fn(|| async {
+        let repository = <R::View as BattsView>::get_view_repository(&state.cqrs);
+
+        let view = repository
+            .load_lifecycle(id)
+            .await
+            .context(PersistenceSnafu)?
+            .ok_or(Error::NotFound)?;
+
+        R::new(&state.cqrs, view).await
+    })
+    .await
+}
+
+async fn generic_authenticated_create_command<A, C>(
+    State(state): State<ApplicationState>,
+    user_context: UserContext,
+    Path(id): Path<A::Id>,
+    Json(command): Json<C>,
+) -> ApiResult
+where
+    A: BattsAggregate<CreateCommand = Authenticated<C>>,
+    C: DeserializeOwned + 'static,
+    AggregateError<LifecycleError<A::Error>>: Into<Error>,
+{
+    ApiResult::from_async_fn(move || async move {
+        let cqrs = A::get_cqrs_state(&state.cqrs);
+        cqrs.execute(
+            id,
+            LifecycleCommand::Create(user_context.authenticated(command)),
+        )
+        .await
+        .map_err(Into::into)
+    })
+    .await
+}
+
+async fn generic_authenticated_update_command<A, C>(
+    State(state): State<ApplicationState>,
+    user_context: UserContext,
+    Path(id): Path<A::Id>,
+    Json(command): Json<C>,
+) -> ApiResult
+where
+    A: BattsAggregate<UpdateCommand = Authenticated<C>>,
+    C: DeserializeOwned + 'static,
+    AggregateError<LifecycleError<A::Error>>: Into<Error>,
+{
+    ApiResult::from_async_fn(move || async move {
+        let cqrs = A::get_cqrs_state(&state.cqrs);
+        cqrs.execute(
+            id,
+            LifecycleCommand::Update(user_context.authenticated(command)),
+        )
+        .await
+        .map_err(Into::into)
+    })
+    .await
+}
 
 pub fn make_api_router(config: &crate::config::Routes) -> Router<ApplicationState> {
     let mut router = Router::new();
     router = router
         .route(
             "/tickets/:id",
-            get(ticket::query)
-                .put(ticket::create_command)
-                .post(ticket::update_command),
+            get(generic_query::<WithGroupsAndUsers<TicketView>>)
+                .put(generic_authenticated_create_command::<Ticket, _>)
+                .post(generic_authenticated_update_command::<Ticket, _>),
         )
         .route("/tickets/assigned", get(ticket::assignee_listing_query))
         .route("/tickets/owned", get(ticket::owned_listing_query));
@@ -31,9 +110,9 @@ pub fn make_api_router(config: &crate::config::Routes) -> Router<ApplicationStat
     router = router
         .route(
             "/groups/:id",
-            get(group::query)
-                .put(group::create_command)
-                .post(group::update_command),
+            get(generic_query::<WithUsers<GroupView>>)
+                .put(generic_authenticated_create_command::<Group, _>)
+                .post(generic_authenticated_update_command::<Group, _>),
         )
         .route("/groups/:id/tickets", get(group::tickets_query));
 

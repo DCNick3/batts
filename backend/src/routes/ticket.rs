@@ -1,79 +1,14 @@
 use crate::api_result::ApiResult;
-use crate::domain::ticket::{
-    CreateTicket, TicketId, TicketListingView, TicketListingViewExpandedItem, TicketView,
-    UpdateTicket,
-};
-use crate::error::{Error, PersistenceSnafu, TicketSnafu};
-use crate::extractors::{Json, Path, UserContext};
-use crate::related_data::WithGroupsAndUsers;
+use crate::domain::ticket::{TicketListingView, TicketListingViewExpandedItem};
+use crate::error::{Error, PersistenceSnafu};
+use crate::extractors::UserContext;
+use crate::related_data::{ViewWithRelated as _, WithGroupsAndUsers};
 use crate::state::ApplicationState;
 use crate::view_repositry_ext::LifecycleViewRepositoryExt;
 use axum::extract::State;
-use cqrs_es::lifecycle::LifecycleCommand;
 use cqrs_es::persist::ViewRepository;
 use itertools::Itertools;
 use snafu::ResultExt;
-
-pub async fn query(
-    State(state): State<ApplicationState>,
-    Path(id): Path<TicketId>,
-) -> ApiResult<WithGroupsAndUsers<TicketView>> {
-    ApiResult::from_async_fn(|| async {
-        let view = state
-            .cqrs
-            .ticket_view_repository
-            .load_lifecycle(id)
-            .await
-            .context(PersistenceSnafu)?
-            .ok_or(Error::NotFound)?;
-
-        WithGroupsAndUsers::new(
-            state.cqrs.user_view_repository.as_ref(),
-            state.cqrs.group_view_repository.as_ref(),
-            view,
-        )
-        .await
-    })
-    .await
-}
-
-pub async fn create_command(
-    State(state): State<ApplicationState>,
-    user_context: UserContext,
-    Path(id): Path<TicketId>,
-    Json(command): Json<CreateTicket>,
-) -> ApiResult {
-    ApiResult::from_result(
-        state
-            .cqrs
-            .ticket_cqrs
-            .execute(
-                id,
-                LifecycleCommand::Create(user_context.authenticated(command)),
-            )
-            .await
-            .context(TicketSnafu),
-    )
-}
-
-pub async fn update_command(
-    State(state): State<ApplicationState>,
-    user_context: UserContext,
-    Path(id): Path<TicketId>,
-    Json(command): Json<UpdateTicket>,
-) -> ApiResult {
-    ApiResult::from_result(
-        state
-            .cqrs
-            .ticket_cqrs
-            .execute(
-                id,
-                LifecycleCommand::Update(user_context.authenticated(command)),
-            )
-            .await
-            .context(TicketSnafu),
-    )
-}
 
 pub async fn expand_ticket_listing_view(
     state: ApplicationState,
@@ -109,12 +44,7 @@ pub async fn expand_ticket_listing_view(
         .rev()
         .collect();
 
-    WithGroupsAndUsers::new(
-        state.cqrs.user_view_repository.as_ref(),
-        state.cqrs.group_view_repository.as_ref(),
-        results,
-    )
-    .await
+    WithGroupsAndUsers::new(&state.cqrs, results).await
 }
 
 pub async fn assignee_listing_query(

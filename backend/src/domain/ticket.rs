@@ -44,35 +44,40 @@ impl AnyId for TicketId {
     }
 }
 
-#[derive(Debug, TS, Serialize, Deserialize)]
+#[derive(Debug, TS, Serialize, Deserialize, CollectIds)]
 #[ts(export)]
+#[collect_ids(UserId, GroupId)]
 pub struct CreateTicket {
     pub destination: TicketDestination,
     pub title: String,
     pub body: String,
 }
 
-#[derive(Debug, TS, Serialize, Deserialize)]
+#[derive(Debug, TS, Serialize, Deserialize, CollectIds)]
 #[ts(export)]
+#[collect_ids(UserId, GroupId)]
 pub struct SendTicketMessage {
     pub body: String,
 }
 
-#[derive(Debug, TS, Serialize, Deserialize)]
+#[derive(Debug, TS, Serialize, Deserialize, CollectIds)]
 #[ts(export)]
+#[collect_ids(UserId, GroupId)]
 pub struct ChangeStatus {
     pub new_status: TicketStatus,
 }
 
-#[derive(Debug, TS, Serialize, Deserialize)]
+#[derive(Debug, TS, Serialize, Deserialize, CollectIds)]
 #[ts(export)]
+#[collect_ids(UserId, GroupId)]
 pub struct ChangeAssignee {
     pub new_assignee: Option<UserId>,
 }
 
-#[derive(Debug, TS, Serialize, Deserialize)]
+#[derive(Debug, TS, Serialize, Deserialize, CollectIds)]
 #[ts(export)]
 #[serde(tag = "type")]
+#[collect_ids(UserId, GroupId)]
 pub enum UpdateTicket {
     SendTicketMessage(SendTicketMessage),
     ChangeStatus(ChangeStatus),
