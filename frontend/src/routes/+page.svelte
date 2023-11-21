@@ -21,6 +21,8 @@
 
   const user = getContext<SvelteStore<null | UserView>>('user')
 	let destination: { type: 'User', view: UserView } | { type: 'Group', view: GroupView }
+	let topic: string
+	let description: string
 
   const errorContext: Writable<{ title: string, message: string }[]> = getContext('error')
 	if (data.error) {
@@ -44,12 +46,7 @@
 		}
 	}
 
-	const submit = async (event: SubmitEvent) => {
-		if (!event.target) return
-		const formData = new FormData(event.target as HTMLFormElement)
-		// TODO: use ts properly
-		const topic = formData.get("topic") as string
-		const description = formData.get("description") as string
+	const submit = async () => {
 
 		const api = new Api(fetch)
 		const newId = generateId()
@@ -85,12 +82,13 @@
 		</Label>
 		<Label>
 			Topic:
-			<Input class="mt-1" name="topic" required />
+			<Input bind:value={topic} class="mt-1" name="topic" required />
 		</Label>
 		<Label>
 			Description:
 			<Textarea
 				class="mt-1"
+				bind:value={description}
 				name="description"
 				rows=8
 				required
