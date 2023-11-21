@@ -13,10 +13,12 @@ export async function requireAuth<T>(parent: () => Promise<{ user: T | null }>) 
 }
 
 type Error = { title: string, message: string }
-export function pushError(context: Writable<Error[]>, error: Error) {
+export function pushError(context: Writable<Error[]> | undefined, error: Error) {
+  if (!context) return
   context.update(ers => ers.concat([error]))
 }
-export function pushApiError(context: Writable<Error[]>, error: ApiError) {
+export function pushApiError(context: Writable<Error[]> | undefined, error: ApiError) {
+  if (!context) return
   const err = {
     title: error.report,
     message: `Span: ${error.span_id}, Trace: ${error.trace_id}`

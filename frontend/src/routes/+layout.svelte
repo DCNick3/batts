@@ -39,6 +39,14 @@
 	const error = writable<{ title: string, message: string }[]>([])
 	setContext('error', error)
 
+	if (data.error) {
+		if (data.error.type === 'Api') {
+			error.set([{ title: data.error.error.report, message: `Span: ${data.error.error.span_id}, Trace: ${data.error.error.trace_id}`}])
+		} else {
+			error.set([data.error.error])
+		}
+	}
+
 	const removeError = (index: number) => {
 		error.update(errors => {
 			return errors.toSpliced(index, 1)

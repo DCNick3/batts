@@ -21,6 +21,8 @@
         state = 'Ok'
         await invalidateAll()
         await goto('/')
+        // drop all errors after successful login
+        errorContext.set([])
       } else {
         state = 'Error'
         errorMessage = result.payload.report
