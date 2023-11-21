@@ -3,13 +3,14 @@
   import { getContext } from 'svelte'
   import { Api, generateId } from 'backend'
 	import type { UserView } from 'backend'
-  import Avatar from '$lib/components/Avatar.svelte'
   import { Button, Input } from 'flowbite-svelte'
   import { goto, invalidateAll } from '$app/navigation'
 	import type { PageData } from './$types'
-  import A from '$lib/components/A.svelte'
   import { UserProfile } from '$lib/components/UserProfile'
+	import type { Writable } from 'svelte/store'
+	import { pushApiError, pushError } from '$lib'
 
+  const errorContext: Writable<{ title: string, message: string }[]> = getContext('error')
   const user = getContext<SvelteStore<null | UserView>>('user')
 
   let groupName = ''
@@ -26,12 +27,12 @@
         groupName = ''
         invalidateAll()
       } else {
-        // TODO: error handling
         console.error(result.payload)
+        pushApiError(errorContext, result.payload)
       }
     } catch (error) {
-      // TODO: error handling
       console.error(error)
+      pushError(errorContext, { title: 'Unexpected error', message: (error as any)?.message || '' })
     }
   }
 </script>

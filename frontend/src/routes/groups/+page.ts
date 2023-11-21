@@ -1,33 +1,45 @@
 import { Api } from 'backend'
-import type { GroupId, GroupView, TicketListingViewExpandedItem, WithGroupsAndUsers } from 'backend'
+import type { ApiError, GroupId, TicketListingViewExpandedItem, WithGroupsAndUsers } from 'backend'
 import type { PageLoad } from './$types'
 
 type TicketData = WithGroupsAndUsers<TicketListingViewExpandedItem[]>
+
+type Error
+  = { type: 'Api', error: ApiError }
+  | { type: 'Other', error: { title: string, message: string }}
 
 export const load: PageLoad = async ({ fetch, parent }) => {
   const api = new Api(fetch)
   const { userGroups } = await parent()
 
-  let groupTickets = new Map<GroupId, TicketData>()
+  const groupTickets = new Map<GroupId, TicketData>()
+  const errors: Error[] = []
 
   try {
     const promises = userGroups.map(grp => {
       return api.getGroupTickets(grp.id).then(result => {
         if (result.status === 'Success') {
-          return [grp.id, result.payload]
+          const res: { status: 'Success', payload: [string, WithGroupsAndUsers<TicketListingViewExpandedItem[]>]}
+            = { status: 'Success', payload: [grp.id, result.payload] }
+          return res
         } else {
-          return null
+          return result
         }
       })
     })
-    const tickets = await Promise.all(promises).then(lst => lst.filter(t => t !== null) as [GroupId, TicketData][])
-    tickets.forEach(([id, tick]) => {
-      groupTickets.set(id, tick)
+    const ticketResults = await Promise.all(promises)
+    ticketResults.forEach(res => {
+      if (res.status === 'Success') {
+        const [id, tick] = res.payload
+        groupTickets.set(id, tick)
+      } else {
+        errors.push({ type: 'Api', error: res.payload })
+      }
     })
   } catch (error) {
-    // TODO: error handling
     console.error(error)
+    errors.push({ type: 'Other', error: { title: 'Unexpected error', message: (error as any)?.message || '' }})
   }
 
-  return { groupTickets }
+  return { groupTickets, errors }
 }

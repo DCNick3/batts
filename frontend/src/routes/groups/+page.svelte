@@ -3,9 +3,20 @@
   import { getContext } from 'svelte'
   import A from '$lib/components/A.svelte'
   import { TicketList } from '$lib/components/TicketList'
+	import type { Writable } from 'svelte/store'
+	import { pushApiError, pushError } from '$lib'
 
   const userGroups = getContext<SvelteStore<GroupView[]>>('userGroups')
   export let data
+
+  const errorContext: Writable<{ title: string, message: string }[]> = getContext('error')
+  data.errors.forEach(error => {
+    if (error.type === 'Api') {
+			pushApiError(errorContext, error.error)
+		} else {
+			pushError(errorContext, error.error)
+		}
+  })
 
   type TicketData = WithGroupsAndUsers<TicketListingViewExpandedItem[]>
   $: groups = $userGroups.map(grp => [grp, data.groupTickets.get(grp.id)] as [GroupView, TicketData | undefined])

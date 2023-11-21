@@ -1,8 +1,8 @@
 <script lang="ts">
 	import '../app.postcss'
 	import Logo from '$lib/components/Logo.svelte'
-	import { setContext } from 'svelte'
-	import { writable } from 'svelte/store'
+	import { getContext, setContext } from 'svelte'
+	import { writable, type Writable } from 'svelte/store'
 	import { Button } from 'flowbite-svelte'
 	import { Navbar, NavBrand } from 'flowbite-svelte'
   import Icon from '@iconify/svelte'
@@ -13,7 +13,18 @@
 	import type { LayoutData } from './$types'
 	import type { UserView, GroupView } from 'backend'
 	import { goto } from '$app/navigation'
+	import { pushApiError, pushError } from '$lib'
+
 	export let data: LayoutData
+
+	const errorContext: Writable<{ title: string, message: string }[]> = getContext('error')
+	if (data.error) {
+		if (data.error.type === 'Api') {
+			pushApiError(errorContext, data.error.error)
+		} else {
+			pushError(errorContext, data.error.error)
+		}
+	}
 
 	let isHidden = true
 

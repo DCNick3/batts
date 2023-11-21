@@ -2,8 +2,20 @@
 	import type { PageData } from './$types'
   import { TicketList } from '$lib/components/TicketList'
   import A from '$lib/components/A.svelte'
+	import { getContext } from 'svelte'
+	import type { Writable } from 'svelte/store'
+	import { pushApiError, pushError } from '$lib'
 
   export let data: PageData
+
+  const errorContext: Writable<{ title: string, message: string }[]> = getContext('error')
+	if (data.error) {
+		if (data.error.type === 'Api') {
+			pushApiError(errorContext, data.error.error)
+		} else {
+			pushError(errorContext, data.error.error)
+		}
+	}
 </script>
 
 {#if data.group === null}

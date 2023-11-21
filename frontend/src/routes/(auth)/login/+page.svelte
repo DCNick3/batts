@@ -3,8 +3,11 @@
   import { Login } from 'sveltegram'
   import { goto, invalidateAll } from '$app/navigation'
   import { Api } from 'backend'
+	import type { Writable } from 'svelte/store'
+	import { getContext } from 'svelte'
+	import { pushError, pushApiError } from '$lib'
 
-  import iuIcon from '$lib/assets/iu_icon.png'
+  const errorContext: Writable<{ title: string, message: string }[]> = getContext('error')
 
   let state: 'Ok' | 'Error' = 'Ok'
   let errorMessage = ''
@@ -19,14 +22,14 @@
         await invalidateAll()
         await goto('/')
       } else {
-        // TODO: handle error
         state = 'Error'
         errorMessage = result.payload.report
+			  pushApiError(errorContext, result.payload)
       }
-    } catch (error) {
-      // TODO: handle error
+    } catch (e) {
       state = 'Error'
       errorMessage = 'Failed to connect'
+      pushError(errorContext, { title: 'Unexpected error', message: (e as any)?.message || '' })
     }
   }
 </script>

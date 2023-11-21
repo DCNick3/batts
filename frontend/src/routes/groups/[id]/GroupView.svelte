@@ -9,7 +9,7 @@
   import Icon from '@iconify/svelte'
   import { getContext } from 'svelte'
   import { UserSearch, pushApiError } from '$lib'
-	import type { Writable } from 'svelte/store';
+	import type { Writable } from 'svelte/store'
 
   export let group: GroupView
   export let groupUsers: Record<string, UserProfileView>

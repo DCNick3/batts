@@ -1,8 +1,16 @@
 <script lang="ts">
-  import { UserProfile } from "$lib/components/UserProfile"
-	import type { PageData } from "./$types";
+	import { pushApiError, pushError } from '$lib'
+  import { UserProfile } from '$lib/components/UserProfile'
+  import { getContext } from 'svelte'
+	import type { Writable } from 'svelte/store'
+	import type { PageData } from './$types'
 
   export let data: PageData
+
+  const errorContext: Writable<{ title: string, message: string }[]> = getContext('error')
+  if (data.error) {
+    pushApiError(errorContext, data.error.error)
+  }
 </script>
 
 <svelte:head>

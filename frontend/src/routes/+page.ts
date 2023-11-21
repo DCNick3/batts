@@ -2,12 +2,18 @@ import { getReceivers } from '$lib/mocks/database'
 import { requireAuth } from '$lib/utils'
 import type { PageLoad } from './$types'
 import { Api } from 'backend'
-import type { TicketListingViewExpandedItem, GroupProfileView, UserProfileView } from 'backend'
+import type { ApiError, TicketListingViewExpandedItem, GroupProfileView, UserProfileView } from 'backend'
+
+type Error
+  = { type: 'Api', error: ApiError }
+  | { type: 'Other', error: { title: string, message: string }}
+  | null
 
 export const load: PageLoad = async ({ fetch, parent }) => {
   await requireAuth(parent)
 
   const api = new Api(fetch)
+  let error: Error = null
 
   let ownedTickets: TicketListingViewExpandedItem[] = []
   let userMap: Record<string, UserProfileView> = {}
@@ -21,11 +27,12 @@ export const load: PageLoad = async ({ fetch, parent }) => {
       userMap = users
       groupMap = groups
     } else {
-      // TODO: error handling
-      console.error(result.payload.report)
+      console.error(result.payload)
+      error = { type: 'Api', error: result.payload }
     }
-  } catch (error) {
-    // TODO: error handling
+  } catch (e) {
+    console.error(e)
+    error = { type: 'Other', error: { title: 'Unexpected error', message: (e as any)?.message || ''}}
   }
 
   return {
@@ -33,5 +40,6 @@ export const load: PageLoad = async ({ fetch, parent }) => {
     userMap,
     groupMap,
     ownedTickets,
+    error,
   }
 }

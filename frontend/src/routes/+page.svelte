@@ -9,15 +9,27 @@
 	import type { PageData } from './$types'
 	import { Api, generateId } from 'backend'
   import { getContext } from 'svelte'
-	import type { ApiResult, GroupView, SearchResults, UserView } from 'backend'
+	import type { GroupView, UserView } from 'backend'
 	import { page } from '$app/stores'
 	import { TicketList } from '$lib/components/TicketList'
-	import { AutoComplete, UserAndGroupSearch } from '$lib'
+	import { UserAndGroupSearch, pushApiError, pushError } from '$lib'
+	import type { Writable } from 'svelte/store'
+
+	export let data: PageData
 
 	const url = $page.url
 
   const user = getContext<SvelteStore<null | UserView>>('user')
 	let destination: { type: 'User', view: UserView } | { type: 'Group', view: GroupView }
+
+  const errorContext: Writable<{ title: string, message: string }[]> = getContext('error')
+	if (data.error) {
+		if (data.error.type === 'Api') {
+			pushApiError(errorContext, data.error.error)
+		} else {
+			pushError(errorContext, data.error.error)
+		}
+	}
 
 	const qName = url.searchParams.get('gname')
 	const qId = url.searchParams.get('gid')
@@ -42,15 +54,14 @@
 		const api = new Api(fetch)
 		const newId = generateId()
 		const result = await api.createTicket(newId, { title: topic, body: description, destination: { type: destination.type, id: destination.view.id }})
-		// TODO: handle error
 		if (result.status === 'Success') {
 			goto(`/tickets/${newId}`)
 		} else {
 			console.error(result.payload)
+			pushApiError(errorContext, result.payload)
 		}
   }
 
-	export let data: PageData
 </script>
 
 <svelte:head>

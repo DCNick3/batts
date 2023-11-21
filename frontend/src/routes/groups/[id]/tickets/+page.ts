@@ -1,11 +1,18 @@
 import { Api } from 'backend'
-import type { GroupView, TicketListingViewExpandedItem, WithGroupsAndUsers } from 'backend'
+import type { ApiError, GroupView, TicketListingViewExpandedItem, WithGroupsAndUsers } from 'backend'
 import type { PageLoad } from './$types'
 import { redirect } from '@sveltejs/kit'
+
+type Error
+= { type: 'Api', error: ApiError }
+| { type: 'Other', error: { title: string, message: string }}
+| null
 
 export const load: PageLoad = async ({ fetch, params, parent }) => {
   const api = new Api(fetch)
   const { user, userGroups } = await parent()
+
+  let error: Error = null
 
   // If user is not allowed to view tickets of this group,
   // redirect to the group page
@@ -25,15 +32,18 @@ export const load: PageLoad = async ({ fetch, params, parent }) => {
       const response = await api.getGroupTickets(group.id)
       if (response.status === 'Success') {
         groupTickets = response.payload
+      } else {
+        console.log(response.payload)
+        error = { type: 'Api', error: response.payload }
       }
     } else {
-      // TODO: error handling
       console.error(result.payload)
+      error = { type: 'Api', error: result.payload }
     }
-  } catch (error) {
-    // TODO: error handling
-    console.error(error)
+  } catch (e) {
+    console.error(e)
+    error = { type: 'Other', error: { title: 'Unexpected error', message: (e as any)?.message || ''}}
   }
 
-  return { group, groupTickets }
+  return { group, groupTickets, error }
 }

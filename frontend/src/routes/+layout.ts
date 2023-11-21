@@ -1,11 +1,18 @@
 import { Api } from 'backend'
 import type { LayoutLoad } from './$types'
-import type { UserView, GroupView } from 'backend'
+import type { UserView, GroupView, ApiError } from 'backend'
 import posthog from 'posthog-js'
 import { browser } from '$app/environment';
 
+type Error
+  = { type: 'Api', error: ApiError }
+  | { type: 'Other', error: { title: string, message: string }}
+  | null
+
 export const load: LayoutLoad<{ user: UserView | null }> = async ({ fetch }) => {
   const api = new Api(fetch)
+
+  let error: Error = null
 
   if (browser) {
     posthog.init(
@@ -27,18 +34,18 @@ export const load: LayoutLoad<{ user: UserView | null }> = async ({ fetch }) => 
       if (response.status === 'Success') {
         userGroups = response.payload.payload
       } else {
-        // TODO: error handling
         console.error(response.payload)
+        error = { type: 'Api', error: response.payload }
       }
 
     } else {
-      // TODO: error handling
       console.error(result.payload)
+      error = { type: 'Api', error: result.payload }
     }
-  } catch (error) {
-    // TODO: error handling
+  } catch (e) {
     console.error(error)
+    error = { type: 'Other', error: { title: 'Unexpected error', message: (e as any)?.message || ''}}
   }
 
-  return { user, userGroups }
+  return { user, userGroups, error }
 }

@@ -1,9 +1,7 @@
 <script lang="ts">
   import type { UserProfileView, GroupView } from 'backend'
 	import Avatar from '../Avatar.svelte'
-  import tgIcon from '$lib/assets/telegram_icon_48.png'
   import A from '../A.svelte'
-  import { Button, Input } from 'flowbite-svelte'
 
   export let isMe: boolean = false
   export let user: UserProfileView
