@@ -2,3 +2,4 @@
 export { AutoComplete } from './components/AutoComplete'
 export { UserAndGroupSearch } from './components/Search'
 export { UserSearch } from './components/Search'
+export { requireAuth, pushError, pushApiError } from './utils'

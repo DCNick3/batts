@@ -5,14 +5,14 @@
 	import { writable } from 'svelte/store'
 	import { Button } from 'flowbite-svelte'
 	import { Navbar, NavBrand } from 'flowbite-svelte'
-	// import { } from 'flowbite-svelte'
+  import Icon from '@iconify/svelte'
 	import NavHamburger from '$lib/components/NavHamburger.svelte'
 	import NavLink from '$lib/components/NavLink.svelte'
 	import { SidePanel } from '$lib/components/SidePanel'
 
 	import type { LayoutData } from './$types'
 	import type { UserView, GroupView } from 'backend'
-	import { goto } from '$app/navigation';
+	import { goto } from '$app/navigation'
 	export let data: LayoutData
 
 	let isHidden = true
@@ -24,6 +24,15 @@
 
 	setContext('user', user)
 	setContext('userGroups', userGroups)
+
+	const error = writable<{ title: string, message: string }[]>([])
+	setContext('error', error)
+
+	const removeError = (index: number) => {
+		error.update(errors => {
+			return errors.toSpliced(index, 1)
+		})
+	}
 
 	const goToLogin = () => {
 		goto('/login')
@@ -70,3 +79,19 @@
 		<slot />
 	</div>
 </div>
+
+{#if $error && $error.length > 0}
+	<div class="absolute right-0 bottom-0 mr-2 mb-2 sm:m-12">
+		{#each $error as error, index}
+			<div class="p-2 border rounded-md bg-red-200 mt-2 flex gap-1">
+				<div>
+					<div>{error.title}</div>
+					<div>{error.message}</div>		
+				</div>
+				<button class="h-fit" on:click={() => removeError(index)}>
+					<Icon icon="fa:remove" style="width: 10px; height: 10px;" />
+				</button>
+			</div>
+		{/each}
+	</div>
+{/if}

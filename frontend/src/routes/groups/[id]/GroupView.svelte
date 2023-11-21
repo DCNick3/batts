@@ -4,15 +4,18 @@
 	import { beforeNavigate, goto, invalidateAll } from '$app/navigation'
   import { Button, Dropdown, Input } from 'flowbite-svelte'
   import A from '$lib/components/A.svelte'
-  import type { Update } from './updates'
   import { Updates } from './updates'
   import Settings from '$lib/assets/Settings.svelte'
   import Icon from '@iconify/svelte'
-  import { UserSearch } from '$lib'
+  import { getContext } from 'svelte'
+  import { UserSearch, pushApiError } from '$lib'
+	import type { Writable } from 'svelte/store';
 
   export let group: GroupView
   export let groupUsers: Record<string, UserProfileView>
   export let curUser: UserView | null
+
+  const errorContext: Writable<{ title: string, message: string }[]> = getContext('error')
 
   const updates = new Updates()
 
@@ -83,7 +86,7 @@
     // Update user view
     const index = groupMembers.indexOf(id)
     if (index > -1) { // only splice array when item is found
-      groupMembers.splice(index, 1); // 2nd parameter means remove one item only
+      groupMembers.splice(index, 1) // 2nd parameter means remove one item only
     }
     groupMembers = [...groupMembers]
   }
@@ -109,8 +112,8 @@
       results.forEach(res => {
         if (!res) return
         if (res.status == 'Error') {
-          // TODO: error handling
           console.error(res.payload)
+          pushApiError(errorContext, res.payload)
         }
       })
     } catch (error) {
