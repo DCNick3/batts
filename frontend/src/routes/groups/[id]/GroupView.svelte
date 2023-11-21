@@ -72,9 +72,9 @@
     addUsersOpen = false
     // userIdField = ''
 
+    groupUsers[uid] = selectedUser
     // Update user view
     groupMembers = [...groupMembers, uid]
-    groupUsers[uid] = selectedUser
   }
   const handleDeleteUser = (id: string) => {
     // Keep update before save
@@ -98,13 +98,11 @@
         if (up.type === 'AddUser') {
           return api.addGroupMember(group.id, up.id)
         } else {
-          // TODO: remove user
-          return Promise.resolve()
+          return api.removeGroupMember(group.id, up.id)
         }
       })
       if (titleChanged) {
-        // TODO: update group title
-        // promises.push(api.updateTitle(groupInfo.id, groupTitle))
+        promises.push(api.changeGroupTitle(group.id, groupTitleField))
       }
 
       const results = await Promise.all(promises)
@@ -149,7 +147,7 @@
         {#each groupMembers as grpMemberId}
           <div class="flex items-center gap-2">
             <A href={`/users/${grpMemberId}`}>{getUsr(grpMemberId) || 'Unknown user'}</A>
-            {#if isEditMode}
+            {#if isEditMode && grpMemberId !== curUser?.id}
               <button on:click={() => handleDeleteUser(grpMemberId)}>
                 <Icon icon="fa:remove" style="color: red" />
               </button>                
