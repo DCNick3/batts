@@ -34,6 +34,20 @@ spec:
                 secretKeyRef:
                   name: batts-meilisearch
                   key: MEILI_MASTER_KEY
+            - name: CONFIG_UPLOAD__S3__ENDPOINT
+              value: "https://minio-api.sakura.h.dcnick3.me"
+            - name: CONFIG_UPLOAD__S3__BUCKET
+              value: "batts"
+            - name: CONFIG_UPLOAD__S3__ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: batts-secrets
+                  key: s3_access_key
+            - name: CONFIG_UPLOAD__S3__SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: batts-secrets
+                  key: s3_secret_key
         - name: batts-frontend
           image: ghcr.io/dcnick3/batts:frontend-6bf6c870026c3ef97a9bc9211b72b4179d51535f
           env:

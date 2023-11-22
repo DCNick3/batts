@@ -12,17 +12,3 @@ upload:
     bucket: batts
     access_key: minioadmin
     secret_key: minioadmin
-  policy:
-    allowed_file_extensions: ["gif", "jpeg", "jpg", "mov", "mp4", "png", "svg", "webm", "csv", "docx", "fodg", "fodp", "fods", "fodt", "gz", "json", "md", "odf", "odg", "odp", "ods", "odt", "pdf", "pptx", "tgz", "txt", "xls", "xlsx", "zip"]
-    allowed_content_types: [
-      "image/gif", "image/jpeg", "image/png", "image/svg+xml", "image/webp", "video/mp4", "video/webm", "video/ogg", "video/quicktime",
-      "text/csv", "text/plain", "application/gzip", "application/json", "application/zip",
-      # TODO: figure out a proper list of mime types for office documents
-      "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "application/pdf", "application/vnd.oasis.opendocument.text", "application/vnd.oasis.opendocument.spreadsheet", "application/vnd.oasis.opendocument.presentation",
-      "application/vnd.oasis.opendocument.graphics", "application/vnd.oasis.opendocument.formula", "application/vnd.oasis.opendocument.chart",
-      "application/vnd.oasis.opendocument.image", "application/vnd.oasis.opendocument.text-master", "application/vnd.oasis.opendocument.text-template",
-      "application/vnd.oasis.opendocument.text-web", "application/vnd.oasis.opendocument.text-flat-xml", "application/vnd.oasis"
-    ]
-    # 10 MiB
-    max_size: 10485760
