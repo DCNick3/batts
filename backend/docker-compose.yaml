@@ -1,6 +1,6 @@
 services:
   backend:
-    image: ghcr.io/dcnick3/batts:backend-6bf6c870026c3ef97a9bc9211b72b4179d51535f
+    image: ghcr.io/dcnick3/batts:backend-664f96b7a1d34cb2473f0157c26137c8e00b0b3e
     environment:
       CONFIG_STORAGE__MEILISEARCH__ENDPOINT: "http://meilisearch:7700"
       CONFIG_STORAGE__MEILISEARCH__API_KEY: "aSampleMasterKey"
@@ -33,8 +33,3 @@ services:
     ports:
       - 9000:9000
       - 9090:9090
-#    healthcheck:
-#      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-#      interval: 10s
-#      timeout: 5s
-#      retries: 5

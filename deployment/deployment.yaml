@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: batts-backend
-          image: ghcr.io/dcnick3/batts:backend-6bf6c870026c3ef97a9bc9211b72b4179d51535f
+          image: ghcr.io/dcnick3/batts:backend-664f96b7a1d34cb2473f0157c26137c8e00b0b3e
           env:
             - name: CONFIG_SERVER__ENDPOINT
               value: "127.0.0.1:3001"
@@ -49,7 +49,7 @@ spec:
                   name: batts-secrets
                   key: s3_secret_key
         - name: batts-frontend
-          image: ghcr.io/dcnick3/batts:frontend-6bf6c870026c3ef97a9bc9211b72b4179d51535f
+          image: ghcr.io/dcnick3/batts:frontend-664f96b7a1d34cb2473f0157c26137c8e00b0b3e
           env:
             - name: BACKEND_URL
               value: "http://127.0.0.1:3001"
