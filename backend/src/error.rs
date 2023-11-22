@@ -1,5 +1,6 @@
 use crate::domain::group::GroupError;
 use crate::domain::ticket::TicketError;
+use crate::domain::upload::UploadError;
 use crate::domain::user::UserError;
 use axum::http::StatusCode;
 use cqrs_es::lifecycle::LifecycleError;
@@ -70,7 +71,8 @@ pub enum Error {
     /// Login error
     Login { source: crate::routes::LoginError },
     /// Upload error
-    Upload { source: crate::routes::UploadError },
+    #[snafu(context(false))] // implement From conversion
+    Upload { source: AggregateError<UploadError> },
     /// Error while manipulating a ticket
     #[snafu(context(false))] // implement From conversion
     Ticket {

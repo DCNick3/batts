@@ -4,9 +4,10 @@ use crate::domain::group::{Group, GroupView, UserGroupsQuery, UserGroupsView};
 use crate::domain::ticket::{
     Ticket, TicketListingKind, TicketListingQuery, TicketListingView, TicketServices, TicketView,
 };
+use crate::domain::upload::{Upload, UploadQuery, UploadView};
 use crate::domain::user::{IdentityQuery, IdentityView, User, UserServices, UserView};
 use crate::meilisearch_view_repository::MeilisearchViewRepository;
-use crate::routes::UploadState;
+use crate::services::upload::UploadService;
 use cqrs_es::lifecycle::{
     LifecycleAggregate, LifecycleAggregateState, LifecycleQuery, LifecycleView, LifecycleViewState,
 };
@@ -19,8 +20,8 @@ use std::sync::Arc;
 use tracing::{info, warn};
 
 type MyEventStore<A> = MemStore<A>;
-type MyCqrsFramework<A> =
-    CqrsFramework<LifecycleAggregateState<A>, MyEventStore<LifecycleAggregateState<A>>>;
+type MyPlainCqrsFramework<A> = CqrsFramework<A, MyEventStore<A>>;
+type MyCqrsFramework<A> = MyPlainCqrsFramework<LifecycleAggregateState<A>>;
 
 type MyViewRepository<V> = MeilisearchViewRepository<V>;
 // type MyGenericQuery<V> = GenericQuery<MyViewRepository<V>, V>;
@@ -35,7 +36,7 @@ pub struct ApplicationState {
 
     pub cqrs: CqrsState,
     pub search: SearchState,
-    pub upload: Option<UploadState>,
+    pub upload_service: Arc<UploadService>,
 }
 
 #[derive(Clone)]
@@ -138,6 +139,9 @@ pub struct CqrsState {
     pub user_view_repository: Arc<MyLifecycleViewRepository<UserView>>,
     pub user_identity_view_repository: Arc<MyViewRepository<IdentityView>>,
     pub user_cqrs: Arc<MyCqrsFramework<User>>,
+
+    pub upload_view_repository: Arc<MyViewRepository<UploadView>>,
+    pub upload_cqrs: Arc<MyPlainCqrsFramework<Upload>>,
 }
 
 pub trait BattsAggregate: LifecycleAggregate {
@@ -338,7 +342,62 @@ async fn search_state(config: &crate::config::Config) -> SearchState {
     }
 }
 
-async fn cqrs_state(search_state: &SearchState) -> CqrsState {
+async fn upload_service(config: &crate::config::Upload) -> Arc<UploadService> {
+    let s3 = &config.s3;
+
+    let region = s3::Region::Custom {
+        region: "us-east1".to_owned(),
+        endpoint: s3.endpoint.as_str().trim_end_matches('/').to_string(),
+    };
+    let credentials = s3::creds::Credentials {
+        access_key: Some(s3.access_key.clone()),
+        secret_key: Some(s3.secret_key.clone()),
+        security_token: None,
+        session_token: None,
+        expiration: None,
+    };
+    let bucket = s3::Bucket::new(&s3.bucket, region, credentials)
+        .expect("Failed to create S3 bucket")
+        .with_path_style();
+
+    // TODO: do not erase the bucket when we start handling persistence
+    if bucket
+        .exists()
+        .await
+        .expect("Failed to check if S3 bucket exists")
+    {
+        warn!("Clearing S3 bucket `{}`", s3.bucket);
+        let objects = bucket
+            .list("".to_string(), None)
+            .await
+            .expect("Failed to list objects in S3 bucket");
+        for result in objects {
+            for object in result.contents {
+                bucket
+                    .delete_object(object.key)
+                    .await
+                    .expect("Failed to delete object");
+            }
+        }
+    } else {
+        info!("Creating S3 bucket `{}`", s3.bucket);
+        s3::Bucket::create_with_path_style(
+            &s3.bucket,
+            bucket.region.clone(),
+            bucket.credentials().await.unwrap().clone(),
+            s3::BucketConfiguration::default(),
+        )
+        .await
+        .expect("Failed to create S3 bucket");
+    }
+
+    Arc::new(UploadService {
+        bucket,
+        policy: config.policy.clone(),
+    })
+}
+
+async fn cqrs_state(search_state: &SearchState, upload_service: Arc<UploadService>) -> CqrsState {
     let mut builder = CqrsBuilder::new(search_state.meilisearch.clone());
 
     let mut groups_builder = builder.aggregate("groups");
@@ -390,6 +449,12 @@ async fn cqrs_state(search_state: &SearchState) -> CqrsState {
         user_identity_view_repository: user_identity_view_repository.clone(),
     });
 
+    let mut upload_builder = builder.aggregate("uploads");
+
+    let upload_view_repository = upload_builder.view_repository("uploads", UploadQuery::new);
+
+    let upload_cqrs = upload_builder.build(upload_service);
+
     builder.finalize().await;
 
     CqrsState {
@@ -406,6 +471,9 @@ async fn cqrs_state(search_state: &SearchState) -> CqrsState {
         user_view_repository,
         user_identity_view_repository,
         user_cqrs,
+
+        upload_view_repository,
+        upload_cqrs,
     }
 }
 
@@ -424,32 +492,9 @@ pub async fn new_application_state(config: &crate::config::Config) -> Applicatio
         chrono::Duration::from_std(config.auth.token_duration).unwrap(),
     );
 
-    let upload = config.upload.as_ref().map(|upload| {
-        let s3 = &upload.s3;
-
-        let region = s3::Region::Custom {
-            region: "us-east1".to_owned(),
-            endpoint: s3.endpoint.to_string(),
-        };
-        let credentials = s3::creds::Credentials {
-            access_key: Some(s3.access_key.clone()),
-            secret_key: Some(s3.secret_key.clone()),
-            security_token: None,
-            session_token: None,
-            expiration: None,
-        };
-        let bucket = s3::Bucket::new(&s3.bucket, region, credentials)
-            .expect("Failed to create S3 bucket")
-            .with_path_style();
-
-        UploadState {
-            bucket,
-            policy: upload.policy.clone(),
-        }
-    });
-
     let search = search_state(config).await;
-    let cqrs = cqrs_state(&search).await;
+    let upload_service = upload_service(&config.upload).await;
+    let cqrs = cqrs_state(&search, upload_service.clone()).await;
 
     search.ensure_settings().await;
 
@@ -458,6 +503,6 @@ pub async fn new_application_state(config: &crate::config::Config) -> Applicatio
         telegram_login_secret: config.auth.telegram_secret.clone(),
         cqrs,
         search,
-        upload,
+        upload_service,
     }
 }

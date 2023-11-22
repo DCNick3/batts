@@ -18,14 +18,18 @@ import type {
     GroupView,
     GroupId,
     UpdateTicket,
-    WithUsers, WithGroupsAndUsers,
+    WithUsers,
+    WithGroupsAndUsers,
+    InitiatedUpload,
+    SearchResults,
+    UploadMetadata,
+    UploadId
 } from "../";
 
 // import { toDates, toDatesByArray } from 'ts-transformer-dates';
 
 import {v4 as uuidv4, parse as parseUuid} from 'uuid'
 import bs58 from "bs58";
-import type {SearchResults} from "./SearchResults";
 
 export function generateId(): string {
     const uuid = parseUuid(uuidv4());
@@ -158,6 +162,28 @@ export class Api {
 
     async searchGroups(q: string): Promise<ApiResult<SearchResults<GroupView>>> {
         return await this.#get(`/api/search/groups?q=${q}`);
+    }
+
+    async initiateUpload(metadata: UploadMetadata): Promise<ApiResult<InitiatedUpload>> {
+        const res = await this.fetch(`/api/upload/initiate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(metadata),
+        });
+        return await res.json();
+    }
+
+    async finalizeUpload(id: UploadId): Promise<ApiResult<null>> {
+        const res = await this.fetch(`/api/upload/${id}/finalize`, {
+            method: 'POST',
+        });
+        return await res.json();
+    }
+
+    getUploadFileUrl(id: UploadId): string {
+        return `/api/upload/${id}/file`;
     }
 }
 

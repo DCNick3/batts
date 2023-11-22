@@ -27,7 +27,6 @@ use crate::extractors::{Json, Path, UserContext};
 use crate::related_data::{CollectIds, ViewWithRelated, WithGroupsAndUsers, WithUsers};
 use crate::view_repositry_ext::LifecycleViewRepositoryExt as _;
 pub use login::LoginError;
-pub use upload::{UploadError, UploadPolicy, UploadState};
 
 async fn generic_query<R: ViewWithRelated>(
     State(state): State<ApplicationState>,
@@ -153,7 +152,11 @@ pub fn make_api_router(config: &crate::config::Routes) -> Router<ApplicationStat
 
     router = router.route("/login/telegram", post(login::telegram_login));
 
-    router = router.route("/upload/initiate", post(upload::initiate));
+    router = router
+        .route("/upload/:id/file", get(upload::get_file))
+        .route("/upload/:id/file/:filename", get(upload::get_file))
+        .route("/upload/initiate", post(upload::initiate))
+        .route("/upload/:id/finalize", post(upload::finalize));
 
     router = router
         .route("/search/tickets", get(search::tickets))

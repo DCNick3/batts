@@ -1,4 +1,4 @@
-use crate::routes::UploadPolicy;
+use crate::services::upload::UploadPolicy;
 use custom_debug::Debug;
 use serde::Deserialize;
 use snafu::{ResultExt, Whatever};
@@ -11,7 +11,7 @@ pub struct Config {
     pub server: Server,
     pub routes: Routes,
     pub auth: Auth,
-    pub upload: Option<Upload>,
+    pub upload: Upload,
     pub storage: Storage,
 }
 

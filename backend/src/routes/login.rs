@@ -130,7 +130,6 @@ fn validate_telegram_login(data: &TelegramLoginData, secret: &TelegramSecret) ->
     true
 }
 
-#[axum::debug_handler]
 pub async fn telegram_login(
     jar: CookieJar,
     State(state): State<ApplicationState>,

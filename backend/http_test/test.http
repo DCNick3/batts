@@ -32,9 +32,6 @@ Content-Type: application/json
   }
 }
 
-###
-POST {{url}}/api/fake-login/W4Qkb3bGVeW1oGqYbd3Cm3
-
 ### Get user
 GET {{url}}/api/users/FDUeanyKADQEpyrydYn7XB
 
@@ -115,14 +112,22 @@ Content-Type: application/json
     const rq = response.body.payload;
 
     let command = `curl -v -X POST ${rq.url} \\\n`;
-    for (field in rq.fields) {
+    for (let field in rq.fields) {
         command += `    -F "${field}=${rq.fields[field]}" \\\n`;
     }
 
     command += `    -F file=@test.txt`;
 
     client.log(command);
+
+    client.global.set("upload_id", rq.id);
 %}
+
+### Finalize the upload (after using the curl command)
+POST {{url}}/api/upload/{{upload_id}}/finalize
+
+### Get the file
+GET {{url}}/api/upload/{{upload_id}}/file
 
 ### Search tickets
 GET {{url}}/api/search/tickets?q=brok

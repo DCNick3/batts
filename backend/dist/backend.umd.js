@@ -346,6 +346,25 @@
     async searchGroups(q) {
       return await this.#get(`/api/search/groups?q=${q}`);
     }
+    async initiateUpload(metadata) {
+      const res = await this.fetch(`/api/upload/initiate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(metadata)
+      });
+      return await res.json();
+    }
+    async finalizeUpload(id) {
+      const res = await this.fetch(`/api/upload/${id}/finalize`, {
+        method: "POST"
+      });
+      return await res.json();
+    }
+    getUploadFileUrl(id) {
+      return `/api/upload/${id}/file`;
+    }
   }
 
   exports.Api = Api;

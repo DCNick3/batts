@@ -1,5 +1,4 @@
-import type { ApiResult, FetchFn, UserId, UserView, UserProfileView, ExternalUserProfile, TicketId, CreateTicket, SendTicketMessage, TicketView, TicketListingViewExpandedItem, TicketStatus, TelegramLoginData, CreateGroup, GroupView, GroupId, WithUsers, WithGroupsAndUsers } from "../";
-import type { SearchResults } from "./SearchResults";
+import type { ApiResult, FetchFn, UserId, UserView, UserProfileView, ExternalUserProfile, TicketId, CreateTicket, SendTicketMessage, TicketView, TicketListingViewExpandedItem, TicketStatus, TelegramLoginData, CreateGroup, GroupView, GroupId, WithUsers, WithGroupsAndUsers, InitiatedUpload, SearchResults, UploadMetadata, UploadId } from "../";
 export declare function generateId(): string;
 export declare class Api {
     #private;
@@ -27,5 +26,8 @@ export declare class Api {
     searchTickets(q: string): Promise<ApiResult<SearchResults<TicketView>>>;
     searchUsers(q: string): Promise<ApiResult<SearchResults<UserView>>>;
     searchGroups(q: string): Promise<ApiResult<SearchResults<GroupView>>>;
+    initiateUpload(metadata: UploadMetadata): Promise<ApiResult<InitiatedUpload>>;
+    finalizeUpload(id: UploadId): Promise<ApiResult<null>>;
+    getUploadFileUrl(id: UploadId): string;
 }
 export default Api;

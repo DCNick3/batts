@@ -1,147 +1,18 @@
 use crate::api_result::ApiResult;
-use crate::error::{ApiError, UploadSnafu};
-use crate::extractors::{Json, UserContext};
+use crate::domain::upload::{UploadCommand, UploadError, UploadId, UploadView};
+use crate::error::{Error, PersistenceSnafu};
+use crate::extractors::{Json, Path, UserContext};
+use crate::services::upload::UploadMetadata;
 use crate::state::ApplicationState;
-use async_trait::async_trait;
-use axum::extract::FromRequestParts;
-use axum::http::request::Parts;
-use axum::http::StatusCode;
-use camino::{Utf8Path, Utf8PathBuf};
+use axum::extract::State;
+use axum::response::Redirect;
 use chrono::{DateTime, Utc};
-use cqrs_es::Id;
-use futures_util::FutureExt;
-use s3::post_policy::{PostPolicyExpiration, PresignedPost};
-use s3::{Bucket, PostPolicy, PostPolicyField, PostPolicyValue};
+use cqrs_es::persist::ViewRepository;
+use cqrs_es::{AggregateError, Id};
 use serde::{Deserialize, Serialize};
-use snafu::{ResultExt, Snafu};
-use std::collections::{BTreeMap, BTreeSet};
-use tracing::info;
+use snafu::ResultExt;
+use std::collections::BTreeMap;
 use ts_rs::TS;
-
-#[derive(Default, Debug, Copy, Clone, Eq, PartialEq, Hash, TS, Serialize, Deserialize)]
-#[ts(export)]
-pub struct UploadId(pub Id);
-
-#[derive(Snafu, Debug)]
-pub enum UploadError {
-    /// Upload option is not available because it was not properly configured on the server
-    NotConfigured,
-    /// Upload policy violated: `{violations:?}`
-    PolicyViolated { violations: Vec<PolicyViolation> },
-    /// Error in the underlying S3 library
-    S3 { source: s3::error::S3Error },
-}
-
-impl ApiError for UploadError {
-    fn status_code(&self) -> StatusCode {
-        match self {
-            UploadError::NotConfigured => StatusCode::INTERNAL_SERVER_ERROR,
-            UploadError::PolicyViolated { .. } => StatusCode::BAD_REQUEST,
-            UploadError::S3 { .. } => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct UploadState {
-    pub bucket: Bucket,
-    pub policy: UploadPolicy,
-}
-
-#[async_trait]
-impl FromRequestParts<ApplicationState> for UploadState {
-    type Rejection = ApiResult;
-
-    async fn from_request_parts(
-        _: &mut Parts,
-        state: &ApplicationState,
-    ) -> Result<Self, Self::Rejection> {
-        match state.upload.clone() {
-            Some(s3) => Ok(s3),
-            None => Err(ApiResult::from_result(
-                Err(UploadError::NotConfigured).context(UploadSnafu),
-            )),
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, TS)]
-#[ts(export)]
-pub struct InitiateUpload {
-    filename: String,
-    content_type: String,
-    size: u64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, TS)]
-#[ts(export)]
-pub struct UploadPolicy {
-    allowed_file_extensions: BTreeSet<String>,
-    allowed_content_types: BTreeSet<String>,
-    max_size: u64,
-}
-
-#[derive(Snafu, Debug, PartialOrd, Ord, PartialEq, Eq)]
-pub enum PolicyViolation {
-    /// Invalid filename
-    InvalidFilename,
-    /// File extension not allowed
-    FileExtensionNotAllowed,
-    /// Content type not allowed
-    ContentTypeNotAllowed,
-    /// File too large
-    FileTooLarge,
-}
-
-const BAD_FILENAME_CHARS: &[char] = &['/', '\\', '?', '%', '*', ':', '|', '"', '<', '>'];
-
-impl InitiateUpload {
-    pub fn validate(&self, policy: &UploadPolicy) -> Result<(), Vec<PolicyViolation>> {
-        let mut violations = BTreeSet::new();
-
-        let filename = Utf8Path::new(&self.filename);
-        if filename.as_str().contains(BAD_FILENAME_CHARS) {
-            violations.insert(PolicyViolation::InvalidFilename);
-        }
-        match filename.extension() {
-            Some(extension) => {
-                if !policy.allowed_file_extensions.contains(extension) {
-                    violations.insert(PolicyViolation::FileExtensionNotAllowed);
-                }
-            }
-            None => {
-                violations.insert(PolicyViolation::InvalidFilename);
-            }
-        }
-        if !policy.allowed_content_types.contains(&self.content_type) {
-            violations.insert(PolicyViolation::ContentTypeNotAllowed);
-        }
-        if self.size > policy.max_size {
-            violations.insert(PolicyViolation::FileTooLarge);
-        }
-
-        if violations.is_empty() {
-            Ok(())
-        } else {
-            Err(violations.into_iter().collect())
-        }
-    }
-
-    pub async fn make_signed_request(
-        self,
-        bucket: Bucket,
-        path: &str,
-    ) -> Result<PresignedPost, s3::error::S3Error> {
-        PostPolicy::new(PostPolicyExpiration::ExpiresIn(1800))
-            .condition(
-                PostPolicyField::ContentType,
-                PostPolicyValue::Exact(self.content_type.into()),
-            )?
-            .condition(PostPolicyField::Key, PostPolicyValue::Exact(path.into()))?
-            .sign(bucket)
-            .await
-    }
-}
 
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export)]
@@ -153,44 +24,122 @@ pub struct InitiatedUpload {
     pub expiration: DateTime<Utc>,
 }
 
-// pub struct
+fn bad_state(view: &UploadView) -> Error {
+    Error::Upload {
+        source: AggregateError::UserError(match view {
+            UploadView::NotInitiated => UploadError::NotInitiated,
+            UploadView::Finalized { .. } => UploadError::AlreadyFinalized,
+            UploadView::Dropped => UploadError::AlreadyDropped,
+            UploadView::Initiated { .. } => UploadError::AlreadyInitiated,
+        }),
+    }
+}
+
+// TODO: I think this will just redirect to the file in the object storage
+pub async fn get_file(
+    State(state): State<ApplicationState>,
+    // use the default, non-json extractor here
+    // because this URL is not supposed to return JSON
+    axum::extract::Path(id): axum::extract::Path<UploadId>,
+) -> Redirect {
+    let id_str = id.0.to_string();
+    let view = state
+        .cqrs
+        .upload_view_repository
+        .load(&id_str)
+        .await
+        .context(PersistenceSnafu)
+        // error handing is aaaaa
+        .unwrap()
+        .ok_or(Error::NotFound)
+        .unwrap();
+
+    let UploadView::Finalized { owner, metadata } = view else {
+        return Err(bad_state(&view)).unwrap();
+    };
+
+    let url = state
+        .upload_service
+        .make_signed_retrieve_url(owner, id, &metadata)
+        .await
+        .map_err(AggregateError::UserError)
+        .unwrap();
+
+    Redirect::to(&url)
+}
 
 pub async fn initiate(
-    state: UploadState,
+    State(state): State<ApplicationState>,
     user_context: UserContext,
-    Json(upload): Json<InitiateUpload>,
+    Json(meta): Json<UploadMetadata>,
 ) -> ApiResult<InitiatedUpload> {
-    ApiResult::from_async_fn(|| {
-        async move {
-            upload
-                .validate(&state.policy)
-                .map_err(|violations| UploadError::PolicyViolated { violations })?;
+    ApiResult::from_async_fn(|| async move {
+        let upload_id = UploadId(Id::generate());
 
-            let upload_id = UploadId(Id::generate());
-            let path = Utf8PathBuf::from(user_context.user_id().0.to_string())
-                .join(upload_id.0.to_string())
-                .join(&upload.filename);
+        state
+            .cqrs
+            .upload_cqrs
+            .execute(
+                upload_id,
+                user_context.authenticated(UploadCommand::Initiate(meta.clone())),
+            )
+            .await?;
 
-            let presigned = upload
-                .make_signed_request(state.bucket, path.as_str())
-                .await
-                .context(S3Snafu)?;
+        let presigned = state
+            .upload_service
+            .make_signed_upload_request(user_context.user_id(), upload_id, meta)
+            .await
+            .map_err(AggregateError::UserError)?;
 
-            info!("Initiating an upload to {}", path);
+        let upload = InitiatedUpload {
+            id: upload_id,
+            url: presigned.url,
+            fields: presigned.fields.into_iter().collect(),
+            expiration: DateTime::from_timestamp(presigned.expiration.unix_timestamp(), 0).unwrap(),
+        };
 
-            let upload = InitiatedUpload {
-                id: upload_id,
-                url: presigned.url,
-                fields: presigned.fields.into_iter().collect(),
-                expiration: DateTime::from_timestamp(presigned.expiration.unix_timestamp(), 0)
-                    .unwrap(),
-            };
-
-            Ok(upload)
-        }
-        .map(|r: Result<_, UploadError>| r.context(UploadSnafu))
+        Ok(upload)
     })
     .await
 }
 
-// pub async fn finalize(state: UploadState, user_context: UserContext)
+pub async fn finalize(
+    State(state): State<ApplicationState>,
+    user_context: UserContext,
+    Path(id): Path<UploadId>,
+) -> ApiResult<()> {
+    ApiResult::from_async_fn(|| async move {
+        let id_str = id.0.to_string();
+        let view = state
+            .cqrs
+            .upload_view_repository
+            .load(&id_str)
+            .await
+            .context(PersistenceSnafu)?
+            .ok_or(Error::NotFound)?;
+
+        let UploadView::Initiated { owner, metadata } = view else {
+            return Err(bad_state(&view));
+        };
+        if owner != user_context.user_id() {
+            return Err(Error::Upload {
+                source: AggregateError::UserError(UploadError::Forbidden),
+            });
+        }
+
+        state
+            .upload_service
+            .check_upload(owner, id, &metadata)
+            .await
+            .map_err(AggregateError::UserError)?;
+
+        state
+            .cqrs
+            .upload_cqrs
+            .execute(id, user_context.authenticated(UploadCommand::Finalize))
+            .await?;
+
+        Ok(())
+    })
+    .await
+}

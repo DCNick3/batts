@@ -38,7 +38,7 @@ export type { ChangeStatus } from './bindings/ChangeStatus';
 export type { ChangeAssignee } from './bindings/ChangeAssignee';
 export type { UploadId } from './bindings/UploadId';
 export type { UploadPolicy } from './bindings/UploadPolicy';
-export type { InitiateUpload } from './bindings/InitiateUpload';
 export type { InitiatedUpload } from './bindings/InitiatedUpload';
+export type { UploadMetadata } from './bindings/UploadMetadata';
 export type { SearchResults } from './bindings/SearchResults';
 export type { SearchResultItem } from './bindings/SearchResultItem';
