@@ -5,12 +5,13 @@
   import { Timeline } from '$lib/components/Timeline'
   import StatusBadge from '$lib/components/StatusBadge.svelte'
   import Ticket from './Ticket.svelte'
-  import { Button, Textarea } from 'flowbite-svelte'
+  import { Button, Label, Textarea } from 'flowbite-svelte'
   import { DropdownItem } from 'flowbite-svelte'
   import { invalidateAll } from '$app/navigation'
   import { getContext } from 'svelte'
   import A from '$lib/components/A.svelte'
   import StatusOption from './StatusOption.svelte'
+  import Icon from '@iconify/svelte'
 
   export let ticketView: TicketView
   export let ticketId: string
@@ -39,6 +40,7 @@
   let state: State = 'Ok'
   let messageField: string = ''
   let errorMessage: string = ''
+  let files: FileList | undefined
   const ticketStatuses: TicketStatus[] = ['Pending', 'InProgress', 'Fixed', 'Declined']
 
   const user = getContext<SvelteStore<null | UserView>>('user')
@@ -102,7 +104,11 @@
     }
   }
 
-  const canEdit: boolean = $user !== null && editPermissions.has($user.id)
+  $: canEdit = $user !== null && editPermissions.has($user.id)
+
+  const removeFiles = () => {
+    files = undefined
+  }
 </script>
 
 <!--
@@ -218,6 +224,22 @@
         {#if state === 'Error'}
           <span class="text-red-500">{errorMessage}</span>
         {/if}
+        <div class="flex px-2 gap-2 text-sm font-medium text-gray-700">
+          {#if files}
+            {#each files as file}
+              <span class="flex items-center">
+                {file.name}
+              </span>
+            {/each}
+            <button on:click={() => removeFiles()}>
+              <Icon icon="fa:remove" style="width:8px; height: 8px;" />
+            </button>
+          {/if}
+          <Label class="ml-auto cursor-pointer">
+            <Icon icon="icomoon-free:attachment" style="width: 20px; height: 20px;"/>
+            <input type="file" class="hidden" multiple bind:files />
+          </Label>  
+        </div>
         <Textarea
           class="mt-2 resize-none"
           name="message"
