@@ -1,6 +1,6 @@
 services:
   backend:
-    image: ghcr.io/dcnick3/batts:backend-2aa468964c983b0e4df1c0fdd30d0cf9c81944e1
+    image: ghcr.io/dcnick3/batts:backend-6bf6c870026c3ef97a9bc9211b72b4179d51535f
     environment:
       CONFIG_STORAGE__MEILISEARCH__ENDPOINT: "http://meilisearch:7700"
       CONFIG_STORAGE__MEILISEARCH__API_KEY: "aSampleMasterKey"
